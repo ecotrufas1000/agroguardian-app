@@ -3,3 +3,6 @@ streamlit-folium
 folium
 requests
 pandas
+pyTelegramBotAPI
+google-generativeai
+Pillow
