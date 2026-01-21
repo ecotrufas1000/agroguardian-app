@@ -102,7 +102,7 @@ if menu == "📊 Monitoreo":
     dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
     m3.metric("VIENTO", f"{clima['v_vel']} km/h", delta="Fuerte" if clima['v_vel'] > 18 else None, delta_color=v_color)
     m4.metric("DIRECCIÓN", dirs[int((clima['v_dir'] + 22.5) / 45) % 8])
-    m5.metric("AGUA AIRE", f"{clima['tpw']} mm")
+    m5.metric("PRECIPITACION", f"{clima['tpw']} mm")
 
     st.markdown("---")
     
@@ -152,4 +152,5 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
