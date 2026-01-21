@@ -169,10 +169,61 @@ elif menu == "💧 Balance Hídrico":
     st.area_chart(df_graf, color=["#3498db", "#e74c3c"])
 
 elif menu == "⛈️ Granizo":
-    st.subheader("⛈️ Riesgo Granizo")
-    r = 30 if clima['presion'] < 1012 else 10
-    if clima['tpw'] > 25: r += 40
-    st.metric("Probabilidad", f"{r}%")
+    st.title("⛈️ Alerta de Granizo y Tormentas")
+    
+    # --- ALGORITMO DE RIESGO MEJORADO ---
+    # Parámetros: Presión baja, Humedad alta, Viento fuerte y TPW (Agua Precipitable)
+    riesgo = 0
+    if clima['presion'] < 1010: riesgo += 30  # Baja presión (ciclónica)
+    if clima['hum'] > 80: riesgo += 20        # Mucha humedad en superficie
+    if clima['tpw'] > 30: riesgo += 30        # Mucha carga de agua en atmósfera
+    if clima['v_vel'] > 25: riesgo += 20      # Vientos que sugieren frentes
+    
+    # Ajuste de color según severidad
+    color_riesgo = "#2ecc71" if riesgo < 40 else "#f1c40f" if riesgo < 70 else "#e74c3c"
+    
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        st.markdown(f"""
+            <div style="background:{color_riesgo}; padding:30px; border-radius:15px; text-align:center; color:white;">
+                <h3 style="margin:0; color:white;">Probabilidad de Tormenta</h3>
+                <h1 style="margin:0; font-size:80px; color:white;">{riesgo}%</h1>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with c2:
+        st.subheader("📡 Monitoreo Doppler")
+        st.write("Para una precisión del 100%, chequea el eco de granizo (manchas blancas/púrpuras) en el radar en vivo.")
+        
+        # Link dinámico al Radar Doppler de Windy centrado en tu ubicación
+        url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},9"
+        
+        st.markdown(f"""
+            <a href="{url_radar}" target="_blank">
+                <button style="
+                    width:100%; 
+                    background-color:#2ecc71; 
+                    color:white; 
+                    padding:20px; 
+                    font-size:18px; 
+                    border:none; 
+                    border-radius:10px; 
+                    cursor:pointer;
+                    font-weight:bold;">
+                    🛰️ ABRIR RADAR DOPPLER EN VIVO
+                </button>
+            </a>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+    
+    # Consejos preventivos según el riesgo
+    if riesgo >= 70:
+        st.error("🚨 **AVISO URGENTE:** Condiciones altamente favorables para granizo. Se recomienda resguardar maquinaria y vehículos.")
+    elif riesgo >= 40:
+        st.warning("⚠️ **ATENCIÓN:** Atmósfera inestable. Monitorear el avance de nubes de gran desarrollo vertical (Cumulonimbus).")
+    else:
+        st.success("✅ **TIEMPO ESTABLE:** Por el momento no se detectan condiciones de tormentas severas.")
 
 elif menu == "❄️ Heladas":
     st.subheader("❄️ Alerta Heladas")
@@ -185,6 +236,7 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
 
