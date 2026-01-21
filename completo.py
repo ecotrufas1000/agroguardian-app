@@ -83,10 +83,28 @@ with st.sidebar:
     if st.button("🔄 ACTUALIZAR"): st.rerun()
 
 # === 3. PÁGINA: MONITOREO ===
+# === 3. PÁGINA: MONITOREO ===
 if menu == "📊 Monitoreo":
+    # --- ENCABEZADO PROFESIONAL ---
+    st.markdown("""
+        <div style="background: linear-gradient(to right, #1e3d2f, #2ecc71); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🚜 AgroGuardian Pro</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Tu asistente profesional de monitoreo y decisiones climáticas</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- ALERTA INTELIGENTE DE GRANIZO (Solo aparece si hay riesgo) ---
+    riesgo_granizo = 0
+    if clima['presion'] < 1010: riesgo_granizo += 30
+    if clima['tpw'] > 30: riesgo_granizo += 30
+    if clima['v_vel'] > 25: riesgo_granizo += 20
+    
+    if riesgo_granizo >= 50:
+        st.error(f"⚠️ **ALERTA DE TORMENTA:** El riesgo de granizo es del **{riesgo_granizo}%**. Revisa la sección de Granizo para ver el Radar.")
+
+    # Fila de métricas con alertas visuales
     m1, m2, m3, m4, m5 = st.columns(5)
-    t_color = "normal" if clima['temp'] < 32 else "inverse"
-    v_color = "off" if clima['v_vel'] < 18 else "normal"
+    # ... (continúa el resto de tus métricas igual que antes)
     
     m1.metric("TEMP.", f"{clima['temp']}°C", delta="Calor" if clima['temp'] > 32 else None, delta_color=t_color)
     m2.metric("HUMEDAD", f"{clima['hum']}%")
@@ -236,6 +254,7 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
 
