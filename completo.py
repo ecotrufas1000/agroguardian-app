@@ -10,36 +10,100 @@ from datetime import datetime
 # === CONFIGURACIÓN DE PÁGINA Y ESTILO ===
 st.set_page_config(page_title="AgroGuardian Pro", layout="wide", page_icon="🚜")
 
-# --- CSS PERSONALIZADO ---
+# --- CSS ACTUALIZADO PARA LETRAS MÁS CHICAS Y COMPACTAS ---
 st.markdown("""
     <style>
     .main { background-color: #f5f7f1; }
+    /* Achicar métricas */
+    [data-testid="stMetricValue"] { font-size: 1.8rem !important; } 
+    [data-testid="stMetricLabel"] { font-size: 0.8rem !important; }
+    /* Achicar textos generales */
+    html, body, [class*="css"] { font-size: 0.95rem; }
     .stMetric { 
         background-color: #ffffff; 
-        padding: 15px; 
-        border-radius: 12px; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        padding: 10px; 
+        border-radius: 10px; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
     }
-    div[data-testid="stSidebar"] { background-color: #1e3d2f; color: white; }
-    .stButton>button { 
-        width: 100%; 
-        border-radius: 8px; 
-        background-color: #4CAF50; 
-        color: white; 
-        border: none;
-        font-weight: bold;
-    }
-    .forecast-card {
-        border-radius: 10px;
-        padding: 10px;
-        text-align: center;
-        background-color: #ffffff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border: 1px solid #e0e0e0;
-    }
-    h1, h2, h3 { color: #1e3d2f; }
+    div[data-testid="stSidebar"] { background-color: #1e3d2f; }
+    .forecast-card { padding: 5px; font-size: 0.75rem; }
     </style>
     """, unsafe_allow_html=True)
+
+# === ACTUALIZACIÓN EN obtener_datos (Para traer viento) ===
+def obtener_datos():
+    datos = {"temp": 0.0, "hum": 0, "presion": 1013, "viento_vel": 0.0, "viento_dir": 0, "tpw": 0.0, "etc": 4.0}
+    try:
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric&lang=es"
+        r_ow = requests.get(url, timeout=5).json()
+        if 'main' in r_ow:
+            datos.update({
+                "temp": r_ow['main']['temp'], 
+                "hum": r_ow['main']['humidity'], 
+                "presion": r_ow['main']['pressure'],
+                "viento_vel": round(r_ow['wind']['speed'] * 3.6, 1), # Pasar a km/h
+                "viento_dir": r_ow['wind']['deg']
+            })
+        # (Mantené aquí el resto de la función r_om para etc y tpw...)
+    except: pass
+    return datos
+
+# === PÁGINA MONITOREO RE-DISEÑADA ===
+if menu == "📊 Monitoreo":
+    st.subheader("📊 Resumen Operativo")
+    
+    # Lógica de colores para alertas
+    color_temp = "normal" if clima['temp'] < 30 else "inverse" # Rojo si es alto
+    color_viento = "off" if clima['viento_vel'] < 15 else "normal" # Naranja si hay viento
+    
+    # Fila 1 de Métricas
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("TEMP.", f"{clima['temp']}°C", delta="Estable" if clima['temp']<30 else "Calor", delta_color=color_temp)
+    m2.metric("HUMEDAD", f"{clima['hum']}%")
+    m3.metric("VIENTO", f"{clima['viento_vel']} km/h", delta_color=color_viento)
+    
+    # Convertir grados a puntos cardinales para dirección
+    direcciones = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    idx = int((clima['viento_dir'] + 22.5) / 45) % 8
+    m4.metric("DIR. VIENTO", direcciones[idx])
+    m5.metric("AGUA AIRE", f"{clima['tpw']}mm")
+
+    st.markdown("---")
+    
+    # Pronóstico en fila chica
+    st.caption("📅 PRONÓSTICO 5 DÍAS")
+    pronos = obtener_pronostico_completo()
+    if pronos:
+        cols_p = st.columns(5)
+        for i, p in enumerate(pronos):
+            with cols_p[i]:
+                st.markdown(f"""
+                    <div style="border: 1px solid #ddd; border-radius: 5px; padding: 5px; text-align: center; background: white;">
+                        <b style="font-size: 10px;">{p['fecha']}</b><br>
+                        <span style="color:red; font-size: 14px;">{p['max']}°</span> | 
+                        <span style="color:blue; font-size: 14px;">{p['min']}°</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        st.caption("🗺️ MAPA SATELITAL")
+        m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
+        folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
+        folium.Marker([LAT, LON], icon=folium.Icon(color="green", icon="info-sign")).add_to(m)
+        folium_static(m, width=750, height=300)
+    with c2:
+        st.caption("🐮 BIENESTAR ANIMAL (ITH)")
+        t_f = (1.8 * clima['temp']) + 32
+        ith = round(t_f - (0.55 - 0.55 * (clima['hum'] / 100)) * (t_f - 58), 1)
+        color_ith = "#2ecc71" if ith < 72 else "#f39c12" if ith < 79 else "#e74c3c"
+        st.markdown(f"""
+            <div style='background:{color_ith}; padding:15px; border-radius:10px; text-align:center; color:white;'>
+                <h2 style='margin:0;'>{ith}</h2>
+                <small>ÍNDICE ACTUAL</small>
+            </div>
+            """, unsafe_allow_html=True)
 
 # === 1. LÓGICA DE DATOS ===
 API_KEY = "2762051ad62d06f1d0fe146033c1c7c8"
@@ -188,3 +252,4 @@ elif menu == "📝 Bitácora":
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for n in reversed(f.readlines()): st.info(n.strip())
     else: st.warning("No hay registros en la bitácora.")
+
