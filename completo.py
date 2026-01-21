@@ -83,7 +83,6 @@ with st.sidebar:
     if st.button("🔄 ACTUALIZAR"): st.rerun()
 
 # === 3. PÁGINA: MONITOREO ===
-# === 3. PÁGINA: MONITOREO ===
 if menu == "📊 Monitoreo":
     # --- ENCABEZADO PROFESIONAL ---
     st.markdown("""
@@ -93,21 +92,25 @@ if menu == "📊 Monitoreo":
         </div>
     """, unsafe_allow_html=True)
 
-    # --- ALERTA INTELIGENTE DE GRANIZO (Solo aparece si hay riesgo) ---
+    # --- LÓGICA DE ALERTAS ---
     riesgo_granizo = 0
     if clima['presion'] < 1010: riesgo_granizo += 30
     if clima['tpw'] > 30: riesgo_granizo += 30
     if clima['v_vel'] > 25: riesgo_granizo += 20
     
+    # Colores para métricas (evita NameError)
+    t_color = "normal" if clima['temp'] < 32 else "inverse"
+    v_color = "off" if clima['v_vel'] < 18 else "normal"
+
     if riesgo_granizo >= 50:
         st.error(f"⚠️ **ALERTA DE TORMENTA:** El riesgo de granizo es del **{riesgo_granizo}%**. Revisa la sección de Granizo para ver el Radar.")
 
-    # Fila de métricas con alertas visuales
+    # Fila de métricas
     m1, m2, m3, m4, m5 = st.columns(5)
-    # ... (continúa el resto de tus métricas igual que antes)
     
     m1.metric("TEMP.", f"{clima['temp']}°C", delta="Calor" if clima['temp'] > 32 else None, delta_color=t_color)
     m2.metric("HUMEDAD", f"{clima['hum']}%")
+    
     dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
     m3.metric("VIENTO", f"{clima['v_vel']} km/h", delta="Fuerte" if clima['v_vel'] > 18 else None, delta_color=v_color)
     m4.metric("DIRECCIÓN", dirs[int((clima['v_dir'] + 22.5) / 45) % 8])
@@ -131,14 +134,14 @@ if menu == "📊 Monitoreo":
         st.markdown(f"<div style='background:{bg}; padding:15px; border-radius:10px; text-align:center; color:white;'><h2 style='margin:0;'>{ith}</h2><small>ESTADO ITH</small></div>", unsafe_allow_html=True)
         
         st.caption("📅 PRONÓSTICO CORTO")
-        for p in obtener_pronostico()[:3]:
+        pronos = obtener_pronostico()
+        for p in pronos[:3]:
             st.write(f"**{p['f']}:** {p['min']}°/{p['max']}° - {p['d']}")
 
 # === 4. PÁGINA: BALANCE HÍDRICO ===
 elif menu == "💧 Balance Hídrico":
     st.title("💧 Gestión Hídrica del Lote")
 
-    # Sincronización Bot
     cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
     if os.path.exists('estado_lote.json'):
         try:
@@ -157,11 +160,10 @@ elif menu == "💧 Balance Hídrico":
         kc_web = col2.slider("Ajuste Kc", 0.1, 1.3, float(kc_bot))
         lluvia = col2.number_input("Lluvia Real (mm)", 0.0, 200.0, float(clima['lluvia_est']))
 
-    # Cálculos
     etc = round(clima['etc'] * kc_web, 2)
     agua_hoy = min(cc, max(pm, 185.0 + lluvia - etc))
     util_pct = int(((agua_hoy - pm) / (cc - pm)) * 100)
-    umbral = pm + (cc - pm) * 0.4 # Umbral crítico al 40%
+    umbral = pm + (cc - pm) * 0.4 
 
     c1, c2 = st.columns([1, 2])
     with c1:
@@ -173,7 +175,6 @@ elif menu == "💧 Balance Hídrico":
         if util_pct < 40: st.error("🚨 **ALERTA DE RIEGO:** El suelo está bajo el umbral crítico.")
         else: st.success("✅ **ESTADO ÓPTIMO:** Reserva hídrica suficiente.")
 
-    # Gráfico de Proyección (Mejorado)
     st.divider()
     st.subheader("📈 Proyección de Reserva (7 días)")
     fechas = [(datetime.datetime.now() + datetime.timedelta(days=i)).strftime('%d/%m') for i in range(7)]
@@ -189,15 +190,12 @@ elif menu == "💧 Balance Hídrico":
 elif menu == "⛈️ Granizo":
     st.title("⛈️ Alerta de Granizo y Tormentas")
     
-    # --- ALGORITMO DE RIESGO MEJORADO ---
-    # Parámetros: Presión baja, Humedad alta, Viento fuerte y TPW (Agua Precipitable)
     riesgo = 0
-    if clima['presion'] < 1010: riesgo += 30  # Baja presión (ciclónica)
-    if clima['hum'] > 80: riesgo += 20        # Mucha humedad en superficie
-    if clima['tpw'] > 30: riesgo += 30        # Mucha carga de agua en atmósfera
-    if clima['v_vel'] > 25: riesgo += 20      # Vientos que sugieren frentes
+    if clima['presion'] < 1010: riesgo += 30
+    if clima['hum'] > 80: riesgo += 20
+    if clima['tpw'] > 30: riesgo += 30
+    if clima['v_vel'] > 25: riesgo += 20
     
-    # Ajuste de color según severidad
     color_riesgo = "#2ecc71" if riesgo < 40 else "#f1c40f" if riesgo < 70 else "#e74c3c"
     
     c1, c2 = st.columns([1, 1])
@@ -211,37 +209,21 @@ elif menu == "⛈️ Granizo":
     
     with c2:
         st.subheader("📡 Monitoreo Doppler")
-        st.write("Para una precisión del 100%, chequea el eco de granizo (manchas blancas/púrpuras) en el radar en vivo.")
-        
-        # Link dinámico al Radar Doppler de Windy centrado en tu ubicación
+        st.write("Para ver ecos de granizo en tiempo real:")
         url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},9"
         
         st.markdown(f"""
             <a href="{url_radar}" target="_blank">
-                <button style="
-                    width:100%; 
-                    background-color:#2ecc71; 
-                    color:white; 
-                    padding:20px; 
-                    font-size:18px; 
-                    border:none; 
-                    border-radius:10px; 
-                    cursor:pointer;
-                    font-weight:bold;">
-                    🛰️ ABRIR RADAR DOPPLER EN VIVO
+                <button style="width:100%; background-color:#2ecc71; color:white; padding:20px; font-size:18px; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">
+                    🛰️ ABRIR RADAR DOPPLER
                 </button>
             </a>
         """, unsafe_allow_html=True)
 
     st.divider()
-    
-    # Consejos preventivos según el riesgo
-    if riesgo >= 70:
-        st.error("🚨 **AVISO URGENTE:** Condiciones altamente favorables para granizo. Se recomienda resguardar maquinaria y vehículos.")
-    elif riesgo >= 40:
-        st.warning("⚠️ **ATENCIÓN:** Atmósfera inestable. Monitorear el avance de nubes de gran desarrollo vertical (Cumulonimbus).")
-    else:
-        st.success("✅ **TIEMPO ESTABLE:** Por el momento no se detectan condiciones de tormentas severas.")
+    if riesgo >= 70: st.error("🚨 **AVISO URGENTE:** Riesgo extremo de granizo.")
+    elif riesgo >= 40: st.warning("⚠️ **ATENCIÓN:** Atmósfera inestable.")
+    else: st.success("✅ **TIEMPO ESTABLE.**")
 
 elif menu == "❄️ Heladas":
     st.subheader("❄️ Alerta Heladas")
@@ -254,11 +236,3 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
-
-
-
-
-
-
-
-
