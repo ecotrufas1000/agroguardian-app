@@ -5,7 +5,7 @@ import requests
 import pandas as pd
 import json
 import os
-from datetime import datetime
+import datetime
 
 # === CONFIGURACIÓN Y ESTILO COMPACTO ===
 st.set_page_config(page_title="AgroGuardian Pro", layout="wide", page_icon="🚜")
@@ -13,7 +13,6 @@ st.set_page_config(page_title="AgroGuardian Pro", layout="wide", page_icon="🚜
 st.markdown("""
     <style>
     .main { background-color: #f8f9f6; }
-    /* Achicar métricas y textos */
     [data-testid="stMetricValue"] { font-size: 1.5rem !important; } 
     [data-testid="stMetricLabel"] { font-size: 0.75rem !important; }
     div.stMarkdown p { font-size: 0.85rem; }
@@ -45,12 +44,10 @@ LAT, LON = cargar_ubicacion()
 def obtener_datos():
     d = {"temp": 0.0, "hum": 0, "presion": 1013, "v_vel": 0.0, "v_dir": 0, "tpw": 0.0, "etc": 4.0, "lluvia_est": 0.0}
     try:
-        # OpenWeather (Actual)
         r_ow = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric&lang=es", timeout=5).json()
         if 'main' in r_ow:
             d.update({"temp": r_ow['main']['temp'], "hum": r_ow['main']['humidity'], "presion": r_ow['main']['pressure'], 
                       "v_vel": round(r_ow['wind']['speed']*3.6, 1), "v_dir": r_ow['wind']['deg']})
-        # OpenMeteo (Agro)
         r_om = requests.get(f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&hourly=precipitable_water,et0_fao_evapotranspiration,precipitation&timezone=auto", timeout=5).json()
         if 'hourly' in r_om:
             d.update({"tpw": r_om['hourly']['precipitable_water'][0], "etc": r_om['hourly']['et0_fao_evapotranspiration'][0] or 4.0, "lluvia_est": r_om['hourly']['precipitation'][0]})
@@ -70,41 +67,35 @@ def obtener_pronostico():
         res = []
         dias = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
         for f_s, v in list(diario.items())[:5]:
-            dt = datetime.strptime(f_s, '%Y-%m-%d')
+            dt = datetime.datetime.strptime(f_s, '%Y-%m-%d')
             res.append({"f": f"{dias[dt.weekday()]} {dt.day}", "min": round(v["min"],1), "max": round(v["max"],1), "d": v["desc"].capitalize()})
         return res
     except: return []
 
 clima = obtener_datos()
 
-# === 2. BARRA LATERAL (Define la variable 'menu' primero) ===
+# === 2. BARRA LATERAL ===
 with st.sidebar:
     st.title("AgroGuardian Pro")
-    st.markdown("---")
     menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "⛈️ Granizo", "❄️ Heladas", "📝 Bitácora"])
-    st.markdown("---")
+    st.divider()
     st.caption(f"📍 {round(LAT,3)}, {round(LON,3)}")
     if st.button("🔄 ACTUALIZAR"): st.rerun()
 
 # === 3. PÁGINA: MONITOREO ===
 if menu == "📊 Monitoreo":
-    # Fila de métricas con alertas visuales
     m1, m2, m3, m4, m5 = st.columns(5)
-    
-    # Alertas
     t_color = "normal" if clima['temp'] < 32 else "inverse"
     v_color = "off" if clima['v_vel'] < 18 else "normal"
     
     m1.metric("TEMP.", f"{clima['temp']}°C", delta="Calor" if clima['temp'] > 32 else None, delta_color=t_color)
     m2.metric("HUMEDAD", f"{clima['hum']}%")
-    
-    # Dirección de viento
     dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
     m3.metric("VIENTO", f"{clima['v_vel']} km/h", delta="Fuerte" if clima['v_vel'] > 18 else None, delta_color=v_color)
     m4.metric("DIRECCIÓN", dirs[int((clima['v_dir'] + 22.5) / 45) % 8])
     m5.metric("PRECIPITACION", f"{clima['tpw']} mm")
 
-    st.markdown("---")
+    st.divider()
     
     c1, c2 = st.columns([2, 1])
     with c1:
@@ -122,83 +113,61 @@ if menu == "📊 Monitoreo":
         st.markdown(f"<div style='background:{bg}; padding:15px; border-radius:10px; text-align:center; color:white;'><h2 style='margin:0;'>{ith}</h2><small>ESTADO ITH</small></div>", unsafe_allow_html=True)
         
         st.caption("📅 PRONÓSTICO CORTO")
-        pronos = obtener_pronostico()
-        for p in pronos[:3]: # Solo 3 para que sea compacto
+        for p in obtener_pronostico()[:3]:
             st.write(f"**{p['f']}:** {p['min']}°/{p['max']}° - {p['d']}")
 
-# === 4. OTRAS SECCIONES (Para evitar errores de NameError si cambias de pestaña) ===
+# === 4. PÁGINA: BALANCE HÍDRICO ===
 elif menu == "💧 Balance Hídrico":
-    st.subheader("💧 Gestión de Agua en Suelo")
+    st.title("💧 Gestión Hídrica del Lote")
 
-    # 1. Definir valores por defecto (Evita el NameError)
-    cultivo_bot = "No definido"
-    kc_bot = 0.85
-    fecha_bot = "Sin datos"
-    etapa_bot = "N/A"
-
-    # 2. Intentar leer la sincronización del Bot
+    # Sincronización Bot
+    cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
     if os.path.exists('estado_lote.json'):
         try:
             with open('estado_lote.json', 'r', encoding='utf-8') as f:
-                datos_bot = json.load(f)
-                cultivo_bot = datos_bot.get("cultivo", "No definido")
-                kc_bot = datos_bot.get("kc", 0.85)
-                fecha_bot = datos_bot.get("ultima_actualizacion", "Sin fecha")
-                etapa_bot = datos_bot.get("etapa", "N/A")
-        except:
-            pass
+                db = json.load(f)
+                cultivo_bot, kc_bot = db.get("cultivo", "N/D"), db.get("kc", 0.85)
+                fecha_bot, etapa_bot = db.get("ultima_actualizacion", "N/D"), db.get("etapa", "N/D")
+        except: pass
 
-    # 3. Interfaz de usuario
-    st.info(f"🔄 **Sincronizado con Bot:** {cultivo_bot} | **Kc:** {kc_bot} | **Etapa:** {etapa_bot}\n\n📅 *Última actualización: {fecha_bot}*")
+    st.info(f"🔄 **Lote:** {cultivo_bot} | **Kc:** {kc_bot} | **Fase:** {etapa_bot} (Act: {fecha_bot})")
     
-    with st.expander("⚙️ Ajustar Parámetros de Suelo y Cultivo"):
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            capacidad_campo = st.number_input("Capacidad de Campo (mm)", value=250, help="Máxima retención de agua.")
-            punto_marchitez = st.number_input("Punto de Marchitez (mm)", value=100, help="Límite donde la planta se marchita.")
-        with col_c2:
-            # Usamos el KC que viene del bot como valor por defecto en el slider
-            kc_web = st.slider("Ajuste fino de Kc", 0.1, 1.3, float(kc_bot))
+    with st.expander("⚙️ Configuración de Suelo"):
+        col1, col2 = st.columns(2)
+        cc = col1.number_input("Capacidad de Campo (mm)", 200, 400, 250)
+        pm = col1.number_input("Punto Marchitez (mm)", 50, 150, 100)
+        kc_web = col2.slider("Ajuste Kc", 0.1, 1.3, float(kc_bot))
+        lluvia = col2.number_input("Lluvia Real (mm)", 0.0, 200.0, float(clima['lluvia_est']))
 
-    st.markdown("---")
+    # Cálculos
+    etc = round(clima['etc'] * kc_web, 2)
+    agua_hoy = min(cc, max(pm, 185.0 + lluvia - etc))
+    util_pct = int(((agua_hoy - pm) / (cc - pm)) * 100)
+    umbral = pm + (cc - pm) * 0.4 # Umbral crítico al 40%
 
-    # 4. Cálculos del Balance
-    etc_diaria = round(clima['etc'] * kc_web, 2)
-    lluvia_real = st.number_input("Lluvia registrada hoy (mm)", value=float(clima['lluvia_est']), step=1.0)
-    
-    # Simulación de estado hídrico (esto se profesionalizará con base de datos luego)
-    agua_estimada = 185.0 
-    agua_hoy = min(capacidad_campo, max(punto_marchitez, agua_estimada + lluvia_real - etc_diaria))
-    agua_util_pct = int(((agua_hoy - punto_marchitez) / (capacidad_campo - punto_marchitez)) * 100)
-
-    # 5. Visualización de resultados
     c1, c2 = st.columns([1, 2])
-    
     with c1:
-        color_agua = "#2ecc71" if agua_util_pct > 50 else "#f39c12" if agua_util_pct > 25 else "#e74c3c"
-        st.markdown(f"""
-            <div style="text-align: center; border: 2px solid #ddd; border-radius: 15px; padding: 20px; background: white;">
-                <p style="margin:0; color: #666;">AGUA ÚTIL</p>
-                <h1 style="margin:0; color: {color_agua}; font-size: 45px;">{agua_util_pct}%</h1>
-                <p style="margin:0; color: #888;">{round(agua_hoy, 1)} mm en perfil</p>
-            </div>
-        """, unsafe_allow_html=True)
+        color = "#2ecc71" if util_pct > 50 else "#f1c40f" if util_pct > 30 else "#e74c3c"
+        st.markdown(f"<div style='border:2px solid #ddd;border-radius:15px;padding:20px;text-align:center;background:white;'><p style='color:#666;margin:0;'>AGUA ÚTIL</p><h1 style='color:{color};margin:0;font-size:50px;'>{util_pct}%</h1><p style='color:#888;margin:0;'>{round(agua_hoy,1)} mm</p></div>", unsafe_allow_html=True)
 
     with c2:
-        st.write(f"📉 **Evapotranspiración del cultivo (ETc):** {etc_diaria} mm/día")
-        if agua_util_pct < 45:
-            st.warning(f"⚠️ **Alerta de Riego:** Se recomienda aplicar {round(capacidad_campo - agua_hoy, 1)} mm.")
-        else:
-            st.success("✅ **Estado Óptimo:** No se requiere riego inmediato.")
+        st.write(f"💧 **Consumo (ETc):** {etc} mm/día")
+        if util_pct < 40: st.error("🚨 **ALERTA DE RIEGO:** El suelo está bajo el umbral crítico.")
+        else: st.success("✅ **ESTADO ÓPTIMO:** Reserva hídrica suficiente.")
 
-    # 6. Gráfico de tendencia
-    st.markdown("---")
-    st.caption("📈 Proyección de reserva hídrica (Próximos 5 días)")
-    dias_proy = ["Hoy", "+1d", "+2d", "+3d", "+4d"]
-    # Simulamos la caída de agua si no llueve
-    curva = [agua_hoy - (etc_diaria * i) for i in range(5)]
-    df_grafico = pd.DataFrame({"Día": dias_proy, "Agua (mm)": curva, "Límite Crítico": [punto_marchitez + 30]*5}).set_index("Día")
-    st.area_chart(df_grafico, color=["#3498db", "#e74c3c"])    # El resto del cálculo de balance hídrico usa 'kc_web'
+    # Gráfico de Proyección (Mejorado)
+    st.divider()
+    st.subheader("📈 Proyección de Reserva (7 días)")
+    fechas = [(datetime.datetime.now() + datetime.timedelta(days=i)).strftime('%d/%m') for i in range(7)]
+    curva = []
+    temp_agua = agua_hoy
+    for i in range(7):
+        curva.append(round(temp_agua, 1))
+        temp_agua = max(pm, temp_agua - etc)
+    
+    df_graf = pd.DataFrame({"Día": fechas, "Reserva (mm)": curva, "Umbral Crítico": [umbral]*7}).set_index("Día")
+    st.area_chart(df_graf, color=["#3498db", "#e74c3c"])
+
 elif menu == "⛈️ Granizo":
     st.subheader("⛈️ Riesgo Granizo")
     r = 30 if clima['presion'] < 1012 else 10
@@ -212,10 +181,11 @@ elif menu == "❄️ Heladas":
         else: st.success(f"✅ {p['f']}: Sin riesgo ({p['min']}°C)")
 
 elif menu == "📝 Bitácora":
-    st.subheader("📝 Bitácora")
+    st.subheader("📝 Historial de Novedades")
     if os.path.exists('bitacora_campo.txt'):
-        with open('bitacora_campo.txt', 'r') as f:
+        with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
 
