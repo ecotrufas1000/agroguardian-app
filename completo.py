@@ -130,31 +130,75 @@ if menu == "📊 Monitoreo":
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Gestión de Agua en Suelo")
 
-    # --- LEER SINCRONIZACIÓN DESDE EL BOT ---
+    # 1. Definir valores por defecto (Evita el NameError)
     cultivo_bot = "No definido"
     kc_bot = 0.85
-    if os.path.exists('estado_lote.json'):
-        with open('estado_lote.json', 'r', encoding='utf-8') as f:
-            datos_bot = json.load(f)
-            cultivo_bot = datos_bot.get("cultivo", "No definido")
-            kc_bot = datos_bot.get("kc", 0.85)
-            fecha_bot = datos_bot.get("ultima_actualizacion", "-")
+    fecha_bot = "Sin datos"
+    etapa_bot = "N/A"
 
-    # --- INTERFAZ ---
-    st.info(f"🔄 **Sincronizado con Bot:** {cultivo_bot} (Kc: {kc_bot}) - Actualizado: {fecha_bot}")
+    # 2. Intentar leer la sincronización del Bot
+    if os.path.exists('estado_lote.json'):
+        try:
+            with open('estado_lote.json', 'r', encoding='utf-8') as f:
+                datos_bot = json.load(f)
+                cultivo_bot = datos_bot.get("cultivo", "No definido")
+                kc_bot = datos_bot.get("kc", 0.85)
+                fecha_bot = datos_bot.get("ultima_actualizacion", "Sin fecha")
+                etapa_bot = datos_bot.get("etapa", "N/A")
+        except:
+            pass
+
+    # 3. Interfaz de usuario
+    st.info(f"🔄 **Sincronizado con Bot:** {cultivo_bot} | **Kc:** {kc_bot} | **Etapa:** {etapa_bot}\n\n📅 *Última actualización: {fecha_bot}*")
     
-    with st.expander("⚙️ Ajustar Parámetros Manualmente"):
+    with st.expander("⚙️ Ajustar Parámetros de Suelo y Cultivo"):
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            capacidad_campo = st.number_input("Capacidad de Campo (mm)", value=250)
-            punto_marchitez = st.number_input("Punto de Marchitez (mm)", value=100)
+            capacidad_campo = st.number_input("Capacidad de Campo (mm)", value=250, help="Máxima retención de agua.")
+            punto_marchitez = st.number_input("Punto de Marchitez (mm)", value=100, help="Límite donde la planta se marchita.")
         with col_c2:
-            # Si el bot eligió algo, lo usamos por defecto
-            cultivo_web = st.selectbox("Cultivo Actual", ["Pastura", "Maíz", "Trigo", "Soja", "Girasol"], 
-                                      index=0 if cultivo_bot == "No definido" else ["Pastura", "Maíz", "Trigo", "Soja", "Girasol"].index(cultivo_bot.split()[-1]) if cultivo_bot.split()[-1] in ["Pastura", "Maíz", "Trigo", "Soja", "Girasol"] else 0)
-            kc_web = st.slider("Coeficiente Kc", 0.1, 1.3, float(kc_bot))
+            # Usamos el KC que viene del bot como valor por defecto en el slider
+            kc_web = st.slider("Ajuste fino de Kc", 0.1, 1.3, float(kc_bot))
 
-    # El resto del cálculo de balance hídrico usa 'kc_web'
+    st.markdown("---")
+
+    # 4. Cálculos del Balance
+    etc_diaria = round(clima['etc'] * kc_web, 2)
+    lluvia_real = st.number_input("Lluvia registrada hoy (mm)", value=float(clima['lluvia_est']), step=1.0)
+    
+    # Simulación de estado hídrico (esto se profesionalizará con base de datos luego)
+    agua_estimada = 185.0 
+    agua_hoy = min(capacidad_campo, max(punto_marchitez, agua_estimada + lluvia_real - etc_diaria))
+    agua_util_pct = int(((agua_hoy - punto_marchitez) / (capacidad_campo - punto_marchitez)) * 100)
+
+    # 5. Visualización de resultados
+    c1, c2 = st.columns([1, 2])
+    
+    with c1:
+        color_agua = "#2ecc71" if agua_util_pct > 50 else "#f39c12" if agua_util_pct > 25 else "#e74c3c"
+        st.markdown(f"""
+            <div style="text-align: center; border: 2px solid #ddd; border-radius: 15px; padding: 20px; background: white;">
+                <p style="margin:0; color: #666;">AGUA ÚTIL</p>
+                <h1 style="margin:0; color: {color_agua}; font-size: 45px;">{agua_util_pct}%</h1>
+                <p style="margin:0; color: #888;">{round(agua_hoy, 1)} mm en perfil</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with c2:
+        st.write(f"📉 **Evapotranspiración del cultivo (ETc):** {etc_diaria} mm/día")
+        if agua_util_pct < 45:
+            st.warning(f"⚠️ **Alerta de Riego:** Se recomienda aplicar {round(capacidad_campo - agua_hoy, 1)} mm.")
+        else:
+            st.success("✅ **Estado Óptimo:** No se requiere riego inmediato.")
+
+    # 6. Gráfico de tendencia
+    st.markdown("---")
+    st.caption("📈 Proyección de reserva hídrica (Próximos 5 días)")
+    dias_proy = ["Hoy", "+1d", "+2d", "+3d", "+4d"]
+    # Simulamos la caída de agua si no llueve
+    curva = [agua_hoy - (etc_diaria * i) for i in range(5)]
+    df_grafico = pd.DataFrame({"Día": dias_proy, "Agua (mm)": curva, "Límite Crítico": [punto_marchitez + 30]*5}).set_index("Día")
+    st.area_chart(df_grafico, color=["#3498db", "#e74c3c"])    # El resto del cálculo de balance hídrico usa 'kc_web'
 elif menu == "⛈️ Granizo":
     st.subheader("⛈️ Riesgo Granizo")
     r = 30 if clima['presion'] < 1012 else 10
@@ -172,6 +216,7 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
 
