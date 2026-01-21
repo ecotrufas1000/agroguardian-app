@@ -129,7 +129,7 @@ if menu == "📊 Monitoreo":
 # === 4. OTRAS SECCIONES (Para evitar errores de NameError si cambias de pestaña) ===
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Balance Hídrico")
-    cc = st.slider("Capacidad Suelo (mm)", 100, 300, 250)
+    cc = st.slider("Capacidad DE Campo (mm)", 100, 300, 250)
     lluvia = st.number_input("Lluvia Real (mm)", value=float(clima['lluvia_est']))
     agua = min(cc, max(0.0, 180.0 + lluvia - clima['etc']))
     st.metric("Agua Útil Actual", f"{round(agua, 1)} mm", f"-{round(clima['etc'],1)} ETc")
@@ -152,5 +152,6 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
