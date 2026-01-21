@@ -128,13 +128,33 @@ if menu == "📊 Monitoreo":
 
 # === 4. OTRAS SECCIONES (Para evitar errores de NameError si cambias de pestaña) ===
 elif menu == "💧 Balance Hídrico":
-    st.subheader("💧 Balance Hídrico")
-    cc = st.slider("Capacidad DE Campo (mm)", 100, 300, 250)
-    lluvia = st.number_input("Lluvia Real (mm)", value=float(clima['lluvia_est']))
-    agua = min(cc, max(0.0, 180.0 + lluvia - clima['etc']))
-    st.metric("Agua Útil Actual", f"{round(agua, 1)} mm", f"-{round(clima['etc'],1)} ETc")
-    st.progress(agua/cc)
+    st.subheader("💧 Gestión de Agua en Suelo")
 
+    # --- LEER SINCRONIZACIÓN DESDE EL BOT ---
+    cultivo_bot = "No definido"
+    kc_bot = 0.85
+    if os.path.exists('estado_lote.json'):
+        with open('estado_lote.json', 'r', encoding='utf-8') as f:
+            datos_bot = json.load(f)
+            cultivo_bot = datos_bot.get("cultivo", "No definido")
+            kc_bot = datos_bot.get("kc", 0.85)
+            fecha_bot = datos_bot.get("ultima_actualizacion", "-")
+
+    # --- INTERFAZ ---
+    st.info(f"🔄 **Sincronizado con Bot:** {cultivo_bot} (Kc: {kc_bot}) - Actualizado: {fecha_bot}")
+    
+    with st.expander("⚙️ Ajustar Parámetros Manualmente"):
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            capacidad_campo = st.number_input("Capacidad de Campo (mm)", value=250)
+            punto_marchitez = st.number_input("Punto de Marchitez (mm)", value=100)
+        with col_c2:
+            # Si el bot eligió algo, lo usamos por defecto
+            cultivo_web = st.selectbox("Cultivo Actual", ["Pastura", "Maíz", "Trigo", "Soja", "Girasol"], 
+                                      index=0 if cultivo_bot == "No definido" else ["Pastura", "Maíz", "Trigo", "Soja", "Girasol"].index(cultivo_bot.split()[-1]) if cultivo_bot.split()[-1] in ["Pastura", "Maíz", "Trigo", "Soja", "Girasol"] else 0)
+            kc_web = st.slider("Coeficiente Kc", 0.1, 1.3, float(kc_bot))
+
+    # El resto del cálculo de balance hídrico usa 'kc_web'
 elif menu == "⛈️ Granizo":
     st.subheader("⛈️ Riesgo Granizo")
     r = 30 if clima['presion'] < 1012 else 10
@@ -152,6 +172,7 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
 
