@@ -81,14 +81,13 @@ with st.sidebar:
     st.divider()
     st.caption(f"📍 {round(LAT,3)}, {round(LON,3)}")
     if st.button("🔄 ACTUALIZAR"): st.rerun()
-
 # === 3. PÁGINA: MONITOREO ===
 if menu == "📊 Monitoreo":
     # --- ENCABEZADO PROFESIONAL ---
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e3d2f, #2ecc71); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 2.2rem;">🚜 AgroGuardian Pro</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Tu asistente profesional de Monitoreo y decisiones Agroclimáticas</p>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Tu asistente profesional de monitoreo y decisiones climáticas</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -98,7 +97,6 @@ if menu == "📊 Monitoreo":
     if clima['tpw'] > 30: riesgo_granizo += 30
     if clima['v_vel'] > 25: riesgo_granizo += 20
     
-    # Colores para métricas (evita NameError)
     t_color = "normal" if clima['temp'] < 32 else "inverse"
     v_color = "off" if clima['v_vel'] < 18 else "normal"
 
@@ -107,10 +105,8 @@ if menu == "📊 Monitoreo":
 
     # Fila de métricas
     m1, m2, m3, m4, m5 = st.columns(5)
-    
     m1.metric("TEMP.", f"{clima['temp']}°C", delta="Calor" if clima['temp'] > 32 else None, delta_color=t_color)
     m2.metric("HUMEDAD", f"{clima['hum']}%")
-    
     dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
     m3.metric("VIENTO", f"{clima['v_vel']} km/h", delta="Fuerte" if clima['v_vel'] > 18 else None, delta_color=v_color)
     m4.metric("DIRECCIÓN", dirs[int((clima['v_dir'] + 22.5) / 45) % 8])
@@ -118,55 +114,28 @@ if menu == "📊 Monitoreo":
 
     st.divider()
     
+    # --- MAPA MULTICAPA Y BIENESTAR ---
     c1, c2 = st.columns([2, 1])
-   with c1:
+    with c1:
         st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
-        
-        # Crear mapa base
         m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
         
-        # Capa 1: Satélite (Esri World Imagery)
+        # Capa Satelital
         folium.TileLayer(
             tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            attr='Esri',
-            name='Vista Satelital',
-            overlay=False,
-            control=True
+            attr='Esri', name='Vista Satelital', overlay=False
         ).add_to(m)
 
-        # Capa 2: Capa de Terreno/Curvas de nivel (OpenTopoMap)
+        # Capa de Relieve
         folium.TileLayer(
             tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-            attr='OpenTopoMap',
-            name='Relieve y Altura',
-            overlay=True,
-            control=True,
-            opacity=0.5
+            attr='OpenTopoMap', name='Relieve y Altura', overlay=True, opacity=0.4
         ).add_to(m)
 
-        # Capa 3: Overlay de Salud Vegetal (NDVI Simulado por colorimetría)
-        # Nota: Usamos una capa de vegetación de referencia global
-        folium.TileLayer(
-            tiles='https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            attr='ArcGIS Health',
-            name='Análisis de Salud (NDVI)',
-            overlay=True,
-            control=True,
-            opacity=0.4
-        ).add_to(m)
-
-        # Marcador del Lote
-        folium.Marker(
-            [LAT, LON], 
-            popup=f"Lote: {cultivo_bot}",
-            icon=folium.Icon(color="green", icon="leaf")
-        ).add_to(m)
-
-        # Añadir control de capas (El botón que permite elegir qué ver)
+        folium.Marker([LAT, LON], icon=folium.Icon(color="green", icon="leaf")).add_to(m)
         folium.LayerControl().add_to(m)
-        
         folium_static(m, width=700, height=350)
-        st.info("💡 Usa el icono de capas arriba a la derecha del mapa para alternar entre Satélite y Relieve.")
+        st.info("💡 Usa el icono de capas arriba a la derecha del mapa para alternar vistas.")
     
     with c2:
         st.caption("🐮 BIENESTAR (ITH)")
@@ -179,6 +148,7 @@ if menu == "📊 Monitoreo":
         pronos = obtener_pronostico()
         for p in pronos[:3]:
             st.write(f"**{p['f']}:** {p['min']}°/{p['max']}° - {p['d']}")
+
 
 # === 4. PÁGINA: BALANCE HÍDRICO ===
 elif menu == "💧 Balance Hídrico":
@@ -339,6 +309,7 @@ elif menu == "📝 Bitácora":
                 st.info(n.strip())
     else:
         st.write("Aún no hay registros en la bitácora.")
+
 
 
 
