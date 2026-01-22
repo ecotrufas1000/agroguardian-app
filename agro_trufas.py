@@ -85,14 +85,6 @@ with st.sidebar:
 # === 3. PÁGINAS ===
 
 # === 3. PÁGINA: MONITOREO ===
-Para lograr un degradado violeta con un efecto de franjas horizontales, necesitamos ajustar el CSS del linear-gradient. El truco técnico es usar un repeating-linear-gradient para crear ese efecto de líneas que le da un toque mucho más moderno y tecnológico.
-
-Aquí tenés el bloque de Monitoreo con el nuevo diseño de encabezado:
-🛠️ Código con Encabezado Violeta "Tech"
-
-Reemplazá la sección inicial de if menu == "📊 Monitoreo": por esta:
-Python
-
 if menu == "📊 Monitoreo":
     # --- ENCABEZADO VIOLETA CON FRANJAS ---
     st.markdown("""
@@ -222,6 +214,7 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
+
 
 
 
