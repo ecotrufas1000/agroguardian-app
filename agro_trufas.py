@@ -144,8 +144,8 @@ if menu == "📊 Monitoreo":
 
 
 elif menu == "💧 Balance Hídrico":
-    st.header("💧 Balance Hídrico Especializado: Trufería")
-    st.write("Cálculo optimizado para **Roble y Encina** (Huéspedes de Tuber melanosporum).")
+    st.header("💧 Balance Hídrico Especializado - Trufera")
+    st.write("Cálculo optimizado para **Roble y Encina**.")
 
     # Eliminamos el selectbox de cultivos y fijamos el Kc
     cultivo_seleccionado = "Roble/Encina"
@@ -157,7 +157,7 @@ elif menu == "💧 Balance Hídrico":
     etc_trufa = round(clima['etc'] * kc_fijo, 2)
     riego_tecnico = round(etc_trufa * 0.5, 2) # REGLA DEL 50%
     
-    st.info(f"🌳 **Estrategia Trufera:** Reposición del 50% de la ETc para mantener el nido.")
+    st.info(f"🌳 **Estrategia:** Reposición del 50% de la ETc para mantener humedad.")
 
     if etc_trufa > clima['lluvia_est']:
         # El riego sugerido ahora es la mitad de la ETc menos lo que haya llovido
@@ -357,6 +357,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
