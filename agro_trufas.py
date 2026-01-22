@@ -103,8 +103,8 @@ if menu == "📊 Monitoreo":
             text-align: center;
             box-shadow: 0 4px 15px rgba(109, 40, 217, 0.3);
             border: 1px solid rgba(255,255,255,0.1);
-        ">
-            <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);"> 💎 AgroGuardian Pro Trufas</h1>
+        "> -
+            <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);"> 💎 AgroGuardian Pro - Trufas</h1>
             <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300; letter-spacing: 1px;">SISTEMA DE INTELIGENCIA AGROCLIMÁTICA</p>
         </div>
     """, unsafe_allow_html=True)
@@ -214,6 +214,7 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
+
 
 
 
