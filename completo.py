@@ -186,19 +186,41 @@ elif menu == "💧 Balance Hídrico":
     
     df_graf = pd.DataFrame({"Día": fechas, "Reserva (mm)": curva, "Umbral Crítico": [umbral]*7}).set_index("Día")
     st.area_chart(df_graf, color=["#3498db", "#e74c3c"])
-# --- BOTÓN DE EXPORTACIÓN ---
+# --- SECCIÓN DE EXPORTACIÓN TÉCNICA ---
     st.markdown("---")
-    st.subheader("📥 Exportar Datos Técnicos")
+    st.subheader("📥 Generar Reporte de Balance")
     
-    # Preparamos el archivo para descarga
-    csv = df_graf.to_csv().encode('utf-8')
+    col_exp1, col_exp2 = st.columns(2)
+    with col_exp1:
+        # Estos campos suelen venir de tu base de datos o estado del lote
+        lote_nombre = st.text_input("Identificación del Lote:", value="Lote Norte - Sección A")
+        cultivo_nombre = st.text_input("Cultivo actual:", value="Maíz de primera")
+    
+    with col_exp2:
+        fecha_balance = st.date_input("Fecha del balance:", datetime.date.today())
+        # Tomamos el primer valor de la columna 'Agua Útil' como el dato del día
+        agua_util_hoy = round(df_graf['Agua Útil (mm)'].iloc[0], 2)
+        st.info(f"💧 Agua Útil del día: **{agua_util_hoy} mm**")
+
+    # Preparamos el contenido del CSV con encabezado manual
+    encabezado = f"REPORTE TÉCNICO DE BALANCE HÍDRICO\n"
+    encabezado += f"Lote: {lote_nombre}\n"
+    encabezado += f"Cultivo: {cultivo_nombre}\n"
+    encabezado += f"Fecha de Proyección: {fecha_balance}\n"
+    encabezado += f"Agua Útil Inicial: {agua_util_hoy} mm\n"
+    encabezado += "-"*40 + "\n"
+    
+    # Convertimos el DataFrame a CSV y lo unimos al encabezado
+    csv_body = df_graf.to_csv(index_label="Día")
+    full_csv = encabezado + csv_body
     
     st.download_button(
-        label="📄 DESCARGAR REPORTE SEMANAL (EXCEL/CSV)",
-        data=csv,
-        file_name=f"reporte_hidrico_{datetime.datetime.now().strftime('%d_%m_%Y')}.csv",
+        label="📄 DESCARGAR REPORTE PDF/CSV",
+        data=full_csv.encode('utf-8'),
+        file_name=f"Balance_{lote_nombre.replace(' ', '_')}_{fecha_balance}.csv",
         mime='text/csv',
-        help="Haz clic para descargar la proyección de reserva de agua de los próximos 7 días."
+        help="Descarga el balance completo con encabezado técnico y proyección."
+    )
     )
 elif menu == "⛈️ Granizo":
     st.title("⛈️ Alerta de Granizo y Tormentas")
@@ -249,5 +271,6 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
