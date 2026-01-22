@@ -303,7 +303,7 @@ elif menu == "💎 Trufas":
         </div>
     """, unsafe_allow_html=True)
 
-   elif menu == "🌡️ Temp. del Suelo":
+elif menu == "🌡️ Temp. del Suelo":
     st.markdown("""
         <div style="background: linear-gradient(to right, #3d2b1e, #8e44ad); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 2.2rem;">🌡️ Perfil Térmico del Suelo</h1>
@@ -382,6 +382,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
