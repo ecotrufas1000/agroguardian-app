@@ -304,26 +304,41 @@ elif menu == "💎 Trufas":
     """, unsafe_allow_html=True)
 
 elif menu == "🌡️ Temp. del Suelo":
-    st.header("🌡️ Perfil Térmico del Suelo")
-    
-    # Cálculos directos usando la temperatura del aire
-    t_10 = round(clima['temp'] * 0.85, 1)
-    t_20 = round(t_10 * 0.9, 1)
-    t_30 = round(t_20 * 0.9, 1)
+        st.header("🌡️ Perfil Térmico del Suelo")
+        
+        # 1. Cálculos de temperatura
+        t_aire = clima.get('temp', 25)
+        t_10 = round(t_aire * 0.82, 1)
+        t_20 = round(t_10 * 0.92, 1)
+        t_30 = round(t_20 * 0.95, 1)
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("10 cm", f"{t_10}°C")
-    c2.metric("20 cm", f"{t_20}°C")
-    c3.metric("30 cm", f"{t_30}°C")
+        # 2. Visualización de métricas
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("10 cm", f"{t_10}°C")
+        with c2:
+            st.metric("20 cm", f"{t_20}°C")
+        with c3:
+            st.metric("30 cm", f"{t_30}°C")
 
-    st.divider()
-    
-    # Riego 50% ETc
-    riego_refresco = round((clima['etc'] * 0.5), 1)
-    st.info(f"💧 Sugerencia de Riego (50% ETc): {riego_refresco} mm")
-    
-    # Gráfico simple
-    st.bar_chart({"Profundidad": ["10cm", "20cm", "30cm"], "Temp": [t_10, t_20, t_30]}.set_index("Profundidad"))
+        st.divider()
+
+        # 3. Lógica de Riego 50% ETc
+        st.subheader("💧 Sugerencia de Riego")
+        et0 = clima.get('etc', 5.0)
+        riego_50 = round(et0 * 0.5, 1)
+        
+        if t_10 >= 27:
+            st.error(f"Alerta Térmica: Aplicar {riego_50} mm de refresco.")
+        else:
+            st.success(f"Estado Normal: Mantener con {riego_50} mm.")
+
+        # 4. Gráfico de barras
+        data_grafico = pd.DataFrame({
+            'Profundidad': ['10cm', '20cm', '30cm'],
+            'Grados': [t_10, t_20, t_30]
+        })
+        st.bar_chart(data_grafico.set_index('Profundidad'))
     # --- BITÁCORA DE COSECHA ---
     st.divider()
     st.subheader("🐕 Registro de Hallazgos")
@@ -335,6 +350,7 @@ elif menu == "🌡️ Temp. del Suelo":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
