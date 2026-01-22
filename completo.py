@@ -257,10 +257,47 @@ elif menu == "❄️ Heladas":
         else: st.success(f"✅ {p['f']}: Sin riesgo ({p['min']}°C)")
 
 elif menu == "📝 Bitácora":
-    st.subheader("📝 Historial de Novedades")
+    st.title("📝 Galería y Bitácora de Lotes")
+    
+    # --- 1. SUBIDA DE FOTOS Y NOVEDADES ---
+    with st.expander("📸 Registrar Novedad en Lote", expanded=True):
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            foto = st.file_uploader("Capturar foto del lote", type=['jpg', 'png', 'jpeg'], help="Puedes sacar una foto con el celu o subir una de la galería")
+        with c2:
+            novedad = st.text_area("Descripción de la observación:", placeholder="Ej: Se observa presencia de oruga cogollera en manchones...")
+            lote_obs = st.text_input("Lote:", value=cultivo_bot if 'cultivo_bot' in locals() else "General")
+        
+        if st.button("💾 GUARDAR REGISTRO"):
+            if novedad:
+                fecha_nota = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+                linea = f"{fecha_nota} - {lote_obs}: {novedad}\n"
+                with open('bitacora_campo.txt', 'a', encoding='utf-8') as f:
+                    f.write(linea)
+                st.success("✅ Registro guardado en la bitácora")
+                # Nota: La foto se procesa aquí, pero para persistencia real 
+                # necesitaríamos una base de datos. Por ahora la mostramos abajo.
+            else:
+                st.warning("Escribe una descripción antes de guardar.")
+
+    st.divider()
+
+    # --- 2. VISUALIZACIÓN DE GALERÍA (Muestra la foto actual si hay una) ---
+    if foto is not None:
+        st.subheader("🖼️ Última Captura de Campo")
+        st.image(foto, caption=f"Observación en {lote_obs}", use_container_width=True)
+        st.info(f"📌 **Nota asociada:** {novedad}")
+
+    # --- 3. HISTORIAL DE TEXTO ---
+    st.subheader("📜 Historial de Recorridas")
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
-            for l in reversed(f.readlines()): st.info(l.strip())
+            notas = f.readlines()
+            for n in reversed(notas):
+                st.info(n.strip())
+    else:
+        st.write("Aún no hay registros en la bitácora.")
+
 
 
 
