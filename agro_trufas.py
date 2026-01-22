@@ -302,11 +302,12 @@ elif menu == "📝 Bitácora":
 
     # --- 3. HISTORIAL DE TEXTO ---
     st.subheader("📜 Historial de Recorridas")
-    if os.path.exists('bitacora_campo.txt'):
+    if os.path.exists('bitacora_trufas.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             notas = f.readlines()
             for n in reversed(notas):
                 st.info(n.strip())
     else:
         st.write("Aún no hay registros en la bitácora.")
+
 
