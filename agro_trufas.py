@@ -77,7 +77,7 @@ clima = obtener_datos()
 # === 2. BARRA LATERAL ===
 with st.sidebar:
     st.title("AgroGuardian Pro")
-    menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "⛈️ Granizo", "❄️ Heladas", "📝 Bitácora"])
+    menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "⛈️ Granizo", "❄️ Heladas", "📝 Bitácora", "💎 Trufería"])
     st.divider()
     st.caption(f"📍 {round(LAT,3)}, {round(LON,3)}")
     if st.button("🔄 ACTUALIZAR"): st.rerun()
@@ -309,5 +309,60 @@ elif menu == "📝 Bitácora":
                 st.info(n.strip())
     else:
         st.write("Aún no hay registros en la bitácora.")
+
+# === SECCIÓN ESPECIALIZADA: TRUFERÍA ===
+elif menu == "💎 Trufería":
+    st.markdown("""
+        <div style="background: linear-gradient(to right, #3d2b1e, #8e44ad); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 2.2rem;">💎 AgroGuardian Trufas</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Gestión de Microclima y Suelo para Tuber melanosporum</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- CÁLCULO DE TEMPERATURA DE SUELO ---
+    # Estimación técnica: el suelo tiene inercia térmica respecto al aire
+    t_suelo_est = round(clima['temp'] * 0.82 + (1.5 if clima['hum'] < 45 else -0.5), 1)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("TEMP. SUELO (10cm)", f"{t_suelo_est}°C")
+    with col2:
+        estado_t = "OK ✅" if t_suelo_est < 26 else "ALERTA ⚠️" if t_suelo_est < 28 else "CRÍTICO 🔥"
+        st.metric("ESTADO TÉRMICO", estado_t)
+    with col3:
+        # Horas frío simplificado para la sesión
+        st.metric("POTENCIAL AROMA", "Alto" if clima['temp'] < 12 else "Medio")
+
+    st.divider()
+
+    # --- RECOMENDACIÓN DE RIEGO POR EVAPORACIÓN ---
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        st.subheader("💧 Riego de Refresco (Quemado)")
+        st.write("El área del 'quemado' no tiene cobertura vegetal y calienta el nido de la trufa.")
+        
+        # Kc específico para truferas en verano (enfriamiento)
+        kc_t = 1.25 if t_suelo_est > 26 else 0.85
+        riego_necesario = max(0.0, (clima['etc'] * kc_t) - clima['lluvia_est'])
+        
+        if t_suelo_est >= 27:
+            st.error(f"🚨 **URGENTE:** Suelo caliente ({t_suelo_est}°C). Aplicar {round(riego_necesario, 1)} mm para enfriar el nido.")
+        else:
+            st.success(f"💧 Mantener humedad con {round(riego_necesario, 1)} mm según evapotranspiración actual.")
+
+    with c2:
+        st.info("📌 **Tip Trufero:** El riego en verano debe ser fino (aspersión) para simular una tormenta y bajar la temperatura del suelo sin encharcar.")
+
+    # --- BITÁCORA DE COSECHA ---
+    st.divider()
+    st.subheader("🐕 Registro de Hallazgos")
+    with st.expander("📝 Cargar nueva trufa (Caza con perros)"):
+        f1, f2 = st.columns(2)
+        tipo = f1.selectbox("Categoría", ["Extra", "Primera", "Segunda", "Perro (marca)"])
+        peso_g = f2.number_input("Peso (g)", 0, 1000, 30)
+        obs = st.text_area("Ubicación / Árbol número:")
+        if st.button("💾 GUARDAR REGISTRO"):
+            st.balloons()
+            st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
 
 
