@@ -303,19 +303,44 @@ elif menu == "💎 Trufas":
         </div>
     """, unsafe_allow_html=True)
 
-    # --- CÁLCULO DE TEMPERATURA DE SUELO ---
-    # Estimación técnica: el suelo tiene inercia térmica respecto al aire
-    t_suelo_est = round(clima['temp'] * 0.82 + (1.5 if clima['hum'] < 45 else -0.5), 1)
+   elif menu == "🌡️ Temp. del Suelo":
+    st.markdown("""
+        <div style="background: linear-gradient(to right, #3d2b1e, #8e44ad); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🌡️ Perfil Térmico del Suelo</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Estimación técnica de la zona radicular (Nido de Trufa)</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- LÓGICA DE GRADIENTE TÉRMICO ---
+    # Superficie (10cm): Más influenciada por el aire
+    t_10 = round(clima['temp'] * 0.82 + (1.5 if clima['hum'] < 45 else -0.5), 1)
+    # Media (20cm): Mayor inercia térmica
+    t_20 = round(t_10 * 0.92, 1)
+    # Profunda (30cm): Estabilidad térmica
+    t_30 = round(t_20 * 0.95, 1)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("10 cm (Superficie)", f"{t_10}°C", delta="Zona Crítica" if t_10 > 27 else "Óptimo", delta_color="inverse" if t_10 > 27 else "normal")
+    with c2:
+        st.metric("20 cm (Media)", f"{t_20}°C", help="Profundidad promedio de crecimiento")
+    with c3:
+        st.metric("30 cm (Profunda)", f"{t_30}°C", help="Zona de reserva y humedad estable")
+
+    st.divider()
+
+    # --- REPRESENTACIÓN VISUAL DEL PERFIL ---
+    st.subheader("📊 Visualización del Perfil de Suelo")
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("TEMP. SUELO (10cm)", f"{t_suelo_est}°C")
-    with col2:
-        estado_t = "OK ✅" if t_suelo_est < 26 else "ALERTA ⚠️" if t_suelo_est < 28 else "CRÍTICO 🔥"
-        st.metric("ESTADO TÉRMICO", estado_t)
-    with col3:
-        # Horas frío simplificado para la sesión
-        st.metric("POTENCIAL AROMA", "Alto" if clima['temp'] < 12 else "Medio")
+    # Creamos una tabla comparativa para simular un gráfico de barras
+    perfil_data = pd.DataFrame({
+        'Profundidad': ['10 cm', '20 cm', '30 cm'],
+        'Temp (°C)': [t_10, t_20, t_30]
+    })
+    
+    st.bar_chart(perfil_data.set_index('Profundidad'))
+    
+    st.info("💡 **Dato Técnico:** Las trufas negras suelen desarrollarse preferentemente entre los 10 y 20 cm. Si la temperatura a 10 cm supera los 28°C por tiempo prolongado, el riego de refresco es obligatorio.")
 
     st.divider()
 
@@ -357,6 +382,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
