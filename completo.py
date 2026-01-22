@@ -186,7 +186,20 @@ elif menu == "💧 Balance Hídrico":
     
     df_graf = pd.DataFrame({"Día": fechas, "Reserva (mm)": curva, "Umbral Crítico": [umbral]*7}).set_index("Día")
     st.area_chart(df_graf, color=["#3498db", "#e74c3c"])
-
+# --- BOTÓN DE EXPORTACIÓN ---
+    st.markdown("---")
+    st.subheader("📥 Exportar Datos Técnicos")
+    
+    # Preparamos el archivo para descarga
+    csv = df_graf.to_csv().encode('utf-8')
+    
+    st.download_button(
+        label="📄 DESCARGAR REPORTE SEMANAL (EXCEL/CSV)",
+        data=csv,
+        file_name=f"reporte_hidrico_{datetime.datetime.now().strftime('%d_%m_%Y')}.csv",
+        mime='text/csv',
+        help="Haz clic para descargar la proyección de reserva de agua de los próximos 7 días."
+    )
 elif menu == "⛈️ Granizo":
     st.title("⛈️ Alerta de Granizo y Tormentas")
     
@@ -236,4 +249,5 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
