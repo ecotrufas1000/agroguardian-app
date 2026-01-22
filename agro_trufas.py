@@ -82,9 +82,8 @@ with st.sidebar:
     st.caption(f"📍 {round(LAT,3)}, {round(LON,3)}")
     if st.button("🔄 ACTUALIZAR"): st.rerun()
 
-# === 3. PÁGINAS ===
-
 # === 3. PÁGINA: MONITOREO ===
+if menu == "📊 Monitoreo":
 # --- ENCABEZADO VIOLETA EN DEGRADADO HORIZONTAL ---
     st.markdown("""
         <div style="
@@ -206,6 +205,7 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
+
 
 
 
