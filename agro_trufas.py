@@ -136,13 +136,6 @@ if menu == "📊 Monitoreo":
         folium.LayerControl().add_to(m)
         folium_static(m, width=700, height=350)
         st.info("💡 Usa el icono de capas arriba a la derecha del mapa para alternar vistas.")
-    
-    with c2:
-        st.caption("🐮 BIENESTAR (ITH)")
-        t_f = (1.8 * clima['temp']) + 32
-        ith = round(t_f - (0.55 - 0.55 * (clima['hum'] / 100)) * (t_f - 58), 1)
-        bg = "#2ecc71" if ith < 72 else "#f1c40f" if ith < 79 else "#e74c3c"
-        st.markdown(f"<div style='background:{bg}; padding:15px; border-radius:10px; text-align:center; color:white;'><h2 style='margin:0;'>{ith}</h2><small>ESTADO ITH</small></div>", unsafe_allow_html=True)
         
         st.caption("📅 PRONÓSTICO CORTO")
         pronos = obtener_pronostico()
@@ -364,6 +357,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
