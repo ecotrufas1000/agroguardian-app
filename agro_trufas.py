@@ -77,7 +77,7 @@ clima = obtener_datos()
 # === 2. BARRA LATERAL ===
 with st.sidebar:
     st.title("AgroGuardian Pro")
-    menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "⛈️ Granizo", "❄️ Heladas", "📝 Bitácora", "💎 Trufería"])
+    menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "⛈️ Granizo", "❄️ Heladas", "📝 Bitácora", "💎 Trufas"])
     st.divider()
     st.caption(f"📍 {round(LAT,3)}, {round(LON,3)}")
     if st.button("🔄 ACTUALIZAR"): st.rerun()
@@ -338,7 +338,7 @@ elif menu == "💎 Trufería":
     # --- RECOMENDACIÓN DE RIEGO POR EVAPORACIÓN ---
     c1, c2 = st.columns([2, 1])
     with c1:
-        st.subheader("💧 Riego de Refresco (Quemado)")
+        st.subheader("💧 Riego de Enfriado (Quemado)")
         st.write("El área del 'quemado' no tiene cobertura vegetal y calienta el nido de la trufa.")
         
         # Kc específico para truferas en verano (enfriamiento)
@@ -364,5 +364,6 @@ elif menu == "💎 Trufería":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
