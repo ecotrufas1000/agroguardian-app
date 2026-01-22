@@ -85,30 +85,22 @@ with st.sidebar:
 # === 3. PÁGINAS ===
 
 # === 3. PÁGINA: MONITOREO ===
-if menu == "📊 Monitoreo":
-    # --- ENCABEZADO VIOLETA CON FRANJAS ---
+# --- ENCABEZADO VIOLETA EN DEGRADADO HORIZONTAL ---
     st.markdown("""
         <div style="
-            background: repeating-linear-gradient(
-                180deg,
-                #6d28d9,
-                #6d28d9 10px,
-                #7c3aed 10px,
-                #7c3aed 20px
-            );
+            background: linear-gradient(to right, #4c1d95, #7c3aed, #a78bfa);
             padding: 30px; 
             border-radius: 15px; 
             margin-bottom: 25px; 
             color: white; 
             text-align: center;
-            box-shadow: 0 4px 15px rgba(109, 40, 217, 0.3);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
             border: 1px solid rgba(255,255,255,0.1);
-        "> -
-            <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);"> 💎 AgroGuardian Pro - Trufas</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300; letter-spacing: 1px;">SISTEMA DE INTELIGENCIA AGROCLIMÁTICA</p>
+        ">
+            <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);"> 💎 AgroGuardian Pro - Trufas</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300; letter-spacing: 1.5px;">SISTEMA DE INTELIGENCIA AGROCLIMÁTICA</p>
         </div>
     """, unsafe_allow_html=True)
-
 
     # --- MÉTRICAS ACTUALES ---
     m1, m2, m3, m4, m5 = st.columns(5)
@@ -214,6 +206,7 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
+
 
 
 
