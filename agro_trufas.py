@@ -89,11 +89,11 @@ if menu == "📊 Monitoreo":
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e3d2f, #2ecc71); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 2.2rem;"> 💎 AgroGuardian Pro Trufas</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Tu asistente profesional de monitoreo y decisiones agroclimáticas</p>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Monitoreo Profesional y Pronóstico Extendido</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # Fila de métricas
+    # --- MÉTRICAS ACTUALES ---
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("TEMP.", f"{clima['temp']}°C")
     m2.metric("HUMEDAD", f"{clima['hum']}%")
@@ -104,34 +104,36 @@ if menu == "📊 Monitoreo":
 
     st.divider()
 
-    # --- AQUÍ PEGAS EL MAPA MULTICAPA ---
+    # --- MAPA Y PRONÓSTICO ---
     c1, c2 = st.columns([2, 1])
+    
     with c1:
         st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
         m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
-        
-        # Capa Satelital
-        folium.TileLayer(
-            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            attr='Esri', name='Vista Satelital', overlay=False
-        ).add_to(m)
-
-        # Capa de Relieve
-        folium.TileLayer(
-            tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-            attr='OpenTopoMap', name='Relieve y Altura', overlay=True, opacity=0.4
-        ).add_to(m)
-
+        folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                         attr='Esri', name='Vista Satelital').add_to(m)
+        folium.TileLayer(tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+                         attr='OpenTopoMap', name='Relieve', overlay=True, opacity=0.4).add_to(m)
         folium.Marker([LAT, LON], icon=folium.Icon(color="green", icon="leaf")).add_to(m)
         folium.LayerControl().add_to(m)
         folium_static(m, width=700, height=350)
-        st.info("💡 Usa el icono de capas arriba a la derecha del mapa para alternar vistas.")
 
     with c2:
-        st.subheader("📥 Exportar")
-        st.write("Registros diarios de la trufera.")
-        datos_export = pd.DataFrame({'Fecha': [datetime.datetime.now()], 'Temp': [clima['temp']], 'ETc': [clima['etc']]})
-        st.download_button("📄 Reporte CSV", datos_export.to_csv(index=False).encode('utf-8'), "reporte.csv")
+        st.subheader("📅 Pronóstico 5 Días")
+        pronos = obtener_pronostico()
+        if pronos:
+            for p in pronos:
+                with st.container():
+                    col_fecha, col_temp = st.columns([1, 1])
+                    col_fecha.write(f"**{p['f']}**")
+                    col_temp.write(f"{p['min']}° / {p['max']}°")
+                    st.caption(f"☁️ {p['d']}")
+                    st.write("---")
+        else:
+            st.warning("No se pudo cargar el pronóstico extendido.")
+
+    # --- RECOMENDACIÓN RÁPIDA ---
+    st.info(f"💡 **Nota del día:** Con el pronóstico actual y una ET0 de {clima['etc']} mm, planifica riegos de refresco si las máximas superan los 30°C.")
 
 elif menu == "💧 Balance Hídrico":
     st.header("💧 Balance Hídrico Especializado - Trufera")
@@ -195,4 +197,5 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
+
 
