@@ -142,6 +142,7 @@ if menu == "📊 Monitoreo":
 elif menu == "💧 Balance Hídrico":
     st.title("💧 Gestión Hídrica del Lote")
 
+    # Sincronización Bot
     cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
     if os.path.exists('estado_lote.json'):
         try:
@@ -160,6 +161,7 @@ elif menu == "💧 Balance Hídrico":
         kc_web = col2.slider("Ajuste Kc", 0.1, 1.3, float(kc_bot))
         lluvia = col2.number_input("Lluvia Real (mm)", 0.0, 200.0, float(clima['lluvia_est']))
 
+    # Cálculos
     etc = round(clima['etc'] * kc_web, 2)
     agua_hoy = min(cc, max(pm, 185.0 + lluvia - etc))
     util_pct = int(((agua_hoy - pm) / (cc - pm)) * 100)
@@ -186,41 +188,29 @@ elif menu == "💧 Balance Hídrico":
     
     df_graf = pd.DataFrame({"Día": fechas, "Reserva (mm)": curva, "Umbral Crítico": [umbral]*7}).set_index("Día")
     st.area_chart(df_graf, color=["#3498db", "#e74c3c"])
-# --- SECCIÓN DE EXPORTACIÓN TÉCNICA ---
-    st.markdown("---")
-    st.subheader("📥 Generar Reporte de Balance")
-    
-    col_exp1, col_exp2 = st.columns(2)
-    with col_exp1:
-        # Estos campos suelen venir de tu base de datos o estado del lote
-        lote_nombre = st.text_input("Identificación del Lote:", value="Lote Norte - Sección A")
-        cultivo_nombre = st.text_input("Cultivo actual:", value="Maíz de primera")
-    
-    with col_exp2:
-        fecha_balance = st.date_input("Fecha del balance:", datetime.date.today())
-        # Tomamos el primer valor de la columna 'Agua Útil' como el dato del día
-        agua_util_hoy = round(df_graf['Agua Útil (mm)'].iloc[0], 2)
-        st.info(f"💧 Agua Útil del día: **{agua_util_hoy} mm**")
 
-    # Preparamos el contenido del CSV con encabezado manual
-    encabezado = f"REPORTE TÉCNICO DE BALANCE HÍDRICO\n"
-    encabezado += f"Lote: {lote_nombre}\n"
-    encabezado += f"Cultivo: {cultivo_nombre}\n"
-    encabezado += f"Fecha de Proyección: {fecha_balance}\n"
-    encabezado += f"Agua Útil Inicial: {agua_util_hoy} mm\n"
-    encabezado += "-"*40 + "\n"
+    # --- NUEVA SECCIÓN: EXPORTACIÓN CON ENCABEZADO TÉCNICO ---
+    st.divider()
+    st.subheader("📥 Exportar Informe Técnico")
     
-    # Convertimos el DataFrame a CSV y lo unimos al encabezado
-    csv_body = df_graf.to_csv(index_label="Día")
-    full_csv = encabezado + csv_body
+    # Preparamos el contenido del reporte
+    encabezado_texto = (
+        f"AGROGUARDIAN PRO - REPORTE DE BALANCE HÍDRICO\n"
+        f"FECHA DE REPORTE: {datetime.datetime.now().strftime('%d/%m/%Y')}\n"
+        f"LOTE: {cultivo_bot}\n"
+        f"ETAPA FENOLÓGICA: {etapa_bot}\n"
+        f"AGUA ÚTIL ACTUAL: {util_pct}% ({round(agua_hoy, 1)} mm)\n"
+        f"{'-'*40}\n"
+    )
+    
+    # Combinamos encabezado + datos de la tabla
+    csv_data = encabezado_texto + df_graf.to_csv()
     
     st.download_button(
-        label="📄 DESCARGAR REPORTE PDF/CSV",
-        data=full_csv.encode('utf-8'),
-        file_name=f"Balance_{lote_nombre.replace(' ', '_')}_{fecha_balance}.csv",
-        mime='text/csv',
-        help="Descarga el balance completo con encabezado técnico y proyección."
-    )
+        label="📄 DESCARGAR REPORTE PARA EXCEL",
+        data=csv_data.encode('utf-8'),
+        file_name=f"Reporte_Hídrico_{cultivo_bot}_{datetime.datetime.now().strftime('%d%m%Y')}.csv",
+        mime='text/csv'
     )
 elif menu == "⛈️ Granizo":
     st.title("⛈️ Alerta de Granizo y Tormentas")
@@ -271,6 +261,7 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for l in reversed(f.readlines()): st.info(l.strip())
+
 
 
 
