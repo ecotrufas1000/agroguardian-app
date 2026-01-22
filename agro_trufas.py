@@ -304,52 +304,26 @@ elif menu == "💎 Trufas":
     """, unsafe_allow_html=True)
 
 elif menu == "🌡️ Temp. del Suelo":
-    st.markdown("""
-        <div style="background: linear-gradient(to right, #3d2b1e, #8e44ad); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🌡️ Perfil Térmico del Suelo</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Estimación técnica zona radicular (Nido de Trufa)</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- LÓGICA DE GRADIENTE TÉRMICO (10, 20 y 30 cm) ---
-    t_10 = round(clima['temp'] * 0.82 + (1.5 if clima['hum'] < 45 else -0.5), 1)
-    t_20 = round(t_10 * 0.92, 1)
-    t_30 = round(t_20 * 0.95, 1)
+    st.header("🌡️ Perfil Térmico del Suelo")
+    
+    # Cálculos directos usando la temperatura del aire
+    t_10 = round(clima['temp'] * 0.85, 1)
+    t_20 = round(t_10 * 0.9, 1)
+    t_30 = round(t_20 * 0.9, 1)
 
     c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("10 cm (Superficie)", f"{t_10}°C", delta="Calor Crítico" if t_10 > 27 else "Óptimo", delta_color="inverse" if t_10 > 27 else "normal")
-    with c2:
-        st.metric("20 cm (Media)", f"{t_20}°C")
-    with c3:
-        st.metric("30 cm (Profunda)", f"{t_30}°C")
+    c1.metric("10 cm", f"{t_10}°C")
+    c2.metric("20 cm", f"{t_20}°C")
+    c3.metric("30 cm", f"{t_30}°C")
 
     st.divider()
     
-    # --- RIEGO DE ENFRIADO (REGLA DEL 50% ETc) ---
-    st.subheader("💧 Riego de Refresco (Estrategia 50% ETc)")
+    # Riego 50% ETc
+    riego_refresco = round((clima['etc'] * 0.5), 1)
+    st.info(f"💧 Sugerencia de Riego (50% ETc): {riego_refresco} mm")
     
-    # Cálculo técnico: Kc 1.0 y 50% de reposición
-    kc_trufa = 1.0
-    riego_refresco = round((clima['etc'] * kc_trufa) * 0.5, 2)
-    
-    # Restamos lluvia si hubo para el riego final
-    riego_final = max(0.0, riego_refresco - clima['lluvia_est'])
-    
-    if t_10 >= 27:
-        st.error(f"🚨 **ALERTA TÉRMICA:** Suelo a {t_10}°C. Aplicar riego de refresco de **{riego_final} mm**.")
-    else:
-        st.success(f"✅ **TEMPERATURA SEGURA:** Sugerencia de mantenimiento: **{riego_final} mm**.")
-
-    # Gráfico de perfil para ver la curva de temperatura
-    df_perfil = pd.DataFrame({
-        'Profundidad': ['10 cm', '20 cm', '30 cm'], 
-        'Temp (°C)': [t_10, t_20, t_30]
-    })
-    st.bar_chart(df_perfil.set_index('Profundidad'))
-    
-    st.info("💡 **Tip Trufero:** Este cálculo protege el micelio evitando que la temperatura a 10cm dañe los primordios.")
-
+    # Gráfico simple
+    st.bar_chart({"Profundidad": ["10cm", "20cm", "30cm"], "Temp": [t_10, t_20, t_30]}.set_index("Profundidad"))
     # --- BITÁCORA DE COSECHA ---
     st.divider()
     st.subheader("🐕 Registro de Hallazgos")
@@ -361,6 +335,7 @@ elif menu == "🌡️ Temp. del Suelo":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
