@@ -150,79 +150,71 @@ if menu == "📊 Monitoreo":
             st.write(f"**{p['f']}:** {p['min']}°/{p['max']}° - {p['d']}")
 
 
-# === 4. PÁGINA: BALANCE HÍDRICO ===
 elif menu == "💧 Balance Hídrico":
-    st.title("💧 Gestión Hídrica del Lote")
+    st.header("💧 Balance Hídrico Especializado: Trufería")
+    st.write("Cálculo optimizado para **Roble y Encina** (Huéspedes de Tuber melanosporum).")
 
-    # Sincronización Bot
-    cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
-    if os.path.exists('estado_lote.json'):
-        try:
-            with open('estado_lote.json', 'r', encoding='utf-8') as f:
-                db = json.load(f)
-                cultivo_bot, kc_bot = db.get("cultivo", "N/D"), db.get("kc", 0.85)
-                fecha_bot, etapa_bot = db.get("ultima_actualizacion", "N/D"), db.get("etapa", "N/D")
-        except: pass
-
-    st.info(f"🔄 **Lote:** {cultivo_bot} | **Kc:** {kc_bot} | **Fase:** {etapa_bot} (Act: {fecha_bot})")
+    # Eliminamos el selectbox de cultivos y fijamos el Kc
+    cultivo_seleccionado = "Roble/Encina"
+    kc_fijo = 1.0  # El Kc que me pediste
     
-    with st.expander("⚙️ Configuración de Suelo"):
-        col1, col2 = st.columns(2)
-        cc = col1.number_input("Capacidad de Campo (mm)", 200, 400, 250)
-        pm = col1.number_input("Punto Marchitez (mm)", 50, 150, 100)
-        kc_web = col2.slider("Ajuste Kc", 0.1, 1.3, float(kc_bot))
-        lluvia = col2.number_input("Lluvia Real (mm)", 0.0, 200.0, float(clima['lluvia_est']))
+    st.info(f"🌳 **Configuración Activa:** {cultivo_seleccionado} (Kc fijo: {kc_fijo})")
 
-    # Cálculos
-    etc = round(clima['etc'] * kc_web, 2)
-    agua_hoy = min(cc, max(pm, 185.0 + lluvia - etc))
-    util_pct = int(((agua_hoy - pm) / (cc - pm)) * 100)
-    umbral = pm + (cc - pm) * 0.4 
-
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        color = "#2ecc71" if util_pct > 50 else "#f1c40f" if util_pct > 30 else "#e74c3c"
-        st.markdown(f"<div style='border:2px solid #ddd;border-radius:15px;padding:20px;text-align:center;background:white;'><p style='color:#666;margin:0;'>AGUA ÚTIL</p><h1 style='color:{color};margin:0;font-size:50px;'>{util_pct}%</h1><p style='color:#888;margin:0;'>{round(agua_hoy,1)} mm</p></div>", unsafe_allow_html=True)
-
-    with c2:
-        st.write(f"💧 **Consumo (ETc):** {etc} mm/día")
-        if util_pct < 40: st.error("🚨 **ALERTA DE RIEGO:** El suelo está bajo el umbral crítico.")
-        else: st.success("✅ **ESTADO ÓPTIMO:** Reserva hídrica suficiente.")
+    # Cálculo de ETc (Evapotranspiración del cultivo)
+    etc_trufa = round(clima['etc'] * kc_fijo, 2)
+    
+    col_b1, col_b2, col_b3 = st.columns(3)
+    with col_b1:
+        st.metric("ET0 (Ambiental)", f"{clima['etc']} mm")
+    with col_b2:
+        st.metric("Kc Aplicado", kc_fijo)
+    with col_b3:
+        st.metric("ETc (Consumo Árbol)", f"{etc_trufa} mm", delta=f"{etc_trufa} mm/día", delta_color="inverse")
 
     st.divider()
-    st.subheader("📈 Proyección de Reserva (7 días)")
-    fechas = [(datetime.datetime.now() + datetime.timedelta(days=i)).strftime('%d/%m') for i in range(7)]
-    curva = []
-    temp_agua = agua_hoy
-    for i in range(7):
-        curva.append(round(temp_agua, 1))
-        temp_agua = max(pm, temp_agua - etc)
-    
-    df_graf = pd.DataFrame({"Día": fechas, "Reserva (mm)": curva, "Umbral Crítico": [umbral]*7}).set_index("Día")
-    st.area_chart(df_graf, color=["#3498db", "#e74c3c"])
 
-    # --- NUEVA SECCIÓN: EXPORTACIÓN CON ENCABEZADO TÉCNICO ---
+    # --- LÓGICA DE BALANCE SIMPLIFICADA ---
+    st.subheader("📊 Estado de Reservas en el Quemado")
+    
+    # Simulamos el balance hídrico
+    balance_diario = round(clima['lluvia_est'] - etc_trufa, 2)
+    
+    if balance_diario >= 0:
+        st.success(f"Balance hoy: +{balance_diario} mm. Las reservas se mantienen.")
+    else:
+        st.warning(f"Balance hoy: {balance_diario} mm. El nido está perdiendo humedad.")
+
+    # Sugerencia de riego basada solo en Roble/Encina
+    if etc_trufa > clima['lluvia_est']:
+        riego_necesario = etc_trufa - clima['lluvia_est']
+        st.write(f"📢 **Sugerencia:** Para reponer el consumo de hoy, aplicar **{round(riego_necesario, 1)} mm** de riego.")
+
+  # === SECCIÓN: EXPORTACIÓN DE DATOS (VERSIÓN TRUFERA) ===
+elif menu == "📊 Monitoreo": # O puedes ponerlo dentro de la sección que prefieras
+    # ... (tu código de monitoreo actual) ...
+    
     st.divider()
-    st.subheader("📥 Exportar Informe Técnico")
+    st.subheader("📥 Exportar Datos de la Trufera")
     
-    # Preparamos el contenido del reporte
-    encabezado_texto = (
-        f"AGROGUARDIAN PRO - REPORTE DE BALANCE HÍDRICO\n"
-        f"FECHA DE REPORTE: {datetime.datetime.now().strftime('%d/%m/%Y')}\n"
-        f"LOTE: {cultivo_bot}\n"
-        f"ETAPA FENOLÓGICA: {etapa_bot}\n"
-        f"AGUA ÚTIL ACTUAL: {util_pct}% ({round(agua_hoy, 1)} mm)\n"
-        f"{'-'*40}\n"
-    )
-    
-    # Combinamos encabezado + datos de la tabla
-    csv_data = encabezado_texto + df_graf.to_csv()
-    
+    # Creamos un DataFrame con los datos actuales para descargar
+    datos_export = pd.DataFrame({
+        'Fecha': [datetime.now().strftime("%Y-%m-%d %H:%M")],
+        'Lote/Sector': ["Trufera Principal"],
+        'Especie': ["Roble/Encina"],
+        'Temperatura Aire (°C)': [clima['temp']],
+        'Humedad (%)': [clima['hum']],
+        'Temp. Suelo Est. (°C)': [t_suelo_est if 't_suelo_est' in locals() else "N/A"],
+        'ETc Diario (mm)': [etc_trufa if 'etc_trufa' in locals() else "N/A"],
+        'Precipitación Est. (mm)': [clima['lluvia_est']]
+    })
+
+    # Botón de descarga
+    csv = datos_export.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📄 DESCARGAR REPORTE PARA EXCEL",
-        data=csv_data.encode('utf-8'),
-        file_name=f"Reporte_Hídrico_{cultivo_bot}_{datetime.datetime.now().strftime('%d%m%Y')}.csv",
-        mime='text/csv'
+        label="📄 Descargar Reporte Técnico (CSV)",
+        data=csv,
+        file_name=f"reporte_trufero_{datetime.now().strftime('%Y%m%d')}.csv",
+        mime="text/csv",
     )
 elif menu == "⛈️ Granizo":
     st.title("⛈️ Alerta de Granizo y Tormentas")
@@ -364,6 +356,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
