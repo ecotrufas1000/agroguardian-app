@@ -160,17 +160,16 @@ elif menu == "💧 Balance Hídrico":
     
     st.info(f"🌳 **Configuración Activa:** {cultivo_seleccionado} (Kc fijo: {kc_fijo})")
 
-    # Cálculo de ETc (Evapotranspiración del cultivo)
+   # Cálculo de ETc (Consumo total) y Riego Técnico (50%)
     etc_trufa = round(clima['etc'] * kc_fijo, 2)
+    riego_tecnico = round(etc_trufa * 0.5, 2) # REGLA DEL 50%
     
-    col_b1, col_b2, col_b3 = st.columns(3)
-    with col_b1:
-        st.metric("ET0 (Ambiental)", f"{clima['etc']} mm")
-    with col_b2:
-        st.metric("Kc Aplicado", kc_fijo)
-    with col_b3:
-        st.metric("ETc (Consumo Árbol)", f"{etc_trufa} mm", delta=f"{etc_trufa} mm/día", delta_color="inverse")
+    st.info(f"🌳 **Estrategia Trufera:** Reposición del 50% de la ETc para mantener el nido.")
 
+    if etc_trufa > clima['lluvia_est']:
+        # El riego sugerido ahora es la mitad de la ETc menos lo que haya llovido
+        sug_riego_final = max(0.0, riego_tecnico - clima['lluvia_est'])
+        st.write(f"📢 **Sugerencia de Riego:** Aplicar **{sug_riego_final} mm** (50% de la ETc diaria).")
     st.divider()
 
     # --- LÓGICA DE BALANCE SIMPLIFICADA ---
@@ -343,7 +342,7 @@ elif menu == "💎 Trufas":
             st.success(f"💧 Mantener humedad con {round(riego_necesario, 1)} mm según evapotranspiración actual.")
 
     with c2:
-        st.info("📌 **Tip Trufero:** El riego en verano debe ser fino (aspersión) para simular una tormenta y bajar la temperatura del suelo sin encharcar.")
+        st.info("📌 **Tip:** El riego en verano debe ser fino (aspersión) para simular una tormenta y bajar la temperatura del suelo sin encharcar.")
 
     # --- BITÁCORA DE COSECHA ---
     st.divider()
@@ -356,6 +355,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
