@@ -85,13 +85,38 @@ with st.sidebar:
 # === 3. PÁGINAS ===
 
 # === 3. PÁGINA: MONITOREO ===
+Para lograr un degradado violeta con un efecto de franjas horizontales, necesitamos ajustar el CSS del linear-gradient. El truco técnico es usar un repeating-linear-gradient para crear ese efecto de líneas que le da un toque mucho más moderno y tecnológico.
+
+Aquí tenés el bloque de Monitoreo con el nuevo diseño de encabezado:
+🛠️ Código con Encabezado Violeta "Tech"
+
+Reemplazá la sección inicial de if menu == "📊 Monitoreo": por esta:
+Python
+
 if menu == "📊 Monitoreo":
+    # --- ENCABEZADO VIOLETA CON FRANJAS ---
     st.markdown("""
-        <div style="background: linear-gradient(to right, #1e3d2f, #2ecc71); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 2.2rem;"> 💎 AgroGuardian Pro Trufas</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Monitoreo Profesional y Pronóstico Extendido</p>
+        <div style="
+            background: repeating-linear-gradient(
+                180deg,
+                #6d28d9,
+                #6d28d9 10px,
+                #7c3aed 10px,
+                #7c3aed 20px
+            );
+            padding: 30px; 
+            border-radius: 15px; 
+            margin-bottom: 25px; 
+            color: white; 
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(109, 40, 217, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        ">
+            <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);"> 💎 AgroGuardian Pro Trufas</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300; letter-spacing: 1px;">SISTEMA DE INTELIGENCIA AGROCLIMÁTICA</p>
         </div>
     """, unsafe_allow_html=True)
+
 
     # --- MÉTRICAS ACTUALES ---
     m1, m2, m3, m4, m5 = st.columns(5)
@@ -197,5 +222,6 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
+
 
 
