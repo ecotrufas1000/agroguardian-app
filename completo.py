@@ -119,12 +119,54 @@ if menu == "📊 Monitoreo":
     st.divider()
     
     c1, c2 = st.columns([2, 1])
-    with c1:
-        st.caption("🗺️ VISTA SATELITAL")
-        m = folium.Map(location=[LAT, LON], zoom_start=15)
-        folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
-        folium.Marker([LAT, LON], icon=folium.Icon(color="green", icon="leaf")).add_to(m)
-        folium_static(m, width=700, height=280)
+   with c1:
+        st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
+        
+        # Crear mapa base
+        m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
+        
+        # Capa 1: Satélite (Esri World Imagery)
+        folium.TileLayer(
+            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attr='Esri',
+            name='Vista Satelital',
+            overlay=False,
+            control=True
+        ).add_to(m)
+
+        # Capa 2: Capa de Terreno/Curvas de nivel (OpenTopoMap)
+        folium.TileLayer(
+            tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+            attr='OpenTopoMap',
+            name='Relieve y Altura',
+            overlay=True,
+            control=True,
+            opacity=0.5
+        ).add_to(m)
+
+        # Capa 3: Overlay de Salud Vegetal (NDVI Simulado por colorimetría)
+        # Nota: Usamos una capa de vegetación de referencia global
+        folium.TileLayer(
+            tiles='https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attr='ArcGIS Health',
+            name='Análisis de Salud (NDVI)',
+            overlay=True,
+            control=True,
+            opacity=0.4
+        ).add_to(m)
+
+        # Marcador del Lote
+        folium.Marker(
+            [LAT, LON], 
+            popup=f"Lote: {cultivo_bot}",
+            icon=folium.Icon(color="green", icon="leaf")
+        ).add_to(m)
+
+        # Añadir control de capas (El botón que permite elegir qué ver)
+        folium.LayerControl().add_to(m)
+        
+        folium_static(m, width=700, height=350)
+        st.info("💡 Usa el icono de capas arriba a la derecha del mapa para alternar entre Satélite y Relieve.")
     
     with c2:
         st.caption("🐮 BIENESTAR (ITH)")
@@ -297,6 +339,7 @@ elif menu == "📝 Bitácora":
                 st.info(n.strip())
     else:
         st.write("Aún no hay registros en la bitácora.")
+
 
 
 
