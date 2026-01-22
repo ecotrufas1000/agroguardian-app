@@ -311,7 +311,7 @@ elif menu == "📝 Bitácora":
         st.write("Aún no hay registros en la bitácora.")
 
 # === SECCIÓN ESPECIALIZADA: TRUFERÍA ===
-elif menu == "💎 Trufería":
+elif menu == "💎 Trufas":
     st.markdown("""
         <div style="background: linear-gradient(to right, #3d2b1e, #8e44ad); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 2.2rem;">💎 AgroGuardian Trufas</h1>
@@ -364,6 +364,7 @@ elif menu == "💎 Trufería":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
