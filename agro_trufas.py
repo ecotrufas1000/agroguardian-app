@@ -84,6 +84,7 @@ with st.sidebar:
 
 # === 3. PÁGINAS ===
 
+# === 3. PÁGINA: MONITOREO ===
 if menu == "📊 Monitoreo":
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e3d2f, #2ecc71); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
@@ -92,6 +93,7 @@ if menu == "📊 Monitoreo":
         </div>
     """, unsafe_allow_html=True)
 
+    # Fila de métricas
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("TEMP.", f"{clima['temp']}°C")
     m2.metric("HUMEDAD", f"{clima['hum']}%")
@@ -101,19 +103,35 @@ if menu == "📊 Monitoreo":
     m5.metric("PRECIPITACIÓN", f"{clima['tpw']} mm")
 
     st.divider()
-    
+
+    # --- AQUÍ PEGAS EL MAPA MULTICAPA ---
     c1, c2 = st.columns([2, 1])
     with c1:
-        st.caption("🗺️ CENTRO DE MONITOREO")
-        m = folium.Map(location=[LAT, LON], zoom_start=15)
-        folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri', name='Vista Satelital').add_to(m)
-        folium.Marker([LAT, LON], icon=folium.Icon(color="green")).add_to(m)
+        st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
+        m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
+        
+        # Capa Satelital
+        folium.TileLayer(
+            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attr='Esri', name='Vista Satelital', overlay=False
+        ).add_to(m)
+
+        # Capa de Relieve
+        folium.TileLayer(
+            tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+            attr='OpenTopoMap', name='Relieve y Altura', overlay=True, opacity=0.4
+        ).add_to(m)
+
+        folium.Marker([LAT, LON], icon=folium.Icon(color="green", icon="leaf")).add_to(m)
+        folium.LayerControl().add_to(m)
         folium_static(m, width=700, height=350)
-    
+        st.info("💡 Usa el icono de capas arriba a la derecha del mapa para alternar vistas.")
+
     with c2:
-        st.subheader("📥 Exportar Datos")
+        st.subheader("📥 Exportar")
+        st.write("Registros diarios de la trufera.")
         datos_export = pd.DataFrame({'Fecha': [datetime.datetime.now()], 'Temp': [clima['temp']], 'ETc': [clima['etc']]})
-        st.download_button("📄 Descargar Reporte CSV", datos_export.to_csv(index=False).encode('utf-8'), "reporte_trufas.csv", "text/csv")
+        st.download_button("📄 Reporte CSV", datos_export.to_csv(index=False).encode('utf-8'), "reporte.csv")
 
 elif menu == "💧 Balance Hídrico":
     st.header("💧 Balance Hídrico Especializado - Trufera")
@@ -177,3 +195,4 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
+
