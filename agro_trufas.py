@@ -326,23 +326,32 @@ elif menu == "💎 Trufas":
 
     st.divider()
 
-    # --- RECOMENDACIÓN DE RIEGO POR EVAPORACIÓN ---
+    # --- RECOMENDACIÓN DE RIEGO TÉCNICO (REGLA DEL 50% ETc) ---
     c1, c2 = st.columns([2, 1])
     with c1:
-        st.subheader("💧 Riego de Enfriado (Quemado)")
-        st.write("El área del 'quemado' no tiene cobertura vegetal y calienta el nido de la trufa.")
+        st.subheader("💧 Riego de Mantenimiento y Enfriado")
+        st.write("Estrategia: Reposición del **50% de la ETc** para optimizar el nido sin encharcar.")
         
-        # Kc específico para truferas en verano (enfriamiento)
-        kc_t = 1.25 if t_suelo_est > 26 else 0.85
-        riego_necesario = max(0.0, (clima['etc'] * kc_t) - clima['lluvia_est'])
+        # Kc fijo de 1.0 y aplicación de la regla del 50%
+        kc_trufa = 1.0
+        etc_total = clima['etc'] * kc_trufa
+        riego_50_porciento = etc_total * 0.5
+        
+        # Restamos la lluvia estimada si hubo alguna
+        riego_final = max(0.0, riego_50_porciento - clima['lluvia_est'])
         
         if t_suelo_est >= 27:
-            st.error(f"🚨 **URGENTE:** Suelo caliente ({t_suelo_est}°C). Aplicar {round(riego_necesario, 1)} mm para enfriar el nido.")
+            st.error(f"🚨 **ALERTA TÉRMICA:** Suelo a {t_suelo_est}°C. Aplicar riego de refresco de **{round(riego_final, 1)} mm**.")
         else:
-            st.success(f"💧 Mantener humedad con {round(riego_necesario, 1)} mm según evapotranspiración actual.")
+            st.success(f"✅ **ESTADO ÓPTIMO:** Sugerencia de mantenimiento diario: **{round(riego_final, 1)} mm**.")
 
     with c2:
-        st.info("📌 **Tip:** El riego en verano debe ser fino (aspersión) para simular una tormenta y bajar la temperatura del suelo sin encharcar.")
+        st.info(f"""
+        **Cálculo Técnico:**
+        * ETc Total: {round(etc_total, 1)} mm
+        * Humedad Objetivo: 50%
+        * Lluvia detectada: {clima['lluvia_est']} mm
+        """)
 
     # --- BITÁCORA DE COSECHA ---
     st.divider()
@@ -355,6 +364,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
