@@ -86,7 +86,7 @@ if menu == "📊 Monitoreo":
     # --- ENCABEZADO PROFESIONAL ---
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e3d2f, #2ecc71); padding: 25px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🚜 AgroGuardian Pro</h1>
+            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🚜 AgroGuardian Pro Trufas</h1>
             <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300;">Tu asistente profesional de monitoreo y decisiones climáticas</p>
         </div>
     """, unsafe_allow_html=True)
@@ -364,6 +364,7 @@ elif menu == "💎 Trufas":
         if st.button("💾 GUARDAR REGISTRO"):
             st.balloons()
             st.success(f"Registrada trufa {tipo} de {peso_g}g. ¡Buen rinde!")
+
 
 
 
