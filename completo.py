@@ -112,10 +112,83 @@ if menu == "📊 Monitoreo Total":
             st.caption(p['d'])
 
 elif menu == "💧 Balance Hídrico":
-    st.header("💧 Gestión Hídrica del Lote")
-    etc = round(clima['etc'] * 0.85, 2)
-    st.metric("Consumo Hoy (ETc)", f"{etc} mm")
-    st.info("Estrategia: Reposición del 50% para mantenimiento de micelio.")
+    st.markdown(f"""
+        <div style="background: linear-gradient(to right, #2563eb, #3b82f6); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
+            <h1 style="color: white; margin: 0; font-size: 2rem;">💧 Gestión Hídrica Pro</h1>
+            <p style="margin: 0; opacity: 0.9;">Sincronizado con Reportes de Campo</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- RESTAURACIÓN DE CONEXIÓN CON EL BOT ---
+    cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
+    
+    if os.path.exists('estado_lote.json'):
+        try:
+            with open('estado_lote.json', 'r', encoding='utf-8') as f:
+                db = json.load(f)
+                cultivo_bot = db.get("cultivo", "N/D")
+                kc_bot = db.get("kc", 0.85)
+                fecha_bot = db.get("ultima_actualizacion", "N/D")
+                etapa_bot = db.get("etapa", "N/D")
+            st.success(f"✅ **Sincronizado:** Lote de **{cultivo_bot}** en etapa **{etapa_bot}** (Actualizado: {fecha_bot})")
+        except Exception as e:
+            st.warning("⚠️ No se pudo leer la base de datos del bot, usando valores por defecto.")
+
+    # --- INTERFAZ DE CÁLCULO ---
+    c1, c2 = st.columns([1, 1])
+    
+    with c1:
+        st.subheader("⚙️ Parámetros de Suelo")
+        cc = st.number_input("Capacidad de Campo (mm)", 150, 400, 250)
+        pm = st.number_input("Punto Marchitez (mm)", 50, 150, 100)
+        kc_ajustado = st.slider("Ajuste Manual de Kc", 0.1, 1.3, float(kc_bot))
+    
+    with c2:
+        st.subheader("📊 Consumo hídrico")
+        etc = round(clima['etc'] * kc_ajustado, 2)
+        st.metric("Evapotranspiración Real (ETc)", f"{etc} mm/día")
+        
+        lluvia = st.number_input("Lluvia Real Registrada (mm)", 0.0, 200.0, float(clima['lluvia_est']))
+
+    st.divider()
+
+    # --- CÁLCULO DE RESERVA ÚTIL ---
+    # Estimación de reserva actual (esto idealmente vendría de una serie histórica)
+    reserva_estimada = 185.0 # Valor base
+    agua_hoy = min(cc, max(pm, reserva_estimada + lluvia - etc))
+    util_pct = int(((agua_hoy - pm) / (cc - pm)) * 100)
+    
+    col_v1, col_v2 = st.columns([1, 2])
+    
+    with col_v1:
+        color_reserva = "#2ecc71" if util_pct > 50 else "#f1c40f" if util_pct > 30 else "#e74c3c"
+        st.markdown(f"""
+            <div style="border:2px solid #ddd; border-radius:15px; padding:20px; text-align:center; background:white;">
+                <p style="color:#666; margin:0;">AGUA ÚTIL ACTUAL</p>
+                <h1 style="color:{color_reserva}; margin:0; font-size:60px;">{util_pct}%</h1>
+                <p style="color:#888; margin:0;">{round(agua_hoy,1)} mm disponibles</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col_v2:
+        st.subheader("🚜 Recomendación de Manejo")
+        if util_pct < 45:
+            st.error(f"🚨 **ALERTA DE RIEGO:** El lote de {cultivo_bot} requiere reposición inmediata.")
+            st.write(f"Para volver al 70% de Agua Útil, aplicar: **{round((cc-pm)*0.7 + pm - agua_hoy, 1)} mm**")
+        else:
+            st.success(f"✅ **ESTADO ÓPTIMO:** El lote de {cultivo_bot} tiene reservas suficientes.")
+
+    # --- GRÁFICO DE PROYECCIÓN 7 DÍAS ---
+    st.subheader("📈 Proyección de Reserva (Próximos 7 días)")
+    fechas = [(datetime.datetime.now() + datetime.timedelta(days=i)).strftime('%d/%m') for i in range(7)]
+    curva = []
+    temp_agua = agua_hoy
+    for i in range(7):
+        curva.append(round(temp_agua, 1))
+        temp_agua = max(pm, temp_agua - etc) # Asumiendo ETc constante para la proyección
+    
+    df_graf = pd.DataFrame({"Día": fechas, "Reserva (mm)": curva}).set_index("Día")
+    st.area_chart(df_graf, color="#3b82f6")
 
 elif menu == "⛈️ Radar Granizo":
     st.markdown("""
@@ -159,6 +232,7 @@ elif menu == "📝 Bitácora":
     novedad = st.text_area("Describa la observación:")
     if st.button("💾 GUARDAR"):
         st.success("Registro guardado localmente.")
+
 
 
 
