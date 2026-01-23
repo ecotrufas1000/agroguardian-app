@@ -8,7 +8,7 @@ import os
 import datetime
 
 # === CONFIGURACIÓN PRO 24/7 ===
-st.set_page_config(page_title="AgroGuardian 24/7", layout="wide", page_icon="🛡️")
+st.set_page_config(page_title="AgroGuardian 24/7", layout="wide", page_icon="🚜")
 
 st.markdown("""
     <style>
@@ -160,6 +160,7 @@ elif menu == "📝 Bitácora":
     novedad = st.text_area("Describa la observación:")
     if st.button("💾 GUARDAR"):
         st.success("Registro guardado localmente.")
+
 
 
 
