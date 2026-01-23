@@ -222,16 +222,68 @@ elif menu == "⛈️ Radar Granizo":
         st.markdown(f"""<a href="{url_radar}" target="_blank" style="text-decoration:none;"><div style="background:#4f46e5; color:white; padding:20px; border-radius:12px; text-align:center; font-weight:bold;">🚀 ABRIR RADAR DOPPLER INTERACTIVO</div></a>""", unsafe_allow_html=True)
 
 elif menu == "❄️ Heladas":
-    st.subheader("❄️ Control de Heladas")
-    for p in obtener_pronostico():
-        if p['min'] < 3: st.error(f"⚠️ {p['f']}: Riesgo ({p['min']}°C)")
-        else: st.success(f"✅ {p['f']}: Seguro ({p['min']}°C)")
+    st.markdown(f"""
+        <div style="background: linear-gradient(to right, #075985, #0ea5e9); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
+            <h1 style="color: white; margin: 0; font-size: 2rem;">❄️ Monitor de Heladas Agrometeorológicas</h1>
+            <p style="margin: 0; opacity: 0.9;">Detección de helada en césped y seguimiento de fechas críticas</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- 1. DATOS HISTÓRICOS (Fechas de ocurrencia) ---
+    # En un sistema pro, esto se leería de una base de datos. 
+    # Aquí simulamos el registro de la campaña actual.
+    col_h1, col_h2 = st.columns(2)
+    with col_h1:
+        st.info("📅 **Primera Helada de la Campaña**\n\n**15 de Mayo** (Registrada)")
+    with col_h2:
+        st.warning("📅 **Última Helada Estimada**\n\n**12 de Septiembre** (Promedio zona)")
+
+    st.divider()
+
+    # --- 2. ANÁLISIS DE RIESGO AGROMETEOROLÓGICO ---
+    st.subheader("🔍 Alerta para las próximas 120 horas")
+    
+    pronos = obtener_pronostico()
+    
+    if pronos:
+        for p in pronos:
+            t_min = p['min']
+            # Estimación de Helada Agrometeorológica: Suele ser entre 2°C y 3°C 
+            # más fría que la temperatura en abrigo meteorológico (1.5m)
+            t_suelo_est = round(t_min - 3.0, 1)
+            
+            # Determinación de severidad
+            if t_min <= 0:
+                clase = "error"
+                msg = f"🧊 **HELADA METEOROLÓGICA:** Riesgo total. Temp: {t_min}°C"
+            elif t_min <= 3:
+                clase = "warning"
+                msg = f"🌱 **HELADA AGROMETEOROLÓGICA:** Riesgo en nivel de cultivo. Temp. suelo estimada: {t_suelo_est}°C"
+            else:
+                clase = "success"
+                msg = f"✅ **SIN RIESGO:** Temp. mínima segura ({t_min}°C)"
+
+            # Mostrar alerta
+            if clase == "error": st.error(f"**{p['f']}**: {msg}")
+            elif clase == "warning": st.warning(f"**{p['f']}**: {msg}")
+            else: st.success(f"**{p['f']}**: {msg}")
+
+    st.divider()
+
+    # --- 3. RECOMENDACIÓN TÉCNICA ---
+    with st.expander("📘 Manual de Acción ante Heladas"):
+        st.write("""
+        * **Helada Blanca:** Con humedad alta. Se forma escarcha. Protege parcialmente los tejidos por el calor de fusión.
+        * **Helada Negra:** Con aire muy seco. No hay escarcha, el daño es interno y mucho más severo.
+        * **Defensa Activa:** Si el riego está disponible, iniciar antes de que la temperatura de bulbo húmedo llegue a 0°C.
+        """)
 
 elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Describa la observación:")
     if st.button("💾 GUARDAR"):
         st.success("Registro guardado localmente.")
+
 
 
 
