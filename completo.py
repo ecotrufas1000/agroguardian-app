@@ -227,73 +227,65 @@ elif menu == "💧 Balance Hídrico":
 elif menu == "⛈️ Granizo":
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e293b, #475569); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0;">⛈️ Monitor de Tormentas y Granizo</h1>
-            <p style="margin: 0; opacity: 0.9;">Detección temprana y radar de precipitaciones sólidas</p>
+            <h1 style="color: white; margin: 0; font-size: 2rem;">⛈️ Monitor de Tormentas</h1>
+            <p style="margin: 0; opacity: 0.9;">Detección de celdas de granizo y nubosidad convectiva</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # 1. LÓGICA DE RIESGO MEJORADA
+    # 1. CÁLCULO DE RIESGO OPERATIVO
     riesgo = 0
-    factores = []
+    if clima['presion'] < 1008: riesgo += 50
+    if clima['hum'] > 80: riesgo += 30
+    if clima['temp'] > 28: riesgo += 20
     
-    if clima['presion'] < 1008: 
-        riesgo += 40
-        factores.append("Baja presión atmosférica (Inestabilidad)")
-    if clima['hum'] > 85: 
-        riesgo += 20
-        factores.append("Alta carga de humedad")
-    if clima['temp'] > 30: 
-        riesgo += 20
-        factores.append("Energía térmica elevada")
-    if clima['v_vel'] > 25: 
-        riesgo += 20
-        factores.append("Fuertes ráfagas de viento")
-
-    # 2. VISUALIZACIÓN DE ALERTA
-    c1, c2 = st.columns([1, 1.5])
+    c1, c2 = st.columns([1, 1])
     
     with c1:
-        st.subheader("Nivel de Amenaza")
+        st.subheader("📊 Análisis de Riesgo")
         if riesgo >= 70:
-            st.error(f"### RIESGO EXTREMO: {riesgo}%")
-            st.warning("⚠️ **ALERTA ROJA:** Formación de celdas convectivas detectada.")
+            st.error(f"### RIESGO CRÍTICO: {riesgo}%")
+            st.markdown("⚠️ **ALERTA ROJA:** Condiciones inestables. Formación de tormentas probables.")
         elif riesgo >= 40:
             st.warning(f"### RIESGO MODERADO: {riesgo}%")
-            st.info("🟡 **ALERTA AMARILLA:** Condiciones favorables para granizo disperso.")
+            st.markdown("🟡 **AVISO:** Vigilancia meteorológica recomendada.")
         else:
             st.success(f"### RIESGO BAJO: {riesgo}%")
-            st.write("🟢 **ESTADO VERDE:** Atmósfera estable por el momento.")
-        
-        if factores:
-            st.write("**Factores detectados:**")
-            for f in factores:
-                st.write(f"- {f}")
+            st.markdown("🟢 **ESTADO VERDE:** Sin indicios de tormentas severas.")
 
     with c2:
-        st.subheader("📡 Radar Doppler en Vivo")
-        # El radar se centra en tus coordenadas LAT, LON
-        url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},8"
+        st.subheader("🛰️ Control de Radar")
+        st.write("Debido a políticas de seguridad, el radar se abre en una ventana protegida externa para mayor detalle.")
+        
+        # LINK DINÁMICO AL RADAR
+        url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},9"
+        
         st.markdown(f"""
-            <iframe src="{url_radar}" width="100%" height="350" style="border-radius:15px; border:none;"></iframe>
+            <a href="{url_radar}" target="_blank" style="text-decoration: none;">
+                <div style="
+                    background-color: #4f46e5;
+                    color: white;
+                    padding: 20px;
+                    border-radius: 12px;
+                    text-align: center;
+                    font-weight: bold;
+                    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+                    border: 1px solid #6366f1;
+                ">
+                    🚀 ABRIR RADAR DOPPLER INTERACTIVO<br>
+                    <span style="font-size: 0.8rem; font-weight: normal;">(Ubicación exacta de la Trufera)</span>
+                </div>
+            </a>
         """, unsafe_allow_html=True)
-        st.caption("Verde: Lluvia | Amarillo/Naranja: Tormenta | Púrpura/Blanco: Granizo/Tormenta fuerte")
 
     st.divider()
-
-    # 3. PROTOCOLO DE ACCIÓN
-    st.subheader("🛡️ Protocolo de Protección")
-    p1, p2, p3 = st.columns(3)
     
-    with p1:
-        st.markdown("**Nivel Bajo**")
-        st.caption("Sin acciones requeridas. Monitorear actualizaciones cada 3 horas.")
-    with p2:
-        st.markdown("**Nivel Moderado**")
-        st.caption("Cerrar bitácoras de campo. Asegurar equipos y drones. Revisar canales de drenaje.")
-    with p3:
-        st.markdown("**Nivel Extremo**")
-        st.warning("EVACUAR EL CAMPO. El impacto de granizo es inminente. Proteger vehículos y maquinaria bajo techo.")
-
+    # 2. GUÍA DE LECTURA DE RADAR
+    with st.expander("❓ ¿Cómo leer el radar en Windy?"):
+        st.write("""
+        * **Colores Azules/Verdes:** Lluvia débil a moderada.
+        * **Colores Amarillos/Naranjas:** Tormentas eléctricas en desarrollo.
+        * **Colores Púrpuras o Blancos:** **¡PELIGRO!** Alta probabilidad de granizo o lluvia torrencial.
+        """)
 elif menu == "❄️ Heladas":
     st.subheader("❄️ Alerta Heladas")
     for p in obtener_pronostico():
@@ -341,6 +333,7 @@ elif menu == "📝 Bitácora":
                 st.info(n.strip())
     else:
         st.write("Aún no hay registros en la bitácora.")
+
 
 
 
