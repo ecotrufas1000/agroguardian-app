@@ -272,7 +272,7 @@ elif menu == "⛈️ Granizo":
                     border: 1px solid #6366f1;
                 ">
                     🚀 ABRIR RADAR DOPPLER INTERACTIVO<br>
-                    <span style="font-size: 0.8rem; font-weight: normal;">(Ubicación exacta de la Trufera)</span>
+                    <span style="font-size: 0.8rem; font-weight: normal;">(Ubicación exacta)</span>
                 </div>
             </a>
         """, unsafe_allow_html=True)
@@ -333,6 +333,7 @@ elif menu == "📝 Bitácora":
                 st.info(n.strip())
     else:
         st.write("Aún no hay registros en la bitácora.")
+
 
 
 
