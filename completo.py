@@ -281,7 +281,7 @@ elif menu == "⛈️ Granizo":
     st.divider()
 
     # 3. PROTOCOLO DE ACCIÓN
-    st.subheader("🛡️ Protocolo de Protección para la Trufera")
+    st.subheader("🛡️ Protocolo de Protección")
     p1, p2, p3 = st.columns(3)
     
     with p1:
@@ -341,6 +341,7 @@ elif menu == "📝 Bitácora":
                 st.info(n.strip())
     else:
         st.write("Aún no hay registros en la bitácora.")
+
 
 
 
