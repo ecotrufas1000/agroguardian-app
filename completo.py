@@ -13,8 +13,15 @@ st.set_page_config(page_title="AgroGuardian 24/7", layout="wide", page_icon="�
 st.markdown("""
     <style>
     .main { background-color: #f4f7f6; }
+    /* Limpieza de métricas: sin bordes laterales verdes */
     [data-testid="stMetricValue"] { font-size: 1.8rem !important; font-weight: bold; color: #1e3d2f; }
-    .stMetric { background: white; border-radius: 12px; border-left: 6px solid #2ecc71; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    [data-testid="stMetric"] { 
+        background: white; 
+        border-radius: 12px; 
+        padding: 15px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        border: none !important; 
+    }
     .badge-alerta { padding: 10px; border-radius: 8px; color: white; font-weight: bold; text-align: center; margin-bottom: 10px; }
     </style>
     """, unsafe_allow_html=True)
@@ -60,7 +67,6 @@ clima = traer_datos_pro(LAT, LON)
 # === 2. BARRA LATERAL ===
 with st.sidebar:
     st.markdown("<div style='text-align:center; background:#1e3d2f; padding:10px; border-radius:10px; color:white;'><h3>🛡️ AGROGUARDIAN</h3><small>SISTEMA ACTIVO 24/7</small></div>", unsafe_allow_html=True)
-    # NOMBRES DE MENÚ SINCRONIZADOS
     menu = st.radio("MENÚ OPERATIVO", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"])
     st.divider()
     if st.button("🔄 ACTUALIZAR DATOS"): st.rerun()
@@ -119,7 +125,6 @@ elif menu == "💧 Balance Hídrico":
         </div>
     """, unsafe_allow_html=True)
 
-    # --- RESTAURACIÓN DE CONEXIÓN CON EL BOT ---
     cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
     
     if os.path.exists('estado_lote.json'):
@@ -130,13 +135,10 @@ elif menu == "💧 Balance Hídrico":
                 kc_bot = db.get("kc", 0.85)
                 fecha_bot = db.get("ultima_actualizacion", "N/D")
                 etapa_bot = db.get("etapa", "N/D")
-            st.success(f"✅ **Sincronizado:** Lote de **{cultivo_bot}** en etapa **{etapa_bot}** (Actualizado: {fecha_bot})")
-        except Exception as e:
-            st.warning("⚠️ No se pudo leer la base de datos del bot, usando valores por defecto.")
+            st.success(f"✅ **Sincronizado:** Lote de **{cultivo_bot}** en etapa **{etapa_bot}**")
+        except: pass
 
-    # --- INTERFAZ DE CÁLCULO ---
     c1, c2 = st.columns([1, 1])
-    
     with c1:
         st.subheader("⚙️ Parámetros de Suelo")
         cc = st.number_input("Capacidad de Campo (mm)", 150, 400, 250)
@@ -146,156 +148,50 @@ elif menu == "💧 Balance Hídrico":
     with c2:
         st.subheader("📊 Consumo hídrico")
         etc = round(clima['etc'] * kc_ajustado, 2)
-        st.metric("Evapotranspiración Real (ETc)", f"{etc} mm/día")
-        
-        lluvia = st.number_input("Lluvia Real Registrada (mm)", 0.0, 200.0, float(clima['lluvia_est']))
+        st.metric("ETc Real", f"{etc} mm/día")
+        lluvia = st.number_input("Lluvia Real (mm)", 0.0, 200.0, float(clima['lluvia_est']))
 
     st.divider()
-
-    # --- CÁLCULO DE RESERVA ÚTIL ---
-    # Estimación de reserva actual (esto idealmente vendría de una serie histórica)
-    reserva_estimada = 185.0 # Valor base
-    agua_hoy = min(cc, max(pm, reserva_estimada + lluvia - etc))
+    reserva_base = 185.0 
+    agua_hoy = min(cc, max(pm, reserva_base + lluvia - etc))
     util_pct = int(((agua_hoy - pm) / (cc - pm)) * 100)
     
-    col_v1, col_v2 = st.columns([1, 2])
-    
-    with col_v1:
-        color_reserva = "#2ecc71" if util_pct > 50 else "#f1c40f" if util_pct > 30 else "#e74c3c"
+    cv1, cv2 = st.columns([1, 2])
+    with cv1:
+        color_r = "#2ecc71" if util_pct > 50 else "#f1c40f" if util_pct > 30 else "#e74c3c"
         st.markdown(f"""
-            <div style="border:2px solid #ddd; border-radius:15px; padding:20px; text-align:center; background:white;">
-                <p style="color:#666; margin:0;">AGUA ÚTIL ACTUAL</p>
-                <h1 style="color:{color_reserva}; margin:0; font-size:60px;">{util_pct}%</h1>
-                <p style="color:#888; margin:0;">{round(agua_hoy,1)} mm disponibles</p>
+            <div style="border:1px solid #eee; border-radius:15px; padding:20px; text-align:center; background:white; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                <p style="color:#666; margin:0; font-size:0.9rem;">AGUA ÚTIL</p>
+                <h1 style="color:{color_r}; margin:0; font-size:50px;">{util_pct}%</h1>
             </div>
         """, unsafe_allow_html=True)
 
-    with col_v2:
-        st.subheader("🚜 Recomendación de Manejo")
-        if util_pct < 45:
-            st.error(f"🚨 **ALERTA DE RIEGO:** El lote de {cultivo_bot} requiere reposición inmediata.")
-            st.write(f"Para volver al 70% de Agua Útil, aplicar: **{round((cc-pm)*0.7 + pm - agua_hoy, 1)} mm**")
-        else:
-            st.success(f"✅ **ESTADO ÓPTIMO:** El lote de {cultivo_bot} tiene reservas suficientes.")
-
-    # --- GRÁFICO DE PROYECCIÓN 7 DÍAS ---
-    st.subheader("📈 Proyección de Reserva (Próximos 7 días)")
-    fechas = [(datetime.datetime.now() + datetime.timedelta(days=i)).strftime('%d/%m') for i in range(7)]
-    curva = []
-    temp_agua = agua_hoy
-    for i in range(7):
-        curva.append(round(temp_agua, 1))
-        temp_agua = max(pm, temp_agua - etc) # Asumiendo ETc constante para la proyección
-    
-    df_graf = pd.DataFrame({"Día": fechas, "Reserva (mm)": curva}).set_index("Día")
-    st.area_chart(df_graf, color="#3b82f6")
+    with cv2:
+        st.subheader("🚜 Recomendación")
+        if util_pct < 45: st.error(f"🚨 **ALERTA:** {cultivo_bot} requiere riego.")
+        else: st.success(f"✅ **ESTADO ÓPTIMO:** Reservas suficientes.")
 
 elif menu == "⛈️ Radar Granizo":
-    st.markdown("""
-        <div style="background: linear-gradient(to right, #1e293b, #475569); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0; font-size: 2rem;">🚜 Monitor de Tormentas</h1>
-            <p style="margin: 0; opacity: 0.9;">Detección de celdas de granizo y nubosidad convectiva</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    riesgo = 0
-    if clima['presion'] < 1008: riesgo += 50
-    if clima['hum'] > 80: riesgo += 30
-    if clima['temp'] > 28: riesgo += 20
-    
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        st.subheader("📊 Análisis de Riesgo")
-        if riesgo >= 70:
-            st.error(f"### RIESGO CRÍTICO: {riesgo}%")
-            st.markdown("⚠️ **ALERTA ROJA:** Formación de tormentas probables.")
-        elif riesgo >= 40:
-            st.warning(f"### RIESGO MODERADO: {riesgo}%")
-            st.markdown("🟡 **AVISO:** Vigilancia meteorológica recomendada.")
-        else:
-            st.success(f"### RIESGO BAJO: {riesgo}%")
-            st.markdown("🟢 **ESTADO VERDE:** Sin indicios de tormentas severas.")
-
-    with c2:
-        st.subheader("🛰️ Control de Radar")
-        url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},9"
-        st.markdown(f"""<a href="{url_radar}" target="_blank" style="text-decoration:none;"><div style="background:#4f46e5; color:white; padding:20px; border-radius:12px; text-align:center; font-weight:bold;">🚀 ABRIR RADAR DOPPLER INTERACTIVO</div></a>""", unsafe_allow_html=True)
+    st.markdown("<div style='background: linear-gradient(to right, #1e293b, #475569); padding:25px; border-radius:15px; color:white; text-align:center;'><h2>🚜 Monitor de Tormentas</h2></div>", unsafe_allow_html=True)
+    url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},9"
+    st.markdown(f'<br><a href="{url_radar}" target="_blank" style="text-decoration:none;"><div style="background:#4f46e5; color:white; padding:20px; border-radius:12px; text-align:center; font-weight:bold;">🚀 ABRIR RADAR DOPPLER</div></a>', unsafe_allow_html=True)
 
 elif menu == "❄️ Heladas":
-    st.markdown(f"""
-        <div style="background: linear-gradient(to right, #075985, #0ea5e9); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0; font-size: 2rem;">❄️ Monitor de Heladas Agrometeorológicas</h1>
-            <p style="margin: 0; opacity: 0.9;">Detección de heladas y seguimiento de fechas críticas</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- 1. DATOS HISTÓRICOS (Fechas de ocurrencia) ---
-    # En un sistema pro, esto se leería de una base de datos. 
-    # Aquí simulamos el registro de la campaña actual.
-    col_h1, col_h2 = st.columns(2)
-    with col_h1:
-        st.info("📅 **Primera Helada de la Campaña**\n\n**15 de Mayo** (Registrada)")
-    with col_h2:
-        st.warning("📅 **Última Helada Estimada**\n\n**12 de Septiembre** (Promedio zona)")
-
-    st.divider()
-
-    # --- 2. ANÁLISIS DE RIESGO AGROMETEOROLÓGICO ---
-    st.subheader("🔍 Alerta para las próximas 120 horas")
+    st.markdown("<div style='background: linear-gradient(to right, #075985, #0ea5e9); padding:25px; border-radius:15px; color:white; text-align:center;'><h2>❄️ Alerta de Heladas</h2></div>", unsafe_allow_html=True)
     
+    colh1, colh2 = st.columns(2)
+    with colh1: st.info("📅 **Primera Helada:** 15 de Mayo")
+    with colh2: st.warning("📅 **Última Helada Est:** 12 de Septiembre")
+
     pronos = obtener_pronostico()
-    
     if pronos:
         for p in pronos:
             t_min = p['min']
-            # Estimación de Helada Agrometeorológica: Suele ser entre 2°C y 3°C 
-            # más fría que la temperatura en abrigo meteorológico (1.5m)
-            t_suelo_est = round(t_min - 3.0, 1)
-            
-            # Determinación de severidad
-            if t_min <= 0:
-                clase = "error"
-                msg = f"🧊 **HELADA METEOROLÓGICA:** Riesgo total. Temp: {t_min}°C"
-            elif t_min <= 3:
-                clase = "warning"
-                msg = f"🌱 **HELADA AGROMETEOROLÓGICA:** Riesgo en nivel de cultivo. Temp. suelo estimada: {t_suelo_est}°C"
-            else:
-                clase = "success"
-                msg = f"✅ **SIN RIESGO:** Temp. mínima segura ({t_min}°C)"
-
-            # Mostrar alerta
-            if clase == "error": st.error(f"**{p['f']}**: {msg}")
-            elif clase == "warning": st.warning(f"**{p['f']}**: {msg}")
-            else: st.success(f"**{p['f']}**: {msg}")
-
-    st.divider()
-
-    # --- 3. RECOMENDACIÓN TÉCNICA ---
-    with st.expander("📘 Manual de Acción ante Heladas"):
-        st.write("""
-        * **Helada Blanca:** Con humedad alta. Se forma escarcha. Protege parcialmente los tejidos por el calor de fusión.
-        * **Helada Negra:** Con aire muy seco. No hay escarcha, el daño es interno y mucho más severo.
-        * **Defensa Activa:** Si el riego está disponible, iniciar antes de que la temperatura de bulbo húmedo llegue a 0°C.
-        """)
+            if t_min <= 0: st.error(f"**{p['f']}**: 🧊 HELADA METEOROLÓGICA ({t_min}°C)")
+            elif t_min <= 3: st.warning(f"**{p['f']}**: 🌱 HELADA AGROMETEOROLÓGICA (Suelo est: {round(t_min-3,1)}°C)")
+            else: st.success(f"**{p['f']}**: ✅ SIN RIESGO ({t_min}°C)")
 
 elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
-    novedad = st.text_area("Describa la observación:")
-    if st.button("💾 GUARDAR"):
-        st.success("Registro guardado localmente.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    novedad = st.text_area("Observaciones:")
+    if st.button("💾 GUARDAR"): st.success("Registro guardado.")
