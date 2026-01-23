@@ -19,7 +19,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# === 1. LÓGICA DE DATOS (CORREGIDA) ===
+# === 1. LÓGICA DE DATOS ===
 API_KEY = "2762051ad62d06f1d0fe146033c1c7c8"
 LAT, LON = -38.298, -58.208 
 
@@ -60,6 +60,7 @@ clima = traer_datos_pro(LAT, LON)
 # === 2. BARRA LATERAL ===
 with st.sidebar:
     st.markdown("<div style='text-align:center; background:#1e3d2f; padding:10px; border-radius:10px; color:white;'><h3>🛡️ AGROGUARDIAN</h3><small>SISTEMA ACTIVO 24/7</small></div>", unsafe_allow_html=True)
+    # NOMBRES DE MENÚ SINCRONIZADOS
     menu = st.radio("MENÚ OPERATIVO", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"])
     st.divider()
     if st.button("🔄 ACTUALIZAR DATOS"): st.rerun()
@@ -96,47 +97,19 @@ if menu == "📊 Monitoreo Total":
     c1, c2 = st.columns([2, 1])
     with c1:
         st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
-        # Creamos el mapa base
         m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
-        
-        # 1. Capa Satelital (Esri World Imagery)
-        folium.TileLayer(
-            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            attr='Esri',
-            name='Vista Satelital (HD)',
-            overlay=False,
-            control=True
-        ).add_to(m)
-
-        # 2. Capa de Terreno / Relieve (OpenTopoMap)
-        folium.TileLayer(
-            tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-            attr='OpenTopoMap',
-            name='Relieve y Altura',
-            overlay=False,
-            control=True
-        ).add_to(m)
-
-        # 3. Capa Estándar (OpenStreetMap)
-        folium.TileLayer(
-            name='Mapa de Caminos',
-            overlay=False,
-            control=True
-        ).add_to(m)
-
-        # Marcador de la Trufera
-        folium.Marker(
-            [LAT, LON], 
-            popup="Sector Principal", 
-            icon=folium.Icon(color="purple", icon="leaf")
-        ).add_to(m)
-
-        # ACTIVAR EL SELECTOR DE CAPAS
+        folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri', name='Vista Satelital (HD)', overlay=False).add_to(m)
+        folium.TileLayer(tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr='OpenTopoMap', name='Relieve y Altura', overlay=False).add_to(m)
+        folium.TileLayer(name='Mapa de Caminos', overlay=False).add_to(m)
+        folium.Marker([LAT, LON], icon=folium.Icon(color="purple", icon="leaf")).add_to(m)
         folium.LayerControl(position='topright', collapsed=False).add_to(m)
-        
-        # Renderizar
         folium_static(m, width=700, height=400)
-        st.info("💡 Haz clic en el selector de la derecha para cambiar entre Satélite, Relieve o Caminos.")
+    
+    with c2:
+        st.subheader("📅 Pronóstico")
+        for p in obtener_pronostico():
+            st.write(f"**{p['f']}**: {p['min']}°/{p['max']}°")
+            st.caption(p['d'])
 
 elif menu == "💧 Balance Hídrico":
     st.header("💧 Gestión Hídrica del Lote")
@@ -144,27 +117,25 @@ elif menu == "💧 Balance Hídrico":
     st.metric("Consumo Hoy (ETc)", f"{etc} mm")
     st.info("Estrategia: Reposición del 50% para mantenimiento de micelio.")
 
-elif menu == "⛈️ Granizo":
+elif menu == "⛈️ Radar Granizo":
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e293b, #475569); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0; font-size: 2rem;">⛈️ Monitor de Tormentas</h1>
+            <h1 style="color: white; margin: 0; font-size: 2rem;">🚜 Monitor de Tormentas</h1>
             <p style="margin: 0; opacity: 0.9;">Detección de celdas de granizo y nubosidad convectiva</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # 1. CÁLCULO DE RIESGO OPERATIVO
     riesgo = 0
     if clima['presion'] < 1008: riesgo += 50
     if clima['hum'] > 80: riesgo += 30
     if clima['temp'] > 28: riesgo += 20
     
     c1, c2 = st.columns([1, 1])
-    
     with c1:
         st.subheader("📊 Análisis de Riesgo")
         if riesgo >= 70:
             st.error(f"### RIESGO CRÍTICO: {riesgo}%")
-            st.markdown("⚠️ **ALERTA ROJA:** Condiciones inestables. Formación de tormentas probables.")
+            st.markdown("⚠️ **ALERTA ROJA:** Formación de tormentas probables.")
         elif riesgo >= 40:
             st.warning(f"### RIESGO MODERADO: {riesgo}%")
             st.markdown("🟡 **AVISO:** Vigilancia meteorológica recomendada.")
@@ -174,38 +145,8 @@ elif menu == "⛈️ Granizo":
 
     with c2:
         st.subheader("🛰️ Control de Radar")
-        st.write("Debido a políticas de seguridad, el radar se abre en una ventana protegida externa para mayor detalle.")
-        
-        # LINK DINÁMICO AL RADAR
         url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},9"
-        
-        st.markdown(f"""
-            <a href="{url_radar}" target="_blank" style="text-decoration: none;">
-                <div style="
-                    background-color: #4f46e5;
-                    color: white;
-                    padding: 20px;
-                    border-radius: 12px;
-                    text-align: center;
-                    font-weight: bold;
-                    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
-                    border: 1px solid #6366f1;
-                ">
-                    🚀 ABRIR RADAR DOPPLER INTERACTIVO<br>
-                    <span style="font-size: 0.8rem; font-weight: normal;">(Ubicación exacta de la Trufera)</span>
-                </div>
-            </a>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-    
-    # 2. GUÍA DE LECTURA DE RADAR
-    with st.expander("❓ ¿Cómo leer el radar en Windy?"):
-        st.write("""
-        * **Colores Azules/Verdes:** Lluvia débil a moderada.
-        * **Colores Amarillos/Naranjas:** Tormentas eléctricas en desarrollo.
-        * **Colores Púrpuras o Blancos:** **¡PELIGRO!** Alta probabilidad de granizo o lluvia torrencial.
-        """)
+        st.markdown(f"""<a href="{url_radar}" target="_blank" style="text-decoration:none;"><div style="background:#4f46e5; color:white; padding:20px; border-radius:12px; text-align:center; font-weight:bold;">🚀 ABRIR RADAR DOPPLER INTERACTIVO</div></a>""", unsafe_allow_html=True)
 
 elif menu == "❄️ Heladas":
     st.subheader("❄️ Control de Heladas")
