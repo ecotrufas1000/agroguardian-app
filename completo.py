@@ -69,7 +69,7 @@ with st.sidebar:
 if menu == "📊 Monitoreo Total":
     st.markdown("""
         <div style="background: linear-gradient(to right, #4c1d95, #7c3aed, #a78bfa); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 2.2rem;">💎 AgroGuardian Pro 24/7</h1>
+            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🚜 AgroGuardian Pro 24/7</h1>
             <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">CENTRO DE INTELIGENCIA AGROCLIMÁTICA</p>
         </div>
     """, unsafe_allow_html=True)
@@ -160,6 +160,7 @@ elif menu == "📝 Bitácora":
     novedad = st.text_area("Describa la observación:")
     if st.button("💾 GUARDAR"):
         st.success("Registro guardado localmente.")
+
 
 
 
