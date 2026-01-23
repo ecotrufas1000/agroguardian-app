@@ -177,21 +177,65 @@ elif menu == "⛈️ Radar Granizo":
     st.markdown(f'<br><a href="{url_radar}" target="_blank" style="text-decoration:none;"><div style="background:#4f46e5; color:white; padding:20px; border-radius:12px; text-align:center; font-weight:bold;">🚀 ABRIR RADAR DOPPLER</div></a>', unsafe_allow_html=True)
 
 elif menu == "❄️ Heladas":
-    st.markdown("<div style='background: linear-gradient(to right, #075985, #0ea5e9); padding:25px; border-radius:15px; color:white; text-align:center;'><h2>❄️ Alerta de Heladas</h2></div>", unsafe_allow_html=True)
-    
-    colh1, colh2 = st.columns(2)
-    with colh1: st.info("📅 **Primera Helada:** 15 de Mayo")
-    with colh2: st.warning("📅 **Última Helada Est:** 12 de Septiembre")
+    st.markdown(f"""
+        <div style="background: linear-gradient(to right, #075985, #0ea5e9); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
+            <h1 style="color: white; margin: 0; font-size: 2rem;">🚜 Monitor de Heladas</h1>
+            <p style="margin: 0; opacity: 0.9;">Detección de helada agrometeorológica y fechas críticas</p>
+        </div>
+    """, unsafe_allow_html=True)
 
+    # --- 1. REGISTRO DE FECHAS CRÍTICAS ---
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("""
+            <div style="background:white; padding:15px; border-radius:10px; border-left:5px solid #0ea5e9; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
+                <small style="color:gray;">PRIMERA HELADA REGISTRADA</small><br>
+                <strong style="font-size:1.2rem; color:#075985;">15 de Mayo</strong>
+            </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown("""
+            <div style="background:white; padding:15px; border-radius:10px; border-left:5px solid #f39c12; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
+                <small style="color:gray;">ÚLTIMA HELADA ESTIMADA</small><br>
+                <strong style="font-size:1.2rem; color:#d68910;">12 de Septiembre</strong>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # --- 2. ALERTAS DE PRONÓSTICO ---
+    st.subheader("🔍 Alerta de Riesgo (Próximos días)")
+    
     pronos = obtener_pronostico()
+    
     if pronos:
         for p in pronos:
             t_min = p['min']
-            if t_min <= 0: st.error(f"**{p['f']}**: 🧊 HELADA METEOROLÓGICA ({t_min}°C)")
-            elif t_min <= 3: st.warning(f"**{p['f']}**: 🌱 HELADA AGROMETEOROLÓGICA (Suelo est: {round(t_min-3,1)}°C)")
-            else: st.success(f"**{p['f']}**: ✅ SIN RIESGO ({t_min}°C)")
+            # Helada agrometeorológica: aire a 3°C suele significar 0°C o menos a nivel del suelo
+            t_suelo_est = round(t_min - 3.0, 1)
+            
+            if t_min <= 0:
+                # Helada Meteorológica (Rojo)
+                st.error(f"**{p['f']}**: 🧊 RIESGO TOTAL. Aire: {t_min}°C | Suelo est: {t_suelo_est}°C")
+            elif t_min <= 3:
+                # Helada Agrometeorológica (Amarillo)
+                st.warning(f"**{p['f']}**: 🌱 RIESGO AGROMETEOROLÓGICO. Suelo estimado: {t_suelo_est}°C")
+            else:
+                # Sin riesgo (Texto simple sin cajas de colores para no saturar)
+                st.write(f"✅ **{p['f']}**: Sin riesgo detectado ({t_min}°C)")
+
+    st.divider()
+
+    # --- 3. INFOGRAFÍA TÉCNICA ---
+    with st.expander("📚 Diferencia entre Helada Meteorológica y Agrometeorológica"):
+        st.write("""
+        * **Meteorológica:** Se mide en la casilla a 1.5 metros de altura. Debe ser ≤ 0°C.
+        * **Agrometeorológica:** Se produce cuando la temperatura a nivel del suelo (césped) cae por debajo de 0°C. 
+        Generalmente ocurre cuando el termómetro de la casilla marca entre **2°C y 3°C**.
+        """)
 
 elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
