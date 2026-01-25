@@ -87,46 +87,39 @@ if menu == "📊 Monitoreo Total":
         </div>
     """, unsafe_allow_html=True)
 
-    # ... (mantener lógica de riesgos y métricas igual) ...
-
-    # Dirección del viento cardinal
-    dir_cardinal = obtener_direccion_cardinal(clima['v_dir'])
+    # (Lógica de riesgos y dirección de viento previa...)
+    dir_viento = obtener_direccion_cardinal(clima['v_dir'])
 
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("TEMP.", f"{clima['temp']}°C")
     m2.metric("HUMEDAD", f"{clima['hum']}%")
-    m3.metric("VIENTO", f"{clima['v_vel']} km/h", f"Desde el {dir_cardinal}")
+    m3.metric("VIENTO", f"{clima['v_vel']} km/h", f"Dir: {dir_viento}")
     m4.metric("ET0 HOY", f"{clima['etc']} mm")
     m5.metric("LLUVIA EST.", f"{clima['lluvia_est']} mm")
 
     st.divider()
 
-    # --- NUEVA VENTANA DE WINDY (SOLUCIÓN AL ERROR DE BLOQUEO) ---
+    # --- SOLUCIÓN AL ERROR DE FIREFOX ---
     st.subheader("⛈️ Radar de Tormentas y Precipitación")
     
-    # Usamos el Widget de Windy oficial que no bloquea Firefox/Chrome
-    windy_widget = f"""
-        <iframe 
-            width="100%" 
-            height="450" 
-            src="https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default" 
-            frameborder="0"
-            style="border-radius:15px;">
-        </iframe>
-    """
-    st.markdown(windy_widget, unsafe_allow_html=True)
+    # Esta URL usa /widgets/ que permite ser incrustada
+    windy_widget_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
     
-    # Botón de respaldo por si el navegador es muy restrictivo
-    url_directa = f"https://www.windy.com/multimodel?radar,{LAT},{LON},8"
+    st.components.v1.iframe(windy_widget_url, height=500, scrolling=False)
+    
+    # Respaldo: Enlace directo si el iframe falla por configs del usuario
     st.markdown(f"""
-        <div style="text-align: right;">
-            <a href="{url_directa}" target="_blank" style="color: #4f46e5; text-decoration: none; font-size: 0.8rem;">
-                ↗️ Abrir en pantalla completa (Windy original)
+        <div style="text-align: right; margin-top: -20px;">
+            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8" target="_blank" 
+               style="color: #4f46e5; text-decoration: none; font-size: 0.85rem; font-weight: bold;">
+               ↗️ Ver pantalla completa en Windy.com
             </a>
         </div>
     """, unsafe_allow_html=True)
 
     st.divider()
+
+    # (Seguir con el mapa de Folium y Pronóstico...)
 
     # ... (resto del código de Folium y Pronóstico igual) ...
 
@@ -273,6 +266,7 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
 
