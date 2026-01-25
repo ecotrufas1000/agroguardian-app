@@ -26,9 +26,15 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# === 1. LÓGICA DE DATOS ===
+# === LÓGICA DE DATOS ===
 API_KEY = "2762051ad62d06f1d0fe146033c1c7c8"
 LAT, LON = -38.298, -58.208 
+
+def obtener_direccion_cardinal(grados):
+    direcciones = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
+                   "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
+    indice = int((grados + 11.25) / 22.5) % 16
+    return direcciones[indice]
 
 @st.cache_data(ttl=600)
 def traer_datos_pro(lat, lon):
@@ -64,14 +70,14 @@ def obtener_pronostico():
 
 clima = traer_datos_pro(LAT, LON)
 
-# === 2. BARRA LATERAL ===
+# === BARRA LATERAL ===
 with st.sidebar:
     st.markdown("<div style='text-align:center; background:#1e3d2f; padding:10px; border-radius:10px; color:white;'><h3>🛡️ AGROGUARDIAN</h3><small>SISTEMA ACTIVO 24/7</small></div>", unsafe_allow_html=True)
     menu = st.radio("MENÚ OPERATIVO", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"])
     st.divider()
     if st.button("🔄 ACTUALIZAR DATOS"): st.rerun()
 
-# === 3. PÁGINAS ===
+# === PÁGINAS ===
 
 if menu == "📊 Monitoreo Total":
     st.markdown("""
@@ -92,23 +98,31 @@ if menu == "📊 Monitoreo Total":
         for i, (txt, col) in enumerate(riesgos):
             cols_r[i].markdown(f"<div class='badge-alerta' style='background:{col};'>{txt}</div>", unsafe_allow_html=True)
 
+    # Dirección del viento cardinal
+    dir_cardinal = obtener_direccion_cardinal(clima['v_dir'])
+
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("TEMP.", f"{clima['temp']}°C")
     m2.metric("HUMEDAD", f"{clima['hum']}%")
-    m3.metric("VIENTO", f"{clima['v_vel']} km/h")
+    m3.metric("VIENTO", f"{clima['v_vel']} km/h", f"Desde el {dir_cardinal}")
     m4.metric("ET0 HOY", f"{clima['etc']} mm")
     m5.metric("LLUVIA EST.", f"{clima['lluvia_est']} mm")
 
     st.divider()
+
+    # Ventana de Windy Integrada
+    st.subheader("⛈️ Radar de Tormentas y Precipitación (Windy)")
+    windy_url = f"https://www.windy.com/multimodel?radar,{LAT},{LON},8"
+    st.components.v1.iframe(windy_url, height=500, scrolling=True)
+
+    st.divider()
+
     c1, c2 = st.columns([2, 1])
     with c1:
         st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
         m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
         folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri', name='Vista Satelital (HD)', overlay=False).add_to(m)
-        folium.TileLayer(tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr='OpenTopoMap', name='Relieve y Altura', overlay=False).add_to(m)
-        folium.TileLayer(name='Mapa de Caminos', overlay=False).add_to(m)
         folium.Marker([LAT, LON], icon=folium.Icon(color="purple", icon="leaf")).add_to(m)
-        folium.LayerControl(position='topright', collapsed=False).add_to(m)
         folium_static(m, width=700, height=400)
     
     with c2:
@@ -117,6 +131,7 @@ if menu == "📊 Monitoreo Total":
             st.write(f"**{p['f']}**: {p['min']}°/{p['max']}°")
             st.caption(p['d'])
 
+# (Aquí seguirían las otras secciones: Balance Hídrico, Heladas, etc., tal cual las teníamos)
 elif menu == "💧 Balance Hídrico":
     st.markdown(f"""
         <div style="background: linear-gradient(to right, #2563eb, #3b82f6); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
@@ -238,4 +253,5 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
