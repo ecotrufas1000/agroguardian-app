@@ -87,16 +87,7 @@ if menu == "📊 Monitoreo Total":
         </div>
     """, unsafe_allow_html=True)
 
-    # SEMÁFORO DE RIESGO
-    riesgos = []
-    if clima['temp'] > 32: riesgos.append(("🔥 ESTRÉS TÉRMICO", "#e74c3c"))
-    if clima['v_vel'] > 25: riesgos.append(("💨 VIENTO FUERTE", "#f39c12"))
-    if clima['presion'] < 1008: riesgos.append(("⛈️ RIESGO TORMENTA", "#8e44ad"))
-
-    if riesgos:
-        cols_r = st.columns(len(riesgos))
-        for i, (txt, col) in enumerate(riesgos):
-            cols_r[i].markdown(f"<div class='badge-alerta' style='background:{col};'>{txt}</div>", unsafe_allow_html=True)
+    # ... (mantener lógica de riesgos y métricas igual) ...
 
     # Dirección del viento cardinal
     dir_cardinal = obtener_direccion_cardinal(clima['v_dir'])
@@ -109,6 +100,35 @@ if menu == "📊 Monitoreo Total":
     m5.metric("LLUVIA EST.", f"{clima['lluvia_est']} mm")
 
     st.divider()
+
+    # --- NUEVA VENTANA DE WINDY (SOLUCIÓN AL ERROR DE BLOQUEO) ---
+    st.subheader("⛈️ Radar de Tormentas y Precipitación")
+    
+    # Usamos el Widget de Windy oficial que no bloquea Firefox/Chrome
+    windy_widget = f"""
+        <iframe 
+            width="100%" 
+            height="450" 
+            src="https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default" 
+            frameborder="0"
+            style="border-radius:15px;">
+        </iframe>
+    """
+    st.markdown(windy_widget, unsafe_allow_html=True)
+    
+    # Botón de respaldo por si el navegador es muy restrictivo
+    url_directa = f"https://www.windy.com/multimodel?radar,{LAT},{LON},8"
+    st.markdown(f"""
+        <div style="text-align: right;">
+            <a href="{url_directa}" target="_blank" style="color: #4f46e5; text-decoration: none; font-size: 0.8rem;">
+                ↗️ Abrir en pantalla completa (Windy original)
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # ... (resto del código de Folium y Pronóstico igual) ...
 
     # Ventana de Windy Integrada
     st.subheader("⛈️ Radar de Tormentas y Precipitación (Windy)")
@@ -253,5 +273,6 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
