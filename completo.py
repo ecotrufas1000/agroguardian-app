@@ -200,71 +200,78 @@ elif menu == "💧 Balance Hídrico":
         else: st.success(f"✅ **ESTADO ÓPTIMO:** Reservas suficientes.")
 
 elif menu == "⛈️ Radar Granizo":
-    # CSS específico para forzar la eliminación de bordes verdes en las métricas
+    # 1. CSS para eliminar bordes (paréntesis) verdes y mejorar estética
     st.markdown("""
         <style>
         [data-testid="stMetric"] {
+            background: white;
             border: none !important;
             border-left: none !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             padding: 15px !important;
+            border-radius: 12px;
         }
-        /* Elimina el pseudo-elemento que genera la barra verde lateral */
-        [data-testid="stMetric"]::before {
-            content: none !important;
+        /* Eliminar la barra lateral verde de Streamlit */
+        [data-testid="stMetric"] > div {
+            border-left: none !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown("""
-        <div style="background: linear-gradient(to right, #1e293b, #475569); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0; font-size: 2rem;">🚜 Monitor de Tormentas y Granizo</h1>
-            <p style="margin: 0; opacity: 0.9;">Detección de celdas convectivas y núcleos de granizo</p>
+        <div style="background: linear-gradient(to right, #1e293b, #334155); padding:25px; border-radius:15px; color:white; text-align:center; margin-bottom:20px;">
+            <h2 style="color:white; margin:0;">🛰️ Monitor Doppler y Riesgo de Granizo</h2>
+            <p style="opacity:0.8; margin:0;">Detección de celdas convectivas en tiempo real</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- PANEL DE RIESGO ---
-    riesgo_puntos = 0
-    if clima['presion'] < 1010: riesgo_puntos += 35
-    if clima['hum'] > 75: riesgo_puntos += 25
-    if clima['temp'] > 28: riesgo_puntos += 40
+    # 2. CÁLCULO DE PELIGROSIDAD (Índice AgroGuardian)
+    # Basado en inestabilidad: Presión baja + Humedad alta + Temperatura alta
+    puntos_riesgo = 0
+    if clima['presion'] < 1010: puntos_riesgo += 30
+    if clima['hum'] > 70: puntos_riesgo += 30
+    if clima['temp'] > 28: puntos_riesgo += 40
     
-    color_alerta = "#2ecc71" if riesgo_puntos < 45 else "#f39c12" if riesgo_puntos < 75 else "#e74c3c"
-    
-    st.markdown(f"""
-        <div style="background: white; padding: 20px; border-radius: 12px; border-top: 5px solid {color_alerta}; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
-            <h3 style="margin: 0;">Probabilidad de Granizo: <span style="color: {color_alerta};">{riesgo_puntos}%</span></h3>
-            <p style="margin: 5px 0 0 0; color: #64748b;">Análisis basado en inestabilidad barométrica y térmica local.</p>
-        </div>
-    """, unsafe_allow_html=True)
+    color_idx = "#2ecc71" if puntos_riesgo < 40 else "#f39c12" if puntos_riesgo < 75 else "#e74c3c"
+    nivel_texto = "BAJO" if puntos_riesgo < 40 else "MODERADO" if puntos_riesgo < 75 else "ALTO / INMINENTE"
 
-    # --- RADAR DOPPLER (VERSIÓN WIDGET SIN BLOQUEO) ---
-    st.subheader("📡 Radar Doppler en Vivo")
+    col_a, col_b = st.columns([1, 3])
+    with col_a:
+        st.metric("RIESGO ESTIMADO", nivel_texto)
+    with col_b:
+        st.markdown(f"""
+            <div style="background:{color_idx}; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">
+                ÍNDICE DE INESTABILIDAD: {puntos_riesgo}% <br>
+                <small>Factores: Presión {clima['presion']} hPa | Temp {clima['temp']}°C</small>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # 3. VENTANA DOPPLER (URL DE WIDGET PARA EVITAR BLOQUEO DE FIREFOX)
+    st.subheader("📡 Radar de Precipitación en Vivo")
     
-    # Esta URL usa /widgets/ que Firefox SÍ permite incrustar
-    windy_radar_widget = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
+    # IMPORTANTE: Usamos /widgets/ en la URL, que sí permite 'embedding'
+    url_windy_widget = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
     
-    st.components.v1.iframe(windy_radar_widget, height=550, scrolling=False)
-    
+    st.components.v1.iframe(url_windy_widget, height=550, scrolling=False)
+
+    # Botón de respaldo elegante
     st.markdown(f"""
         <div style="text-align: right; margin-top: 10px;">
-            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},9" target="_blank" 
-               style="background: #4f46e5; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-               🚀 VER PANTALLA COMPLETA
+            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8" target="_blank" 
+               style="text-decoration:none; background:#4f46e5; color:white; padding:10px 20px; border-radius:8px; font-weight:bold;">
+               🚀 VER PANTALLA COMPLETA ORIGINAL
             </a>
         </div>
     """, unsafe_allow_html=True)
 
-    st.divider()
-
-    with st.expander("📘 Guía de Identificación de Granizo"):
+    with st.expander("❓ ¿Cómo leer el radar para granizo?"):
         st.write("""
-        * **Núcleos Blancos/Púrpuras**: Indican granizo probable o lluvia extremadamente densa.
-        * **Ecos en Gancho**: Sugieren rotación y tormentas severas.
-        * **Movimiento**: Si las celdas se desplazan hacia el **SO**, monitoree la velocidad de avance.
-        """)
-elif menu == "❄️ Heladas":
+        - **Verde/Amarillo:** Lluvia normal.
+        - **Rojo/Fucsia:** Tormenta fuerte.
+        - **Púrpura/Blanco:** Probabilidad muy alta de **granizo** (alta densidad de hielo).
+        """)elif menu == "❄️ Heladas":
     st.markdown(f"""
         <div style="background: linear-gradient(to right, #075985, #0ea5e9); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
             <h1 style="color: white; margin: 0; font-size: 2rem;">🚜 Monitor de Heladas</h1>
@@ -326,6 +333,7 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
 
