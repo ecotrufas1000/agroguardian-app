@@ -273,160 +273,25 @@ elif menu == "⛈️ Radar Granizo":
         - **Púrpura/Blanco:** Probabilidad muy alta de **granizo** (alta densidad de hielo).
         """)
 
-import streamlit as st
+elif menu == "❄️ Heladas":
+    st.markdown("<div style='background: linear-gradient(to right, #075985, #0ea5e9); padding:25px; border-radius:15px; color:white; text-align:center;'><h2>❄️ Alerta de Heladas</h2></div>", unsafe_allow_html=True)
+    
+    colh1, colh2 = st.columns(2)
+    with colh1: st.info("📅 **Primera Helada:** 15 de Mayo")
+    with colh2: st.warning("📅 **Última Helada Est:** 12 de Septiembre")
 
-# -------------------------------------------------
-# CONFIGURACIÓN GENERAL
-# -------------------------------------------------
-st.set_page_config(
-    page_title="Monitor de Heladas",
-    layout="wide"
-)
-
-# -------------------------------------------------
-# FUNCIÓN DE PRONÓSTICO (SIMULADA)
-# -------------------------------------------------
-def obtener_pronostico():
-    """
-    Devuelve una lista de diccionarios con:
-    f   = fecha
-    min = temperatura mínima del aire
-    """
-    return [
-        {"f": "28 de Enero", "min": 4.5},
-        {"f": "29 de Enero", "min": 2.0},
-        {"f": "30 de Enero", "min": -1.3},
-        {"f": "31 de Enero", "min": 6.2},
-    ]
-
-# -------------------------------------------------
-# MENÚ (SIMULADO)
-# -------------------------------------------------
-menu = st.sidebar.radio(
-    "Menú",
-    ["Inicio", "Heladas"]
-)
-
-# -------------------------------------------------
-# PANTALLA INICIO
-# -------------------------------------------------
-if menu == "Inicio":
-    st.title("🌾 Sistema Agrometeorológico")
-    st.write("Seleccione una opción del menú lateral.")
-
-# -------------------------------------------------
-# PANTALLA HELADAS
-# -------------------------------------------------
-elif menu == "Heladas":
-
-    # CABECERA
-    st.markdown("""
-        <div style="
-            background: linear-gradient(to right, #075985, #0ea5e9);
-            padding: 25px;
-            border-radius: 15px;
-            color: white;
-            text-align: center;
-            margin-bottom: 20px;
-        ">
-            <h1 style="margin: 0;">Monitor de Heladas</h1>
-            <p style="opacity: 0.9;">
-                Detección de helada meteorológica y agrometeorológica
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # -------------------------------------------------
-    # REGISTRO DE FECHAS CRÍTICAS
-    # -------------------------------------------------
-    c1, c2 = st.columns(2)
-
-    with c1:
-        st.markdown("""
-            <div style="
-                background:white;
-                padding:15px;
-                border-radius:10px;
-                border-left:5px solid #0ea5e9;
-                box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
-            ">
-                <small style="color:gray;">PRIMERA HELADA REGISTRADA</small><br>
-                <strong style="font-size:1.2rem; color:#075985;">
-                    15 de Mayo
-                </strong>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with c2:
-        st.markdown("""
-            <div style="
-                background:white;
-                padding:15px;
-                border-radius:10px;
-                border-left:5px solid #f39c12;
-                box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
-            ">
-                <small style="color:gray;">ÚLTIMA HELADA ESTIMADA</small><br>
-                <strong style="font-size:1.2rem; color:#d68910;">
-                    12 de Septiembre
-                </strong>
-            </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # -------------------------------------------------
-    # ALERTAS DE PRONÓSTICO
-    # -------------------------------------------------
-    st.subheader("🔍 Alerta de Riesgo (Próximos días)")
-
-    try:
-        pronos = obtener_pronostico()
-    except Exception as e:
-        pronos = []
-        st.error(f"No se pudo cargar el pronóstico: {e}")
-
+    pronos = obtener_pronostico()
     if pronos:
         for p in pronos:
-            t_min = p["min"]
-
-            # Estimación de temperatura a nivel del suelo
-            t_suelo_est = round(t_min - 3.0, 1)
-
-            if t_min <= 0:
-                st.error(
-                    f"**{p['f']}** 🧊 "
-                    f"HELADA METEOROLÓGICA | "
-                    f"Aire: {t_min}°C | "
-                    f"Suelo est: {t_suelo_est}°C"
-                )
-
-            elif t_min <= 3:
-                st.warning(
-                    f"**{p['f']}** 🌱 "
-                    f"RIESGO AGROMETEOROLÓGICO | "
-                    f"Suelo est: {t_suelo_est}°C"
-                )
-
-            else:
-                st.info(
-                    f"**{p['f']}** ✅ "
-                    f"Sin riesgo ({t_min}°C)"
-                )
-    else:
-        st.warning("No hay datos de pronóstico disponibles.")
-
-    st.divider()
-
-    st.caption(
-        "ℹ️ Nota: Helada agrometeorológica ≈ aire ≤ 3°C "
-        "puede implicar 0°C o menos a nivel del suelo."
-    )
-
+            t_min = p['min']
+            if t_min <= 0: st.error(f"**{p['f']}**: 🧊 HELADA METEOROLÓGICA ({t_min}°C)")
+            elif t_min <= 3: st.warning(f"**{p['f']}**: 🌱 HELADA AGROMETEOROLÓGICA (Suelo est: {round(t_min-3,1)}°C)")
+            else: st.success(f"**{p['f']}**: ✅ SIN RIESGO ({t_min}°C)")
 elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
 
