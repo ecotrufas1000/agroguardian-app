@@ -200,66 +200,69 @@ elif menu == "💧 Balance Hídrico":
         else: st.success(f"✅ **ESTADO ÓPTIMO:** Reservas suficientes.")
 
 elif menu == "⛈️ Radar Granizo":
+    # CSS específico para forzar la eliminación de bordes verdes en las métricas
+    st.markdown("""
+        <style>
+        [data-testid="stMetric"] {
+            border: none !important;
+            border-left: none !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            background: white;
+            padding: 15px !important;
+        }
+        /* Elimina el pseudo-elemento que genera la barra verde lateral */
+        [data-testid="stMetric"]::before {
+            content: none !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e293b, #475569); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
             <h1 style="color: white; margin: 0; font-size: 2rem;">🚜 Monitor de Tormentas y Granizo</h1>
-            <p style="margin: 0; opacity: 0.9;">Análisis de celdas convectivas y riesgo de granizo</p>
+            <p style="margin: 0; opacity: 0.9;">Detección de celdas convectivas y núcleos de granizo</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 1. CÁLCULO DE ÍNDICE DE PELIGROSIDAD ---
-    # Lógica simplificada basada en parámetros críticos para granizo
+    # --- PANEL DE RIESGO ---
     riesgo_puntos = 0
-    if clima['presion'] < 1010: riesgo_puntos += 35  # Baja presión = inestabilidad
-    if clima['hum'] > 75: riesgo_puntos += 25       # Humedad alta = combustible para tormenta
-    if clima['temp'] > 28: riesgo_puntos += 20      # Calor = ascenso convectivo
-    if clima['v_vel'] > 20: riesgo_puntos += 20     # Viento = cizalladura
+    if clima['presion'] < 1010: riesgo_puntos += 35
+    if clima['hum'] > 75: riesgo_puntos += 25
+    if clima['temp'] > 28: riesgo_puntos += 40
     
-    # Determinar nivel y color
-    if riesgo_puntos >= 75:
-        nivel, color_alerta, icon = "CRÍTICO", "#e74c3c", "🚨"
-    elif riesgo_puntos >= 45:
-        nivel, color_alerta, icon = "MODERADO", "#f39c12", "⚠️"
-    else:
-        nivel, color_alerta, icon = "BAJO", "#2ecc71", "✅"
-
-    # Mostrar Panel de Peligrosidad
+    color_alerta = "#2ecc71" if riesgo_puntos < 45 else "#f39c12" if riesgo_puntos < 75 else "#e74c3c"
+    
     st.markdown(f"""
-        <div style="background: white; padding: 20px; border-radius: 12px; border-left: 8px solid {color_alerta}; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
-            <h3 style="margin: 0; color: #1e293b;">{icon} Riesgo Estimado de Granizo: <span style="color: {color_alerta};">{nivel}</span></h3>
-            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9rem;">
-                Probabilidad calculada: <b>{riesgo_puntos}%</b> basada en inestabilidad barométrica y térmica actual.
-            </p>
+        <div style="background: white; padding: 20px; border-radius: 12px; border-top: 5px solid {color_alerta}; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
+            <h3 style="margin: 0;">Probabilidad de Granizo: <span style="color: {color_alerta};">{riesgo_puntos}%</span></h3>
+            <p style="margin: 5px 0 0 0; color: #64748b;">Análisis basado en inestabilidad barométrica y térmica local.</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 2. VENTANA DOPPLER INTEGRADA ---
+    # --- RADAR DOPPLER (VERSIÓN WIDGET SIN BLOQUEO) ---
     st.subheader("📡 Radar Doppler en Vivo")
     
-    # URL de Widget (Específica para Radar)
-    windy_radar_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8"
+    # Esta URL usa /widgets/ que Firefox SÍ permite incrustar
+    windy_radar_widget = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
     
-    st.components.v1.iframe(windy_radar_url, height=550, scrolling=False)
+    st.components.v1.iframe(windy_radar_widget, height=550, scrolling=False)
     
     st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-            <p style="font-size: 0.8rem; color: #64748b;">⚠️ <i>Nota: Las manchas púrpuras/blancas intensas suelen indicar granizo en formación.</i></p>
+        <div style="text-align: right; margin-top: 10px;">
             <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},9" target="_blank" 
-               style="background: #4f46e5; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.8rem;">
-               🚀 PANTALLA COMPLETA
+               style="background: #4f46e5; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+               🚀 VER PANTALLA COMPLETA
             </a>
         </div>
     """, unsafe_allow_html=True)
 
     st.divider()
 
-    # --- 3. TIPS DE INTERPRETACIÓN ---
-    with st.expander("ℹ️ Cómo interpretar el Doppler para Granizo"):
+    with st.expander("📘 Guía de Identificación de Granizo"):
         st.write("""
-        * **Verde/Azul:** Lluvia débil a moderada.
-        * **Amarillo/Naranja:** Lluvia fuerte, posible actividad eléctrica.
-        * **Rojo/Púrpura:** Tormenta severa. Existe alta probabilidad de **granizo** debido a la alta reflectividad.
-        * **Puntos Blancos:** Indica celdas con núcleos de hielo (granizo inminente).
+        * **Núcleos Blancos/Púrpuras**: Indican granizo probable o lluvia extremadamente densa.
+        * **Ecos en Gancho**: Sugieren rotación y tormentas severas.
+        * **Movimiento**: Si las celdas se desplazan hacia el **SO**, monitoree la velocidad de avance.
         """)
 elif menu == "❄️ Heladas":
     st.markdown(f"""
@@ -323,6 +326,7 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
 
