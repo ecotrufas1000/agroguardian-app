@@ -200,10 +200,67 @@ elif menu == "💧 Balance Hídrico":
         else: st.success(f"✅ **ESTADO ÓPTIMO:** Reservas suficientes.")
 
 elif menu == "⛈️ Radar Granizo":
-    st.markdown("<div style='background: linear-gradient(to right, #1e293b, #475569); padding:25px; border-radius:15px; color:white; text-align:center;'><h2>🚜 Monitor de Tormentas</h2></div>", unsafe_allow_html=True)
-    url_radar = f"https://www.windy.com/-Weather-radar-radar?radar,{LAT},{LON},9"
-    st.markdown(f'<br><a href="{url_radar}" target="_blank" style="text-decoration:none;"><div style="background:#4f46e5; color:white; padding:20px; border-radius:12px; text-align:center; font-weight:bold;">🚀 ABRIR RADAR DOPPLER</div></a>', unsafe_allow_html=True)
+    st.markdown("""
+        <div style="background: linear-gradient(to right, #1e293b, #475569); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
+            <h1 style="color: white; margin: 0; font-size: 2rem;">🚜 Monitor de Tormentas y Granizo</h1>
+            <p style="margin: 0; opacity: 0.9;">Análisis de celdas convectivas y riesgo de granizo</p>
+        </div>
+    """, unsafe_allow_html=True)
 
+    # --- 1. CÁLCULO DE ÍNDICE DE PELIGROSIDAD ---
+    # Lógica simplificada basada en parámetros críticos para granizo
+    riesgo_puntos = 0
+    if clima['presion'] < 1010: riesgo_puntos += 35  # Baja presión = inestabilidad
+    if clima['hum'] > 75: riesgo_puntos += 25       # Humedad alta = combustible para tormenta
+    if clima['temp'] > 28: riesgo_puntos += 20      # Calor = ascenso convectivo
+    if clima['v_vel'] > 20: riesgo_puntos += 20     # Viento = cizalladura
+    
+    # Determinar nivel y color
+    if riesgo_puntos >= 75:
+        nivel, color_alerta, icon = "CRÍTICO", "#e74c3c", "🚨"
+    elif riesgo_puntos >= 45:
+        nivel, color_alerta, icon = "MODERADO", "#f39c12", "⚠️"
+    else:
+        nivel, color_alerta, icon = "BAJO", "#2ecc71", "✅"
+
+    # Mostrar Panel de Peligrosidad
+    st.markdown(f"""
+        <div style="background: white; padding: 20px; border-radius: 12px; border-left: 8px solid {color_alerta}; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
+            <h3 style="margin: 0; color: #1e293b;">{icon} Riesgo Estimado de Granizo: <span style="color: {color_alerta};">{nivel}</span></h3>
+            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9rem;">
+                Probabilidad calculada: <b>{riesgo_puntos}%</b> basada en inestabilidad barométrica y térmica actual.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- 2. VENTANA DOPPLER INTEGRADA ---
+    st.subheader("📡 Radar Doppler en Vivo")
+    
+    # URL de Widget (Específica para Radar)
+    windy_radar_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8"
+    
+    st.components.v1.iframe(windy_radar_url, height=550, scrolling=False)
+    
+    st.markdown(f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <p style="font-size: 0.8rem; color: #64748b;">⚠️ <i>Nota: Las manchas púrpuras/blancas intensas suelen indicar granizo en formación.</i></p>
+            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},9" target="_blank" 
+               style="background: #4f46e5; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.8rem;">
+               🚀 PANTALLA COMPLETA
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # --- 3. TIPS DE INTERPRETACIÓN ---
+    with st.expander("ℹ️ Cómo interpretar el Doppler para Granizo"):
+        st.write("""
+        * **Verde/Azul:** Lluvia débil a moderada.
+        * **Amarillo/Naranja:** Lluvia fuerte, posible actividad eléctrica.
+        * **Rojo/Púrpura:** Tormenta severa. Existe alta probabilidad de **granizo** debido a la alta reflectividad.
+        * **Puntos Blancos:** Indica celdas con núcleos de hielo (granizo inminente).
+        """)
 elif menu == "❄️ Heladas":
     st.markdown(f"""
         <div style="background: linear-gradient(to right, #075985, #0ea5e9); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
@@ -266,6 +323,7 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
 
