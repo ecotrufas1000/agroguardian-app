@@ -280,7 +280,7 @@ elif menu == "❄️ Heladas":
         """)elif menu == "❄️ Heladas":
     st.markdown(f"""
         <div style="background: linear-gradient(to right, #075985, #0ea5e9); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0; font-size: 2rem;">❄️ Monitor de Heladas</h1>
+            <h1 style="color: white; margin: 0; font-size: 2rem;">"❄️ Monitor de Heladas"</h1>
             <p style="margin: 0; opacity: 0.9;">Detección de helada agrometeorológica y fechas críticas</p>
         </div>
     """, unsafe_allow_html=True)
@@ -339,6 +339,7 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
 
