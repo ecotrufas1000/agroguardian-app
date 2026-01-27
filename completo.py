@@ -200,77 +200,37 @@ elif menu == "💧 Balance Hídrico":
         else: st.success(f"✅ **ESTADO ÓPTIMO:** Reservas suficientes.")
 
 elif menu == "⛈️ Radar Granizo":
-    # 1. CSS para eliminar bordes (paréntesis) verdes y mejorar estética
-    st.markdown("""
-        <style>
-        [data-testid="stMetric"] {
-            background: white;
-            border: none !important;
-            border-left: none !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            padding: 15px !important;
-            border-radius: 12px;
-        }
-        /* Eliminar la barra lateral verde de Streamlit */
-        [data-testid="stMetric"] > div {
-            border-left: none !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
     st.markdown("""
         <div style="background: linear-gradient(to right, #1e293b, #334155); padding:25px; border-radius:15px; color:white; text-align:center; margin-bottom:20px;">
-            <h2 style="color:white; margin:0;">🛰️ Monitor Doppler y Riesgo de Granizo</h2>
-            <p style="opacity:0.8; margin:0;">Detección de celdas convectivas en tiempo real</p>
+            <h2 style="color:white; margin:0;">🛰️ Radar Doppler y Riesgo de Granizo</h2>
         </div>
     """, unsafe_allow_html=True)
 
-    # 2. CÁLCULO DE PELIGROSIDAD (Índice AgroGuardian)
-    # Basado en inestabilidad: Presión baja + Humedad alta + Temperatura alta
-    puntos_riesgo = 0
-    if clima['presion'] < 1010: puntos_riesgo += 30
-    if clima['hum'] > 70: puntos_riesgo += 30
-    if clima['temp'] > 28: puntos_riesgo += 40
-    
-    color_idx = "#2ecc71" if puntos_riesgo < 40 else "#f39c12" if puntos_riesgo < 75 else "#e74c3c"
-    nivel_texto = "BAJO" if puntos_riesgo < 40 else "MODERADO" if puntos_riesgo < 75 else "ALTO / INMINENTE"
+    # Cálculo de riesgo basado en datos reales
+    riesgo = 0
+    if clima['presion'] < 1010: riesgo += 30
+    if clima['hum'] > 75: riesgo += 30
+    if clima['temp'] > 28: riesgo += 40
+    col_r = "#2ecc71" if riesgo < 45 else "#f39c12" if riesgo < 75 else "#e74c3c"
 
-    col_a, col_b = st.columns([1, 3])
-    with col_a:
-        st.metric("RIESGO ESTIMADO", nivel_texto)
-    with col_b:
-        st.markdown(f"""
-            <div style="background:{color_idx}; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">
-                ÍNDICE DE INESTABILIDAD: {puntos_riesgo}% <br>
-                <small>Factores: Presión {clima['presion']} hPa | Temp {clima['temp']}°C</small>
-            </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # 3. VENTANA DOPPLER (URL DE WIDGET PARA EVITAR BLOQUEO DE FIREFOX)
-    st.subheader("📡 Radar de Precipitación en Vivo")
-    
-    # IMPORTANTE: Usamos /widgets/ en la URL, que sí permite 'embedding'
-    url_windy_widget = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
-    
-    st.components.v1.iframe(url_windy_widget, height=550, scrolling=False)
-
-    # Botón de respaldo elegante
     st.markdown(f"""
-        <div style="text-align: right; margin-top: 10px;">
-            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8" target="_blank" 
-               style="text-decoration:none; background:#4f46e5; color:white; padding:10px 20px; border-radius:8px; font-weight:bold;">
-               🚀 VER PANTALLA COMPLETA ORIGINAL
-            </a>
+        <div style="background: white; padding: 20px; border-radius: 12px; border-top: 5px solid {col_r}; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
+            <h3 style="margin: 0;">Probabilidad de Granizo: <span style="color: {col_r};">{riesgo}%</span></h3>
+            <p style="margin: 5px 0 0 0; color: #64748b;">Inestabilidad térmica detectada.</p>
         </div>
     """, unsafe_allow_html=True)
 
-    with st.expander("❓ ¿Cómo leer el radar para granizo?"):
-        st.write("""
-        - **Verde/Amarillo:** Lluvia normal.
-        - **Rojo/Fucsia:** Tormenta fuerte.
-        - **Púrpura/Blanco:** Probabilidad muy alta de **granizo** (alta densidad de hielo).
+    # --- RADAR WINDY (VERSIÓN WIDGET - NO BLOQUEADA POR FIREFOX) ---
+    st.subheader("📡 Radar Doppler en Vivo")
+    windy_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
+    st.components.v1.iframe(windy_url, height=550)
+
+    st.markdown(f"""<div style="text-align: right;"><a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8" target="_blank" style="color: #4f46e5; text-decoration: none; font-weight: bold;">↗️ Abrir pantalla completa</a></div>""", unsafe_allow_html=True)
+
+elif menu == "❄️ Heladas":
+    st.title("❄️ Monitor de Heladas")
+    pronos = obtener_pronostico()
+    if pronos:
         """)elif menu == "❄️ Heladas":
     st.markdown(f"""
         <div style="background: linear-gradient(to right, #075985, #0ea5e9); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
@@ -333,6 +293,7 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
 
 
