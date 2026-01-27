@@ -2,7 +2,6 @@ import streamlit as st
 from streamlit_folium import folium_static
 import folium
 import requests
-import pandas as pd
 import json
 import os
 import datetime
@@ -27,7 +26,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # === LÓGICA DE DATOS ===
-API_KEY = "2762051ad62d06f1d0fe146033c1c7c8"
+API_KEY = st.secrets["WINDY_API_KEY"]  # API key desde secrets.toml
 LAT, LON = -38.298, -58.208 
 
 def obtener_direccion_cardinal(grados):
@@ -75,7 +74,7 @@ with st.sidebar:
     st.markdown("<div style='text-align:center; background:#1e3d2f; padding:10px; border-radius:10px; color:white;'><h3>🛡️ AGROGUARDIAN</h3><small>SISTEMA ACTIVO 24/7</small></div>", unsafe_allow_html=True)
     menu = st.radio("MENÚ OPERATIVO", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"])
     st.divider()
-    if st.button("🔄 ACTUALIZAR DATOS"): st.rerun()
+    if st.button("🔄 ACTUALIZAR DATOS"): st.experimental_rerun()
 
 # === PÁGINAS ===
 
@@ -87,7 +86,6 @@ if menu == "📊 Monitoreo Total":
         </div>
     """, unsafe_allow_html=True)
 
-    # (Lógica de riesgos y dirección de viento previa...)
     dir_viento = obtener_direccion_cardinal(clima['v_dir'])
 
     m1, m2, m3, m4, m5 = st.columns(5)
@@ -99,18 +97,13 @@ if menu == "📊 Monitoreo Total":
 
     st.divider()
 
-    # --- SOLUCIÓN AL ERROR DE FIREFOX ---
     st.subheader("⛈️ Radar de Tormentas y Precipitación")
-    
-    # Esta URL usa /widgets/ que permite ser incrustada
-    windy_widget_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
-    
+    windy_widget_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default&key={API_KEY}"
     st.components.v1.iframe(windy_widget_url, height=500, scrolling=False)
     
-    # Respaldo: Enlace directo si el iframe falla por configs del usuario
     st.markdown(f"""
         <div style="text-align: right; margin-top: -20px;">
-            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8" target="_blank" 
+            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8&key={API_KEY}" target="_blank" 
                style="color: #4f46e5; text-decoration: none; font-size: 0.85rem; font-weight: bold;">
                ↗️ Ver pantalla completa en Windy.com
             </a>
@@ -119,13 +112,8 @@ if menu == "📊 Monitoreo Total":
 
     st.divider()
 
-    # (Seguir con el mapa de Folium y Pronóstico...)
-
-    # ... (resto del código de Folium y Pronóstico igual) ...
-
-    # Ventana de Windy Integrada
     st.subheader("⛈️ Radar de Tormentas y Precipitación (Windy)")
-    windy_url = f"https://www.windy.com/multimodel?radar,{LAT},{LON},8"
+    windy_url = f"https://www.windy.com/multimodel?radar,{LAT},{LON},8&key={API_KEY}"
     st.components.v1.iframe(windy_url, height=500, scrolling=True)
 
     st.divider()
@@ -144,14 +132,13 @@ if menu == "📊 Monitoreo Total":
             st.write(f"**{p['f']}**: {p['min']}°/{p['max']}°")
             st.caption(p['d'])
 
-# (Aquí seguirían las otras secciones: Balance Hídrico, Heladas, etc., tal cual las teníamos)
 elif menu == "💧 Balance Hídrico":
     st.markdown(f"""
         <div style="background: linear-gradient(to right, #2563eb, #3b82f6); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
             <h1 style="color: white; margin: 0; font-size: 2rem;">💧 Gestión Hídrica Pro</h1>
             <p style="margin: 0; opacity: 0.9;">Sincronizado con Reportes de Campo</p>
         </div>
-    """, unsafe_allow_html=True)
+    """ , unsafe_allow_html=True)
 
     cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
     
@@ -200,7 +187,6 @@ elif menu == "💧 Balance Hídrico":
         else: st.success(f"✅ **ESTADO ÓPTIMO:** Reservas suficientes.")
 
 elif menu == "⛈️ Radar Granizo":
-    # 1. CSS para eliminar bordes (paréntesis) verdes y mejorar estética
     st.markdown("""
         <style>
         [data-testid="stMetric"] {
@@ -225,8 +211,6 @@ elif menu == "⛈️ Radar Granizo":
         </div>
     """, unsafe_allow_html=True)
 
-    # 2. CÁLCULO DE PELIGROSIDAD (Índice AgroGuardian)
-    # Basado en inestabilidad: Presión baja + Humedad alta + Temperatura alta
     puntos_riesgo = 0
     if clima['presion'] < 1010: puntos_riesgo += 30
     if clima['hum'] > 70: puntos_riesgo += 30
@@ -248,18 +232,13 @@ elif menu == "⛈️ Radar Granizo":
 
     st.divider()
 
-    # 3. VENTANA DOPPLER (URL DE WIDGET PARA EVITAR BLOQUEO DE FIREFOX)
     st.subheader("📡 Radar de Precipitación en Vivo")
-    
-    # IMPORTANTE: Usamos /widgets/ en la URL, que sí permite 'embedding'
-    url_windy_widget = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default"
-    
+    url_windy_widget = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default&key={API_KEY}"
     st.components.v1.iframe(url_windy_widget, height=550, scrolling=False)
 
-    # Botón de respaldo elegante
     st.markdown(f"""
         <div style="text-align: right; margin-top: 10px;">
-            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8" target="_blank" 
+            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8&key={API_KEY}" target="_blank" 
                style="text-decoration:none; background:#4f46e5; color:white; padding:10px 20px; border-radius:8px; font-weight:bold;">
                🚀 VER PANTALLA COMPLETA ORIGINAL
             </a>
@@ -287,23 +266,8 @@ elif menu == "❄️ Heladas":
             if t_min <= 0: st.error(f"**{p['f']}**: 🧊 HELADA METEOROLÓGICA ({t_min}°C)")
             elif t_min <= 3: st.warning(f"**{p['f']}**: 🌱 HELADA AGROMETEOROLÓGICA (Suelo est: {round(t_min-3,1)}°C)")
             else: st.success(f"**{p['f']}**: ✅ SIN RIESGO ({t_min}°C)")
+
 elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
