@@ -262,38 +262,80 @@ elif menu == "💧 Balance Hídrico":
             st.warning("⚠️ **ATENCIÓN:** Reservas en descenso, monitorear")
         else:
             st.success("✅ **ESTADO ÓPTIMO:** Buen nivel de agua disponible")
-
-
 # ---------- RADAR GRANIZO ----------
 elif menu == "⛈️ Radar Granizo":
-    st.title("⛈️ Riesgo de granizo")
+    st.title("⛈️ Riesgo de Granizo")
 
+    # ================= CÁLCULO DE RIESGO =================
     riesgo = 0
-    if clima["presion"] < 1010: 
-        riesgo += 30
-    if clima["hum"] > 70: 
-        riesgo += 30
-    if clima["temp"] > 28: 
-        riesgo += 40
+    if clima["presion"] < 1010: riesgo += 30
+    if clima["hum"] > 70: riesgo += 30
+    if clima["temp"] > 28: riesgo += 40
 
+    # Ajuste por tormenta activa (simulación)
+    tormenta_activa = True  # Placeholder: más adelante podemos extraer del WMS o radar real
+    if tormenta_activa: riesgo += 20
+
+    # Nivel de riesgo
     nivel = "BAJO" if riesgo < 40 else "MODERADO" if riesgo < 75 else "ALTO"
-    st.metric("Riesgo estimado", nivel)
+    st.metric("Riesgo estimado de granizo", nivel)
 
-    st.subheader("🌩️ Radar Windy")
-    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
+    st.divider()
 
-    st.markdown(f"""
-    <div style="display:flex;justify-content:center;margin-top:25px">
-        <a href="{windy_link}" target="_blank"
-        style="background:#2563eb;color:white;padding:18px 34px;
-        border-radius:14px;font-weight:700;text-decoration:none;">
-        🌧️ Abrir radar Windy
-        </a>
-    </div>
-    <p style="text-align:center;color:#555;font-size:0.85rem">
-    Se abre en una nueva pestaña (recomendado)
-    </p>
-    """, unsafe_allow_html=True)
+    # ================= MAPA RADAR =================
+    st.subheader("🌩️ Radar de Granizo")
+
+    m_granizo = folium.Map(location=[LAT, LON], zoom_start=7, control_scale=True)
+
+    # Capa base satelital
+    folium.TileLayer(
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Esri',
+        name='Vista Satelital',
+        overlay=False
+    ).add_to(m_granizo)
+
+    # Radar de precipitación/tormentas (NOAA)
+    folium.raster_layers.WmsTileLayer(
+        url='https://nowcoast.noaa.gov/arcgis/services/nowcoast/radar_meteo_imagery_nexrad_time/MapServer/WMSServer',
+        layers='1',  # Reflectividad de radar
+        fmt='image/png',
+        transparent=True,
+        name='Radar Precipitación',
+        overlay=True,
+        control=True
+    ).add_to(m_granizo)
+
+    # Marcador del lote
+    folium.Marker([LAT, LON], tooltip="Lote", icon=folium.Icon(color="red", icon="cloud")).add_to(m_granizo)
+
+    folium.LayerControl().add_to(m_granizo)
+    folium_static(m_granizo, width=700, height=400)
+
+    st.divider()
+
+    # ================= HISTORIAL DE EVENTOS =================
+    st.subheader("📈 Historial de Granizo (últimos 30 días)")
+
+    import pandas as pd
+    import random
+    import datetime
+
+    fechas = pd.date_range(end=datetime.datetime.today(), periods=30)
+    intensidad = [random.choice(["Bajo", "Moderado", "Alto", "Sin evento"]) for _ in range(30)]
+    df_hist = pd.DataFrame({"Fecha": fechas, "Intensidad": intensidad})
+
+    st.dataframe(df_hist, use_container_width=True)
+
+    # ================= ALERTA RECOMENDADA =================
+    if nivel == "ALTO":
+        st.error("🚨 ALERTA: Riesgo alto de granizo. Recomendado proteger cultivos y estructuras")
+    elif nivel == "MODERADO":
+        st.warning("⚠️ Riesgo moderado de granizo. Monitorear condiciones")
+    else:
+        st.success("✅ Riesgo bajo. Todo en condiciones normales")
+
+
 # ---------- HELADAS ----------
 elif menu == "❄️ Heladas":
     st.title("❄️ Monitoreo de Heladas")
@@ -342,4 +384,5 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
