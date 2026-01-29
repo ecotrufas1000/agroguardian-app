@@ -136,7 +136,8 @@ if menu == "📊 Monitoreo Total":
 
     d_viento = obtener_direccion_cardinal(clima["v_dir"])
 
-    c1,c2,c3,c4,c5 = st.columns(5)
+    # Métricas principales
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Temperatura", f"{clima['temp']} °C")
     c2.metric("Humedad", f"{clima['hum']} %")
     c3.metric("Viento", f"{clima['v_vel']} km/h", d_viento)
@@ -144,39 +145,43 @@ if menu == "📊 Monitoreo Total":
     c5.metric("Estado", "OK")
 
     st.divider()
-# === MAPA GEOPRESENCIAL + NDWI PÚBLICO ===
-st.subheader("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
-m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
 
-# Vista Satelital HD
-folium.TileLayer(
-    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attr='Esri',
-    name='Vista Satelital (HD)',
-    overlay=False
-).add_to(m)
+    # ================= MAPA GEOPRESENCIAL + NDWI PÚBLICO =================
+    st.subheader("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
+    m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
 
-# Capa NDWI pública (Sentinel-2, vía WMS de USGS)
-folium.raster_layers.WmsTileLayer(
-    url='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi',
-    layers='MODIS_Terra_NDWI_8Day',
-    fmt='image/png',
-    transparent=True,
-    name='NDWI 8 días',
-    overlay=True,
-    control=True
-).add_to(m)
+    # Vista Satelital HD
+    folium.TileLayer(
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Esri',
+        name='Vista Satelital (HD)',
+        overlay=False
+    ).add_to(m)
 
-# Marcador central
-folium.Marker([LAT, LON], icon=folium.Icon(color="purple", icon="leaf")).add_to(m)
+    # Capa NDWI pública (Sentinel-2 vía WMS de USGS/NASA)
+    folium.raster_layers.WmsTileLayer(
+        url='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi',
+        layers='MODIS_Terra_NDWI_8Day',
+        fmt='image/png',
+        transparent=True,
+        name='NDWI 8 días',
+        overlay=True,
+        control=True
+    ).add_to(m)
 
-# Control de capas
-folium.LayerControl().add_to(m)
+    # Marcador central
+    folium.Marker([LAT, LON], icon=folium.Icon(color="purple", icon="leaf")).add_to(m)
 
-# Mostrar mapa
-folium_static(m, width=700, height=400)
+    # Control de capas
+    folium.LayerControl().add_to(m)
 
-st.subheader("🌧️ Radar meteorológico")
+    # Mostrar mapa
+    folium_static(m, width=700, height=400)
+
+    st.divider()
+
+    # ================= RADAR METEOROLÓGICO =================
+    st.subheader("🌧️ Radar meteorológico")
     windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
 
     st.markdown(f"""
@@ -194,10 +199,11 @@ st.subheader("🌧️ Radar meteorológico")
 
     st.divider()
 
-    col1,col2 = st.columns([2,1])
+    # ================= MAPA PEQUEÑO + PRONÓSTICO =================
+    col1, col2 = st.columns([2, 1])
     with col1:
-        m = folium.Map(location=[LAT,LON], zoom_start=14)
-        folium.Marker([LAT,LON], tooltip="Lote").add_to(m)
+        m = folium.Map(location=[LAT, LON], zoom_start=14)
+        folium.Marker([LAT, LON], tooltip="Lote").add_to(m)
         folium_static(m, width=700, height=400)
 
     with col2:
@@ -205,6 +211,7 @@ st.subheader("🌧️ Radar meteorológico")
         for p in obtener_pronostico():
             st.write(f"**{p['f']}** {p['min']}° / {p['max']}°")
             st.caption(p["d"])
+
 
 # ---------- BALANCE HÍDRICO ----------
 elif menu == "💧 Balance Hídrico":
@@ -382,6 +389,7 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
 
