@@ -264,115 +264,104 @@ elif menu == "💧 Balance Hídrico":
             st.success("✅ **ESTADO ÓPTIMO:** Buen nivel de agua disponible")
 # ---------- RADAR GRANIZO ----------
 elif menu == "⛈️ Radar Granizo":
-    st.title("⛈️ Riesgo de Granizo")
+    st.title("⛈️ Riesgo de granizo")
 
-    # ================= CÁLCULO DE RIESGO =================
+    # --- Cálculo de riesgo simple basado en clima actual ---
     riesgo = 0
     if clima["presion"] < 1010: riesgo += 30
     if clima["hum"] > 70: riesgo += 30
     if clima["temp"] > 28: riesgo += 40
 
-    # Ajuste por tormenta activa (simulación)
-    tormenta_activa = True  # Placeholder: más adelante podemos extraer del radar real
-    if tormenta_activa: riesgo += 20
-
-    # Nivel de riesgo
     nivel = "BAJO" if riesgo < 40 else "MODERADO" if riesgo < 75 else "ALTO"
-    st.metric("Riesgo estimado de granizo", nivel)
+    st.metric("Riesgo agrometeorológico", nivel)
 
-    st.divider()
-
-    # ================= BOTÓN A WINDY =================
-    st.subheader("🌩️ Radar de Granizo")
+    # --- Botón a Windy ---
     windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
-
     st.markdown(f"""
-    <div style="display:flex;justify-content:center;margin-top:25px">
+    <div style="display:flex;justify-content:center;margin-top:15px">
         <a href="{windy_link}" target="_blank"
         style="background:#2563eb;color:white;padding:18px 34px;
         border-radius:14px;font-weight:700;text-decoration:none;">
-        🌧️ Abrir mapa de granizo en Windy
+        🌧️ Abrir mapa de granizo Windy
         </a>
     </div>
     <p style="text-align:center;color:#555;font-size:0.85rem">
-    Se abrirá en una nueva pestaña (recomendado)
+    Se abre en una nueva pestaña (recomendado)
     </p>
     """, unsafe_allow_html=True)
 
-    st.divider()
-
-    # ================= HISTORIAL DE EVENTOS =================
-    st.subheader("📈 Historial de Granizo (últimos 30 días)")
-
-    import pandas as pd
-    import random
-    import datetime
-
-    fechas = pd.date_range(end=datetime.datetime.today(), periods=30)
-    intensidad = [random.choice(["Bajo", "Moderado", "Alto", "Sin evento"]) for _ in range(30)]
-    df_hist = pd.DataFrame({"Fecha": fechas, "Intensidad": intensidad})
-
-    st.dataframe(df_hist, use_container_width=True)
-
-    # ================= ALERTA RECOMENDADA =================
+    # --- Consejos de acción ---
+    st.subheader("💡 Recomendaciones para el productor")
     if nivel == "ALTO":
-        st.error("🚨 ALERTA: Riesgo alto de granizo. Recomendado proteger cultivos y estructuras")
+        st.warning("""
+        🚨 **ALTO riesgo de granizo**
+        - Revisar seguros de cultivos.
+        - Proteger invernaderos y coberturas.
+        - Evitar tareas de campo en parcelas expuestas.
+        """)
     elif nivel == "MODERADO":
-        st.warning("⚠️ Riesgo moderado de granizo. Monitorear condiciones")
+        st.info("""
+        ⚠️ **Riesgo moderado**
+        - Vigilar radar en las próximas horas.
+        - Preparar medidas preventivas.
+        """)
     else:
-        st.success("✅ Riesgo bajo. Todo en condiciones normales")
+        st.success("✅ Riesgo bajo. Condiciones estables.")
 
 
 # ---------- HELADAS ----------
 elif menu == "❄️ Heladas":
-    st.title("❄️ Alerta de Heladas")
+    st.title("❄️ Riesgo de Heladas")
 
-    # ================= ALERTA ANTICIPADA =================
-    pronostico = obtener_pronostico()  # trae 5 días
-    minimas = [p["min"] for p in pronostico[:2]]  # próximas 48h
-    temp_min_48h = min(minimas)
+    # --- Pronóstico 24-48h para temperatura mínima ---
+    try:
+        pronos = requests.get(
+            f"https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric&lang=es",
+            timeout=5
+        ).json()
+        temp_min_48h = min([i["main"]["temp_min"] for i in pronos["list"][:16]])  # 16*3h=48h
+    except:
+        temp_min_48h = clima["temp"]
 
-    st.subheader("🌡️ Temperatura mínima próxima (24–48h)")
-    st.metric("Temp mínima estimada", f"{temp_min_48h} °C")
+    # --- Índice de riesgo general agrometeorológico ---
+    riesgo = "BAJO"
+    if temp_min_48h <= 0: riesgo = "ALTO"
+    elif temp_min_48h <= 2: riesgo = "MODERADO"
 
-    # ================= RIESGO HELADA =================
-    # Riesgo agrometeorológico general
-    if temp_min_48h <= 0:
-        riesgo = "ALTO"
-        color = "#dc2626"
-    elif temp_min_48h <= 3:
-        riesgo = "MODERADO"
-        color = "#f59e0b"
+    st.metric("Riesgo agrometeorológico (24-48h)", riesgo, f"{temp_min_48h} °C")
+
+    # --- Botón a mapa de temperaturas mínimas de Windy ---
+    windy_link = f"https://www.windy.com/-Temperature-temperature?temp,slp,{LAT},{LON},4"
+    st.markdown(f"""
+    <div style="display:flex;justify-content:center;margin-top:15px">
+        <a href="{windy_link}" target="_blank"
+        style="background:#2563eb;color:white;padding:18px 34px;
+        border-radius:14px;font-weight:700;text-decoration:none;">
+        ❄️ Abrir mapa de temperaturas mínimas Windy
+        </a>
+    </div>
+    <p style="text-align:center;color:#555;font-size:0.85rem">
+    Se abre en una nueva pestaña (recomendado)
+    </p>
+    """, unsafe_allow_html=True)
+
+    # --- Consejos de acción ---
+    st.subheader("💡 Recomendaciones para el productor")
+    if riesgo == "ALTO":
+        st.warning("""
+        🚨 **ALTO riesgo de helada**
+        - Activar sistemas de riego anti-helada.
+        - Cubrir cultivos sensibles.
+        - Evitar actividades de cosecha y siembra.
+        """)
+    elif riesgo == "MODERADO":
+        st.info("""
+        ⚠️ **Riesgo moderado**
+        - Monitorear temperatura mínima en la madrugada.
+        - Preparar medidas preventivas.
+        """)
     else:
-        riesgo = "BAJO"
-        color = "#16a34a"
-
-    st.markdown(f"""
-        <div style="background:white;
-                    padding:20px;
-                    border-radius:12px;
-                    text-align:center;
-                    box-shadow:0 3px 8px rgba(0,0,0,0.1);">
-            <p style="margin:0; color:#666;">Riesgo agrometeorológico de helada</p>
-            <h1 style="margin:0; font-size:48px; color:{color};">{riesgo}</h1>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # ================= BOTÓN A MAPA WINDY =================
-    st.subheader("🗺️ Mapa de heladas en Windy")
-    windy_link = f"https://www.windy.com/-Frost-frost?lat={LAT}&lon={LON}&zoom=8"
-    st.markdown(f"""
-        <div style="display:flex;justify-content:center;margin-top:15px">
-            <a href="{windy_link}" target="_blank"
-            style="background:#2563eb;color:white;padding:16px 32px;
-            border-radius:12px;font-weight:700;text-decoration:none;">
-            Abrir mapa Frost Windy
-            </a>
-        </div>
-        <p style="text-align:center;color:#555;font-size:0.85rem">
-        Riesgo general de heladas en la región
-        </p>
-    """, unsafe_allow_html=True)
+        st.success("✅ Riesgo bajo. Condiciones estables.")
 
 # ---------- BITÁCORA ----------
 elif menu == "📝 Bitácora":
@@ -399,6 +388,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
