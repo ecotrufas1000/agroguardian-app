@@ -122,6 +122,32 @@ if menu == "📊 Monitoreo Total":
             st.write(f"**{p['f']}**: {p['min']}°/{p['max']}°")
             st.caption(p['d'])
 
+st.subheader("🌦️ Radar meteorológico")
+
+windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
+
+st.markdown(f"""
+<div style="display:flex; justify-content:center; margin-top:30px;">
+    <a href="{windy_link}" target="_blank"
+       style="
+       text-decoration:none;
+       background:linear-gradient(135deg,#2563eb,#1e40af);
+       color:white;
+       padding:18px 35px;
+       border-radius:14px;
+       font-size:1.1rem;
+       font-weight:700;
+       box-shadow:0 8px 20px rgba(0,0,0,0.25);
+       ">
+       🌧️ VER RADAR EN WINDY
+    </a>
+</div>
+<p style="text-align:center; margin-top:10px; color:#555; font-size:0.85rem;">
+Se abre en una pestaña nueva (recomendado)
+</p>
+""", unsafe_allow_html=True)
+
+
 elif menu == "💧 Balance Hídrico":
     st.markdown(f"""
         <div style="background: linear-gradient(to right, #2563eb, #3b82f6); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
@@ -222,6 +248,30 @@ elif menu == "⛈️ Radar Granizo":
 
     st.divider()
 
+st.subheader("🌦️ Radar meteorológico")
+
+windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
+
+st.markdown(f"""
+<div style="display:flex; justify-content:center; margin-top:30px;">
+    <a href="{windy_link}" target="_blank"
+       style="
+       text-decoration:none;
+       background:linear-gradient(135deg,#2563eb,#1e40af);
+       color:white;
+       padding:18px 35px;
+       border-radius:14px;
+       font-size:1.1rem;
+       font-weight:700;
+       box-shadow:0 8px 20px rgba(0,0,0,0.25);
+       ">
+       🌧️ VER RADAR EN WINDY
+    </a>
+</div>
+<p style="text-align:center; margin-top:10px; color:#555; font-size:0.85rem;">
+Se abre en una pestaña nueva (recomendado)
+</p>
+""", unsafe_allow_html=True)
 
     with st.expander("❓ ¿Cómo leer el radar para granizo?"):
         st.write("""
@@ -249,4 +299,5 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
 
