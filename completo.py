@@ -398,7 +398,7 @@ elif menu == "❄️ Heladas":
     st.metric("Temp mínima estimada", f"{temp_min_48h} °C")
 
     # ================= RIESGO HELADA =================
-    # Definimos riesgo básico según temperatura
+    # Riesgo agrometeorológico general
     if temp_min_48h <= 0:
         riesgo = "ALTO"
         color = "#dc2626"
@@ -419,36 +419,6 @@ elif menu == "❄️ Heladas":
             <h1 style="margin:0; font-size:48px; color:{color};">{riesgo}</h1>
         </div>
     """, unsafe_allow_html=True)
-
-    # ================= SEMÁFORO POR CULTIVO =================
-    st.subheader("🌾 Riesgo según cultivo")
-    cultivos = {
-        "Trigo": -2,
-        "Maíz": 0,
-        "Soja": 1,
-        "Vid": -1,
-        "Hortalizas": 0
-    }
-
-    for c, t in cultivos.items():
-        if temp_min_48h <= t:
-            estado = "❌ Riesgo alto"
-            color_c = "#dc2626"
-        elif temp_min_48h <= t + 2:
-            estado = "⚠️ Riesgo moderado"
-            color_c = "#f59e0b"
-        else:
-            estado = "✅ Riesgo bajo"
-            color_c = "#16a34a"
-
-        st.markdown(f"""
-            <div style="display:flex;justify-content:space-between;
-                        background:#f9f9f9;padding:12px;border-radius:10px;
-                        margin-bottom:5px; align-items:center;">
-                <span style="font-weight:600">{c}</span>
-                <span style="color:{color_c}; font-weight:700">{estado}</span>
-            </div>
-        """, unsafe_allow_html=True)
 
     # ================= BOTÓN A MAPA WINDY =================
     st.subheader("🗺️ Mapa de heladas en Windy")
@@ -492,6 +462,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
