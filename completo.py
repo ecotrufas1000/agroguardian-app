@@ -11,9 +11,16 @@ st.set_page_config(
     page_icon="🚜"
 )
 
+# ----------------- ESTILO GLOBAL -----------------
 st.markdown("""
 <style>
-.main { background-color: #f4f7f6; }
+/* Fondo de la app */
+.main {
+    background-color: #a8e6a2;  /* Verde menta */
+    color: white;
+}
+
+/* Estilo de las métricas */
 [data-testid="stMetric"] {
     background: white;
     border-radius: 12px;
@@ -26,8 +33,61 @@ st.markdown("""
     font-weight: bold;
     color: #1e3d2f;
 }
+
+/* Sidebar padding */
+.css-1d391kg {
+    padding-top: 1rem;
+}
+
+/* Radio buttons estilo menú lateral */
+div[role="radiogroup"] > label {
+    display: block;
+    background: linear-gradient(to bottom, #a8e6a2, #4caf50);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+/* Hover */
+div[role="radiogroup"] > label:hover {
+    background: linear-gradient(to bottom, #b4f0b0, #57b657);
+}
+
+/* Estado activo seleccionado */
+div[role="radiogroup"] > label[data-baseweb="true"][aria-checked="true"] {
+    background: linear-gradient(to bottom, #4caf50, #2e7d32);
+    color: white;
+}
 </style>
 """, unsafe_allow_html=True)
+
+# ----------------- SIDEBAR INTERACTIVO -----------------
+with st.sidebar:
+    st.markdown("""
+    <div style="
+        background: linear-gradient(to bottom, #4caf50, #2e7d32);
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        margin-bottom: 20px;
+    ">
+        <h2>🛡️ AGROGUARDIAN</h2>
+        <small>Sistema activo 24/7</small>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Menú interactivo
+    menu_items = ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"]
+    menu = st.radio("", menu_items, index=0, label_visibility="collapsed")
+
 # ================= DATOS BASE =================
 LAT, LON = -38.298, -58.208
 API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
@@ -416,6 +476,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
