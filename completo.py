@@ -294,3 +294,52 @@ elif menu == "⛈️ Radar Granizo":
     Se abre en una nueva pestaña (recomendado)
     </p>
     """, unsafe_allow_html=True)
+# ---------- HELADAS ----------
+elif menu == "❄️ Heladas":
+    st.title("❄️ Monitoreo de Heladas")
+
+    # Determinación simple de riesgo de heladas
+    riesgo_helada = "BAJO"
+    if clima["temp"] <= 0:
+        riesgo_helada = "ALTO"
+    elif clima["temp"] <= 5:
+        riesgo_helada = "MODERADO"
+
+    st.metric("Temperatura actual", f"{clima['temp']} °C")
+    st.metric("Riesgo de helada", riesgo_helada)
+
+    # Info adicional
+    if riesgo_helada == "ALTO":
+        st.error("🚨 **ALERTA:** Condiciones para heladas, proteger cultivos")
+    elif riesgo_helada == "MODERADO":
+        st.warning("⚠️ Riesgo moderado, monitorear temperatura")
+    else:
+        st.success("✅ Sin riesgo de heladas")
+
+
+# ---------- BITÁCORA ----------
+elif menu == "📝 Bitácora":
+    st.title("📝 Bitácora de eventos agroclimáticos")
+
+    # Mostrar mensajes guardados
+    if "bitacora" not in st.session_state:
+        st.session_state["bitacora"] = []
+
+    with st.form("agregar_evento"):
+        evento = st.text_area("Registrar un evento o comentario", "")
+        submitted = st.form_submit_button("Agregar")
+        if submitted and evento.strip() != "":
+            st.session_state["bitacora"].append({
+                "fecha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "evento": evento
+            })
+            st.success("✅ Evento agregado a la bitácora")
+
+    st.divider()
+
+    if st.session_state["bitacora"]:
+        for item in reversed(st.session_state["bitacora"]):
+            st.markdown(f"- **{item['fecha']}**: {item['evento']}")
+    else:
+        st.info("No hay eventos registrados todavía.")
+
