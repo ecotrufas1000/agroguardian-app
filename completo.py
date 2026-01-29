@@ -385,18 +385,86 @@ elif menu == "❄️ Heladas":
     temp_min_hist = [round(random.uniform(-5, 5), 1) for _ in range(30)]
     df_heladas = pd.DataFrame({"Fecha": fechas, "Temp Mín (°C)": temp_min_hist})
     st.dataframe(df_heladas, use_container_width=True)
+# ---------- HELADAS ----------
+elif menu == "❄️ Heladas":
+    st.title("❄️ Alerta de Heladas")
 
-    # ================= ALERTA GLOBAL =================
-    alerta_global = "Bajo"
-    color_global = "#16a34a"
-    if temp_min_24h <= min(cultivos.values()):
-        alerta_global = "Alto"
-        color_global = "#dc2626"
-    elif temp_min_24h <= min(cultivos.values()) + 2:
-        alerta_global = "Moderado"
-        color_global = "#f59e0b"
+    # ================= ALERTA ANTICIPADA =================
+    pronostico = obtener_pronostico()  # trae 5 días
+    minimas = [p["min"] for p in pronostico[:2]]  # próximas 48h
+    temp_min_48h = min(minimas)
 
-    st.markdown(f"<h3 style='color:{color_global}'>Alerta global: {alerta_global}</h3>", unsafe_allow_html=True)
+    st.subheader("🌡️ Temperatura mínima próxima (24–48h)")
+    st.metric("Temp mínima estimada", f"{temp_min_48h} °C")
+
+    # ================= RIESGO HELADA =================
+    # Definimos riesgo básico según temperatura
+    if temp_min_48h <= 0:
+        riesgo = "ALTO"
+        color = "#dc2626"
+    elif temp_min_48h <= 3:
+        riesgo = "MODERADO"
+        color = "#f59e0b"
+    else:
+        riesgo = "BAJO"
+        color = "#16a34a"
+
+    st.markdown(f"""
+        <div style="background:white;
+                    padding:20px;
+                    border-radius:12px;
+                    text-align:center;
+                    box-shadow:0 3px 8px rgba(0,0,0,0.1);">
+            <p style="margin:0; color:#666;">Riesgo agrometeorológico de helada</p>
+            <h1 style="margin:0; font-size:48px; color:{color};">{riesgo}</h1>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # ================= SEMÁFORO POR CULTIVO =================
+    st.subheader("🌾 Riesgo según cultivo")
+    cultivos = {
+        "Trigo": -2,
+        "Maíz": 0,
+        "Soja": 1,
+        "Vid": -1,
+        "Hortalizas": 0
+    }
+
+    for c, t in cultivos.items():
+        if temp_min_48h <= t:
+            estado = "❌ Riesgo alto"
+            color_c = "#dc2626"
+        elif temp_min_48h <= t + 2:
+            estado = "⚠️ Riesgo moderado"
+            color_c = "#f59e0b"
+        else:
+            estado = "✅ Riesgo bajo"
+            color_c = "#16a34a"
+
+        st.markdown(f"""
+            <div style="display:flex;justify-content:space-between;
+                        background:#f9f9f9;padding:12px;border-radius:10px;
+                        margin-bottom:5px; align-items:center;">
+                <span style="font-weight:600">{c}</span>
+                <span style="color:{color_c}; font-weight:700">{estado}</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # ================= BOTÓN A MAPA WINDY =================
+    st.subheader("🗺️ Mapa de heladas en Windy")
+    windy_link = f"https://www.windy.com/-Frost-frost?lat={LAT}&lon={LON}&zoom=8"
+    st.markdown(f"""
+        <div style="display:flex;justify-content:center;margin-top:15px">
+            <a href="{windy_link}" target="_blank"
+            style="background:#2563eb;color:white;padding:16px 32px;
+            border-radius:12px;font-weight:700;text-decoration:none;">
+            Abrir mapa Frost Windy
+            </a>
+        </div>
+        <p style="text-align:center;color:#555;font-size:0.85rem">
+        Riesgo general de heladas en la región
+        </p>
+    """, unsafe_allow_html=True)
 
 
 # ---------- BITÁCORA ----------
@@ -424,6 +492,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
