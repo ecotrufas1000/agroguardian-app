@@ -336,7 +336,7 @@ elif menu == "❄️ Heladas":
         <a href="{windy_link}" target="_blank"
         style="background:#2563eb;color:white;padding:18px 34px;
         border-radius:14px;font-weight:700;text-decoration:none;">
-        ❄️ Abrir mapa de temperaturas mínimas Windy
+        ❄️ Abrir mapa de temperatura Windy
         </a>
     </div>
     <p style="text-align:center;color:#555;font-size:0.85rem">
@@ -417,6 +417,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
