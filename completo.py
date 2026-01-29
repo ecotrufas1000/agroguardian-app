@@ -144,6 +144,37 @@ if menu == "📊 Monitoreo Total":
     c5.metric("Estado", "OK")
 
     st.divider()
+# === MAPA GEOPRESENCIAL + NDWI PÚBLICO ===
+st.subheader("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
+m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
+
+# Vista Satelital HD
+folium.TileLayer(
+    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attr='Esri',
+    name='Vista Satelital (HD)',
+    overlay=False
+).add_to(m)
+
+# Capa NDWI pública (Sentinel-2, vía WMS de USGS)
+folium.raster_layers.WmsTileLayer(
+    url='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi',
+    layers='MODIS_Terra_NDWI_8Day',
+    fmt='image/png',
+    transparent=True,
+    name='NDWI 8 días',
+    overlay=True,
+    control=True
+).add_to(m)
+
+# Marcador central
+folium.Marker([LAT, LON], icon=folium.Icon(color="purple", icon="leaf")).add_to(m)
+
+# Control de capas
+folium.LayerControl().add_to(m)
+
+# Mostrar mapa
+folium_static(m, width=700, height=400)
 
     st.subheader("🌧️ Radar meteorológico")
     windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
@@ -351,5 +382,6 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
