@@ -225,7 +225,7 @@ elif menu == "💧 Balance Hídrico":
                     margin-bottom: 25px;">
             <h1 style="margin: 0;">💧 Balance Hídrico del Lote</h1>
             <p style="margin: 0; opacity: 0.9;">
-                Estimación diaria de reservas útiles y recomendación de riego
+                Estimación diaria de reservas hídricas y recomendación de riego
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -389,6 +389,7 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
 
