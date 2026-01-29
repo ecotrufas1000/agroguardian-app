@@ -177,8 +177,130 @@ if menu == "📊 Monitoreo Total":
 
 # ---------- BALANCE HÍDRICO ----------
 elif menu == "💧 Balance Hídrico":
-    st.title("💧 Balance hídrico")
-    st.info("Módulo en expansión 🚧")
+
+    st.markdown("""
+        <div style="background: linear-gradient(to right, #2563eb, #3b82f6);
+                    padding: 25px;
+                    border-radius: 15px;
+                    color: white;
+                    text-align: center;
+                    margin-bottom: 25px;">
+            <h1 style="margin: 0;">💧 Balance Hídrico del Lote</h1>
+            <p style="margin: 0; opacity: 0.9;">
+                Estimación diaria de reservas útiles y recomendación de riego
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # === CARGA DE ESTADO DEL LOTE (si existe) ===
+    cultivo = "No definido"
+    kc_base = 0.85
+    etapa = "N/D"
+    ultima_fecha = "N/D"
+
+    if os.path.exists("estado_lote.json"):
+        try:
+            with open("estado_lote.json", "r", encoding="utf-8") as f:
+                estado = json.load(f)
+                cultivo = estado.get("cultivo", cultivo)
+                kc_base = estado.get("kc", kc_base)
+                etapa = estado.get("etapa", etapa)
+                ultima_fecha = estado.get("ultima_actualizacion", ultima_fecha)
+
+            st.success(f"🌱 **{cultivo}** | Etapa: **{etapa}** | Última act.: {ultima_fecha}")
+        except:
+            st.warning("⚠️ No se pudo leer el estado del lote")
+
+    # === PARÁMETROS DE SUELO Y CULTIVO ===
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("🧱 Suelo")
+        capacidad_campo = st.number_input(
+            "Capacidad de Campo (mm)",
+            min_value=150,
+            max_value=400,
+            value=250
+        )
+        punto_marchitez = st.number_input(
+            "Punto de Marchitez (mm)",
+            min_value=50,
+            max_value=150,
+            value=100
+        )
+
+    with col2:
+        st.subheader("🌾 Cultivo")
+        kc = st.slider(
+            "Coeficiente de cultivo (Kc)",
+            min_value=0.2,
+            max_value=1.3,
+            value=float(kc_base),
+            step=0.05
+        )
+
+        lluvia_real = st.number_input(
+            "Lluvia registrada hoy (mm)",
+            min_value=0.0,
+            max_value=200.0,
+            value=float(clima["lluvia_est"])
+        )
+
+    st.divider()
+
+    # === CÁLCULO BALANCE HÍDRICO ===
+    etc_real = round(clima["etc"] * kc, 2)
+
+    # Reserva estimada (modelo simple diario)
+    reserva_inicial = (capacidad_campo + punto_marchitez) / 2
+    reserva_actual = max(
+        punto_marchitez,
+        min(capacidad_campo, reserva_inicial + lluvia_real - etc_real)
+    )
+
+    agua_util_pct = int(
+        ((reserva_actual - punto_marchitez) /
+         (capacidad_campo - punto_marchitez)) * 100
+    )
+
+    # === VISUALIZACIÓN ===
+    colg1, colg2 = st.columns([1, 2])
+
+    with colg1:
+        color = (
+            "#16a34a" if agua_util_pct > 55
+            else "#f59e0b" if agua_util_pct > 35
+            else "#dc2626"
+        )
+
+        st.markdown(f"""
+            <div style="background:white;
+                        padding:25px;
+                        border-radius:18px;
+                        text-align:center;
+                        box-shadow:0 4px 10px rgba(0,0,0,0.08);">
+                <p style="margin:0; color:#666;">AGUA ÚTIL</p>
+                <h1 style="margin:0; font-size:52px; color:{color};">
+                    {agua_util_pct}%
+                </h1>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with colg2:
+        st.subheader("📊 Resumen diario")
+        st.metric("ET₀", f"{clima['etc']} mm/día")
+        st.metric("ETc (real)", f"{etc_real} mm/día")
+        st.metric("Lluvia", f"{lluvia_real} mm")
+
+        st.divider()
+
+        if agua_util_pct < 40:
+            st.error("🚨 **RECOMENDACIÓN:** Programar riego en las próximas 24–48 h")
+        elif agua_util_pct < 55:
+            st.warning("⚠️ **ATENCIÓN:** Reservas en descenso, monitorear")
+        else:
+            st.success("✅ **ESTADO ÓPTIMO:** Buen nivel de agua disponible")
+
 
 # ---------- RADAR GRANIZO ----------
 elif menu == "⛈️ Radar Granizo":
@@ -229,4 +351,5 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
