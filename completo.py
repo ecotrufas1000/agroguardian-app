@@ -136,8 +136,7 @@ if menu == "📊 Monitoreo Total":
 
     d_viento = obtener_direccion_cardinal(clima["v_dir"])
 
-    # Métricas principales
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1,c2,c3,c4,c5 = st.columns(5)
     c1.metric("Temperatura", f"{clima['temp']} °C")
     c2.metric("Humedad", f"{clima['hum']} %")
     c3.metric("Viento", f"{clima['v_vel']} km/h", d_viento)
@@ -146,7 +145,7 @@ if menu == "📊 Monitoreo Total":
 
     st.divider()
 
-    # ================= MAPA GEOPRESENCIAL + NDWI PÚBLICO =================
+    # === MAPA GEOPRESENCIAL + NDWI PÚBLICO ===
     st.subheader("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
     m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
 
@@ -158,7 +157,7 @@ if menu == "📊 Monitoreo Total":
         overlay=False
     ).add_to(m)
 
-    # Capa NDWI pública (Sentinel-2 vía WMS de USGS/NASA)
+    # Capa NDWI pública (Sentinel-2, vía WMS de USGS)
     folium.raster_layers.WmsTileLayer(
         url='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi',
         layers='MODIS_Terra_NDWI_8Day',
@@ -178,7 +177,12 @@ if menu == "📊 Monitoreo Total":
     # Mostrar mapa
     folium_static(m, width=700, height=400)
 
-    st.divider()
+    # === PRONÓSTICO ===
+    st.subheader("📅 Pronóstico")
+    for p in obtener_pronostico():
+        st.write(f"**{p['f']}** {p['min']}° / {p['max']}°")
+        st.caption(p["d"])
+
 
     # ================= RADAR METEOROLÓGICO =================
     st.subheader("🌧️ Radar meteorológico")
@@ -383,6 +387,7 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
 
