@@ -143,7 +143,7 @@ if menu == "📊 Monitoreo Total":
     c4.metric("Presión", f"{clima['presion']} hPa")
     c5.metric("Estado", "OK")
 
-    st.divider()
+   st.divider()
 
     # === MAPA GEOPRESENCIAL + NDWI PÚBLICO ===
     st.subheader("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
@@ -400,6 +400,7 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
 
