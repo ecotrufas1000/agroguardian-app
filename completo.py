@@ -273,7 +273,7 @@ elif menu == "⛈️ Radar Granizo":
     if clima["temp"] > 28: riesgo += 40
 
     # Ajuste por tormenta activa (simulación)
-    tormenta_activa = True  # Placeholder: más adelante podemos extraer del WMS o radar real
+    tormenta_activa = True  # Placeholder: más adelante podemos extraer del radar real
     if tormenta_activa: riesgo += 20
 
     # Nivel de riesgo
@@ -282,35 +282,22 @@ elif menu == "⛈️ Radar Granizo":
 
     st.divider()
 
-    # ================= MAPA RADAR =================
+    # ================= BOTÓN A WINDY =================
     st.subheader("🌩️ Radar de Granizo")
+    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
 
-    m_granizo = folium.Map(location=[LAT, LON], zoom_start=7, control_scale=True)
-
-    # Capa base satelital
-    folium.TileLayer(
-        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        attr='Esri',
-        name='Vista Satelital',
-        overlay=False
-    ).add_to(m_granizo)
-
-    # Radar de precipitación/tormentas (NOAA)
-    folium.raster_layers.WmsTileLayer(
-        url='https://nowcoast.noaa.gov/arcgis/services/nowcoast/radar_meteo_imagery_nexrad_time/MapServer/WMSServer',
-        layers='1',  # Reflectividad de radar
-        fmt='image/png',
-        transparent=True,
-        name='Radar Precipitación',
-        overlay=True,
-        control=True
-    ).add_to(m_granizo)
-
-    # Marcador del lote
-    folium.Marker([LAT, LON], tooltip="Lote", icon=folium.Icon(color="red", icon="cloud")).add_to(m_granizo)
-
-    folium.LayerControl().add_to(m_granizo)
-    folium_static(m_granizo, width=700, height=400)
+    st.markdown(f"""
+    <div style="display:flex;justify-content:center;margin-top:25px">
+        <a href="{windy_link}" target="_blank"
+        style="background:#2563eb;color:white;padding:18px 34px;
+        border-radius:14px;font-weight:700;text-decoration:none;">
+        🌧️ Abrir mapa de granizo en Windy
+        </a>
+    </div>
+    <p style="text-align:center;color:#555;font-size:0.85rem">
+    Se abrirá en una nueva pestaña (recomendado)
+    </p>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
@@ -384,5 +371,6 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
