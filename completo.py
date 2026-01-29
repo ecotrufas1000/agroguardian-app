@@ -2,8 +2,6 @@ import streamlit as st
 from streamlit_folium import folium_static
 import folium
 import requests
-import json
-import os
 import datetime
 
 # ================= CONFIGURACIÓN GENERAL =================
@@ -38,7 +36,6 @@ API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
 if not API_KEY:
     st.error("❌ Falta configurar la API Key de OpenWeather")
     st.stop()
-
 
 # ================= FUNCIONES =================
 def obtener_direccion_cardinal(grados):
@@ -143,7 +140,7 @@ if menu == "📊 Monitoreo Total":
     c4.metric("Presión", f"{clima['presion']} hPa")
     c5.metric("Estado", "OK")
 
-   st.divider()
+    st.divider()
 
     # === MAPA GEOPRESENCIAL + NDWI PÚBLICO ===
     st.subheader("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
@@ -196,117 +193,33 @@ if menu == "📊 Monitoreo Total":
     st.divider()
 
 
-
-    # ================= RADAR METEOROLÓGICO =================
-    st.subheader("🌧️ Radar meteorológico")
-    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
-
-    st.markdown(f"""
-    <div style="display:flex;justify-content:center;margin-top:25px">
-        <a href="{windy_link}" target="_blank"
-        style="background:#2563eb;color:white;padding:18px 34px;
-        border-radius:14px;font-weight:700;text-decoration:none;">
-        🌧️ Abrir radar Windy
-        </a>
-    </div>
-    <p style="text-align:center;color:#555;font-size:0.85rem">
-    Se abre en una nueva pestaña (recomendado)
-    </p>
-    """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # ================= PRONÓSTICO =================
-st.subheader("📅 Pronóstico")
-for p in obtener_pronostico():
-    st.write(f"**{p['f']}** {p['min']}° / {p['max']}°")
-    st.caption(p["d"])
-
-
-
 # ---------- BALANCE HÍDRICO ----------
 elif menu == "💧 Balance Hídrico":
+    st.title("💧 Balance Hídrico")
 
-    st.markdown("""
-        <div style="background: linear-gradient(to right, #2563eb, #3b82f6);
-                    padding: 25px;
-                    border-radius: 15px;
-                    color: white;
-                    text-align: center;
-                    margin-bottom: 25px;">
-            <h1 style="margin: 0;">💧 Balance Hídrico del Lote</h1>
-            <p style="margin: 0; opacity: 0.9;">
-                Estimación diaria de reservas hídricas y recomendación de riego
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # === CARGA DE ESTADO DEL LOTE (si existe) ===
-    cultivo = "No definido"
-    kc_base = 0.85
-    etapa = "N/D"
-    ultima_fecha = "N/D"
-
-    if os.path.exists("estado_lote.json"):
-        try:
-            with open("estado_lote.json", "r", encoding="utf-8") as f:
-                estado = json.load(f)
-                cultivo = estado.get("cultivo", cultivo)
-                kc_base = estado.get("kc", kc_base)
-                etapa = estado.get("etapa", etapa)
-                ultima_fecha = estado.get("ultima_actualizacion", ultima_fecha)
-
-            st.success(f"🌱 **{cultivo}** | Etapa: **{etapa}** | Última act.: {ultima_fecha}")
-        except:
-            st.warning("⚠️ No se pudo leer el estado del lote")
-
-    # === PARÁMETROS DE SUELO Y CULTIVO ===
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("🧱 Suelo")
-        capacidad_campo = st.number_input(
-            "Capacidad de Campo (mm)",
-            min_value=150,
-            max_value=400,
-            value=250
-        )
-        punto_marchitez = st.number_input(
-            "Punto de Marchitez (mm)",
-            min_value=50,
-            max_value=150,
-            value=100
-        )
-
-    with col2:
-        st.subheader("🌾 Cultivo")
-        kc = st.slider(
-            "Coeficiente de cultivo (Kc)",
-            min_value=0.2,
-            max_value=1.3,
-            value=float(kc_base),
-            step=0.05
-        )
-
-        lluvia_real = st.number_input(
-            "Lluvia registrada hoy (mm)",
-            min_value=0.0,
-            max_value=200.0,
-            value=float(clima["lluvia_est"])
-        )
+    # Parámetros ingresables
+    capacidad_campo = st.number_input(
+        "Capacidad de campo (mm)", min_value=0.0, max_value=200.0, value=100.0
+    )
+    punto_marchitez = st.number_input(
+        "Punto de marchitez (mm)", min_value=0.0, max_value=200.0, value=40.0
+    )
+    kc = st.number_input(
+        "Coeficiente cultural (Kc)", min_value=0.0, max_value=2.0, value=1.0
+    )
+    lluvia_real = st.number_input(
+        "Lluvia estimada (mm)", min_value=0.0, max_value=200.0, value=float(clima["lluvia_est"])
+    )
 
     st.divider()
 
     # === CÁLCULO BALANCE HÍDRICO ===
     etc_real = round(clima["etc"] * kc, 2)
-
-    # Reserva estimada (modelo simple diario)
     reserva_inicial = (capacidad_campo + punto_marchitez) / 2
     reserva_actual = max(
         punto_marchitez,
         min(capacidad_campo, reserva_inicial + lluvia_real - etc_real)
     )
-
     agua_util_pct = int(
         ((reserva_actual - punto_marchitez) /
          (capacidad_campo - punto_marchitez)) * 100
@@ -356,9 +269,12 @@ elif menu == "⛈️ Radar Granizo":
     st.title("⛈️ Riesgo de granizo")
 
     riesgo = 0
-    if clima["presion"] < 1010: riesgo += 30
-    if clima["hum"] > 70: riesgo += 30
-    if clima["temp"] > 28: riesgo += 40
+    if clima["presion"] < 1010: 
+        riesgo += 30
+    if clima["hum"] > 70: 
+        riesgo += 30
+    if clima["temp"] > 28: 
+        riesgo += 40
 
     nivel = "BAJO" if riesgo < 40 else "MODERADO" if riesgo < 75 else "ALTO"
     st.metric("Riesgo estimado", nivel)
@@ -367,46 +283,14 @@ elif menu == "⛈️ Radar Granizo":
     windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
 
     st.markdown(f"""
-    <div style="display:flex;justify-content:center;margin-top:20px">
+    <div style="display:flex;justify-content:center;margin-top:25px">
         <a href="{windy_link}" target="_blank"
-        style="background:#dc2626;color:white;padding:16px 30px;
-        border-radius:12px;font-weight:700;text-decoration:none;">
-        🚀 Ver radar granizo
+        style="background:#2563eb;color:white;padding:18px 34px;
+        border-radius:14px;font-weight:700;text-decoration:none;">
+        🌧️ Abrir radar Windy
         </a>
     </div>
+    <p style="text-align:center;color:#555;font-size:0.85rem">
+    Se abre en una nueva pestaña (recomendado)
+    </p>
     """, unsafe_allow_html=True)
-
-    with st.expander("❓ Cómo interpretar"):
-        st.write("""
-        Verde/Amarillo: lluvia  
-        Rojo: tormenta fuerte  
-        Púrpura/Blanco: posible granizo  
-        """)
-
-# ---------- HELADAS ----------
-elif menu == "❄️ Heladas":
-    st.title("❄️ Alerta de heladas")
-    for p in obtener_pronostico():
-        if p["min"] <= 0:
-            st.error(f"{p['f']} ❄️ Helada ({p['min']}°C)")
-        elif p["min"] <= 3:
-            st.warning(f"{p['f']} 🌱 Riesgo ({p['min']}°C)")
-        else:
-            st.success(f"{p['f']} ✅ Sin riesgo")
-
-# ---------- BITÁCORA ----------
-elif menu == "📝 Bitácora":
-    st.title("📝 Bitácora de campo")
-    txt = st.text_area("Observaciones")
-    if st.button("Guardar"):
-        st.success("Registro guardado")
-
-
-
-
-
-
-
-
-
-
