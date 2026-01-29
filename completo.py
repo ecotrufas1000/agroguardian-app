@@ -101,16 +101,6 @@ if menu == "📊 Monitoreo Total":
     windy_widget_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default&key={API_KEY}"
     st.components.v1.iframe(windy_widget_url, height=500, scrolling=False)
     
-    st.markdown(f"""
-        <div style="text-align: right; margin-top: -20px;">
-            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8&key={API_KEY}" target="_blank" 
-               style="color: #4f46e5; text-decoration: none; font-size: 0.85rem; font-weight: bold;">
-               ↗️ Ver pantalla completa en Windy.com
-            </a>
-        </div>
-    """, unsafe_allow_html=True)
-
-    st.divider()
 
     st.subheader("⛈️ Radar de Tormentas y Precipitación (Windy)")
     windy_url = f"https://www.windy.com/multimodel?radar,{LAT},{LON},8&key={API_KEY}"
@@ -232,18 +222,6 @@ elif menu == "⛈️ Radar Granizo":
 
     st.divider()
 
-    st.subheader("📡 Radar de Precipitación en Vivo")
-    url_windy_widget = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default&key={API_KEY}"
-    st.components.v1.iframe(url_windy_widget, height=550, scrolling=False)
-
-    st.markdown(f"""
-        <div style="text-align: right; margin-top: 10px;">
-            <a href="https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8&key={API_KEY}" target="_blank" 
-               style="text-decoration:none; background:#4f46e5; color:white; padding:10px 20px; border-radius:8px; font-weight:bold;">
-               🚀 VER PANTALLA COMPLETA ORIGINAL
-            </a>
-        </div>
-    """, unsafe_allow_html=True)
 
     with st.expander("❓ ¿Cómo leer el radar para granizo?"):
         st.write("""
@@ -271,3 +249,4 @@ elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de Campo")
     novedad = st.text_area("Observaciones:")
     if st.button("💾 GUARDAR"): st.success("Registro guardado.")
+
