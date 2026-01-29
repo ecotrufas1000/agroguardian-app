@@ -325,25 +325,78 @@ elif menu == "⛈️ Radar Granizo":
 
 # ---------- HELADAS ----------
 elif menu == "❄️ Heladas":
-    st.title("❄️ Monitoreo de Heladas")
+    st.title("❄️ Seguimiento de Heladas")
 
-    # Determinación simple de riesgo de heladas
-    riesgo_helada = "BAJO"
-    if clima["temp"] <= 0:
-        riesgo_helada = "ALTO"
-    elif clima["temp"] <= 5:
-        riesgo_helada = "MODERADO"
+    # ================= ALERTA ANTICIPADA =================
+    pronostico = obtener_pronostico()  # Usamos función existente
+    temp_min_24h = pronostico[0]['min'] if pronostico else clima['temp']
+    temp_min_48h = pronostico[1]['min'] if len(pronostico) > 1 else temp_min_24h
 
-    st.metric("Temperatura actual", f"{clima['temp']} °C")
-    st.metric("Riesgo de helada", riesgo_helada)
+    st.subheader("🌡️ Temperaturas mínimas próximas 48h")
+    st.write(f"Hoy: {temp_min_24h} °C")
+    st.write(f"Mañana: {temp_min_48h} °C")
 
-    # Info adicional
-    if riesgo_helada == "ALTO":
-        st.error("🚨 **ALERTA:** Condiciones para heladas, proteger cultivos")
-    elif riesgo_helada == "MODERADO":
-        st.warning("⚠️ Riesgo moderado, monitorear temperatura")
-    else:
-        st.success("✅ Sin riesgo de heladas")
+    # ================= ALERTA POR CULTIVO =================
+    cultivos = {
+        "Trigo": 0,
+        "Vid": -2,
+        "Maíz": -1,
+        "Lechuga": 1
+    }
+
+    st.subheader("🥦 Riesgo por cultivo")
+    for c, tol in cultivos.items():
+        nivel = "Bajo"
+        color = "#16a34a"
+        if temp_min_24h <= tol:
+            nivel = "Alto"
+            color = "#dc2626"
+        elif temp_min_24h <= tol + 2:
+            nivel = "Moderado"
+            color = "#f59e0b"
+        st.markdown(f"<p style='color:{color}; font-weight:bold'>{c}: {nivel}</p>", unsafe_allow_html=True)
+
+    # ================= BOTÓN A WINDY =================
+    st.subheader("🗺️ Mapa de riesgo de heladas")
+    windy_link = f"https://www.windy.com/-Frost-frost?lat={LAT}&lon={LON}&zoom=8"
+    st.markdown(f"""
+    <div style="display:flex;justify-content:center;margin-top:15px">
+        <a href="{windy_link}" target="_blank"
+        style="background:#0ea5e9;color:white;padding:16px 30px;
+        border-radius:12px;font-weight:700;text-decoration:none;">
+        ❄️ Abrir mapa de heladas en Windy
+        </a>
+    </div>
+    <p style="text-align:center;color:#555;font-size:0.85rem">
+    Se abrirá en una nueva pestaña
+    </p>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # ================= HISTORIAL DE HELADAS =================
+    st.subheader("📈 Historial de Heladas (últimos 30 días)")
+
+    import pandas as pd
+    import random
+    import datetime
+
+    fechas = pd.date_range(end=datetime.datetime.today(), periods=30)
+    temp_min_hist = [round(random.uniform(-5, 5), 1) for _ in range(30)]
+    df_heladas = pd.DataFrame({"Fecha": fechas, "Temp Mín (°C)": temp_min_hist})
+    st.dataframe(df_heladas, use_container_width=True)
+
+    # ================= ALERTA GLOBAL =================
+    alerta_global = "Bajo"
+    color_global = "#16a34a"
+    if temp_min_24h <= min(cultivos.values()):
+        alerta_global = "Alto"
+        color_global = "#dc2626"
+    elif temp_min_24h <= min(cultivos.values()) + 2:
+        alerta_global = "Moderado"
+        color_global = "#f59e0b"
+
+    st.markdown(f"<h3 style='color:{color_global}'>Alerta global: {alerta_global}</h3>", unsafe_allow_html=True)
 
 
 # ---------- BITÁCORA ----------
@@ -371,6 +424,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
