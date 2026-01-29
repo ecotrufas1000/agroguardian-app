@@ -176,7 +176,7 @@ folium.LayerControl().add_to(m)
 # Mostrar mapa
 folium_static(m, width=700, height=400)
 
-    st.subheader("🌧️ Radar meteorológico")
+st.subheader("🌧️ Radar meteorológico")
     windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
 
     st.markdown(f"""
@@ -382,6 +382,7 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
 
