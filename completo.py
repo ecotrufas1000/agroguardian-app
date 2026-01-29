@@ -6,298 +6,221 @@ import json
 import os
 import datetime
 
-# === CONFIGURACIÓN PRO 24/7 ===
-st.set_page_config(page_title="AgroGuardian 24/7", layout="wide", page_icon="🚜")
+# ================= CONFIGURACIÓN GENERAL =================
+st.set_page_config(
+    page_title="AgroGuardian 24/7",
+    layout="wide",
+    page_icon="🚜"
+)
 
 st.markdown("""
-    <style>
-    .main { background-color: #f4f7f6; }
-    /* Limpieza de métricas: sin bordes laterales verdes */
-    [data-testid="stMetricValue"] { font-size: 1.8rem !important; font-weight: bold; color: #1e3d2f; }
-    [data-testid="stMetric"] { 
-        background: white; 
-        border-radius: 12px; 
-        padding: 15px !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-        border: none !important; 
-    }
-    .badge-alerta { padding: 10px; border-radius: 8px; color: white; font-weight: bold; text-align: center; margin-bottom: 10px; }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+.main { background-color: #f4f7f6; }
+[data-testid="stMetric"] {
+    background: white;
+    border-radius: 12px;
+    padding: 15px !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: none !important;
+}
+[data-testid="stMetricValue"] {
+    font-size: 1.8rem !important;
+    font-weight: bold;
+    color: #1e3d2f;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# === LÓGICA DE DATOS ===
-API_KEY = st.secrets["WINDY_API_KEY"]  # API key desde secrets.toml
-LAT, LON = -38.298, -58.208 
+# ================= DATOS BASE =================
+LAT, LON = -38.298, -58.208
+API_KEY = st.secrets["OPENWEATHER_API_KEY"]  # OpenWeather (NO Windy)
 
+# ================= FUNCIONES =================
 def obtener_direccion_cardinal(grados):
-    direcciones = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
-                   "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
-    indice = int((grados + 11.25) / 22.5) % 16
-    return direcciones[indice]
+    direcciones = ["N","NNE","NE","ENE","E","ESE","SE","SSE",
+                   "S","SSO","SO","OSO","O","ONO","NO","NNO"]
+    return direcciones[int((grados + 11.25) / 22.5) % 16]
 
 @st.cache_data(ttl=600)
 def traer_datos_pro(lat, lon):
-    d = {"temp": 0.0, "hum": 0, "presion": 1013, "v_vel": 0.0, "v_dir": 0, "tpw": 0.0, "etc": 4.0, "lluvia_est": 0.0}
+    datos = {
+        "temp": 0.0, "hum": 0, "presion": 1013,
+        "v_vel": 0.0, "v_dir": 0,
+        "etc": 4.0, "lluvia_est": 0.0
+    }
     try:
-        r_ow = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es", timeout=5).json()
-        if 'main' in r_ow:
-            d.update({"temp": r_ow['main']['temp'], "hum": r_ow['main']['humidity'], "presion": r_ow['main']['pressure'], 
-                      "v_vel": round(r_ow['wind']['speed']*3.6, 1), "v_dir": r_ow['wind']['deg']})
-        r_om = requests.get(f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=et0_fao_evapotranspiration,precipitation&timezone=auto", timeout=5).json()
-        if 'hourly' in r_om:
-            d.update({"etc": r_om['hourly']['et0_fao_evapotranspiration'][0] or 4.0, "lluvia_est": r_om['hourly']['precipitation'][0]})
-    except: pass
-    return d
+        r = requests.get(
+            f"https://api.openweathermap.org/data/2.5/weather"
+            f"?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es",
+            timeout=5
+        ).json()
+
+        if "main" in r:
+            datos["temp"] = r["main"]["temp"]
+            datos["hum"] = r["main"]["humidity"]
+            datos["presion"] = r["main"]["pressure"]
+            datos["v_vel"] = round(r["wind"]["speed"] * 3.6, 1)
+            datos["v_dir"] = r["wind"]["deg"]
+    except:
+        pass
+    return datos
 
 def obtener_pronostico():
     try:
-        r = requests.get(f"https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric&lang=es", timeout=5).json()
+        r = requests.get(
+            f"https://api.openweathermap.org/data/2.5/forecast"
+            f"?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric&lang=es",
+            timeout=5
+        ).json()
+
         diario = {}
-        for item in r['list']:
-            f = item['dt_txt'].split(" ")[0]
-            if f not in diario: diario[f] = {"min": item['main']['temp'], "max": item['main']['temp'], "desc": item['weather'][0]['description']}
+        for i in r["list"]:
+            fecha = i["dt_txt"].split(" ")[0]
+            temp = i["main"]["temp"]
+            desc = i["weather"][0]["description"]
+            if fecha not in diario:
+                diario[fecha] = {"min": temp, "max": temp, "desc": desc}
             else:
-                diario[f]["min"] = min(diario[f]["min"], item['main']['temp'])
-                diario[f]["max"] = max(diario[f]["max"], item['main']['temp'])
-        res = []
-        dias = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
-        for f_s, v in list(diario.items())[:5]:
-            dt = datetime.datetime.strptime(f_s, '%Y-%m-%d')
-            res.append({"f": f"{dias[dt.weekday()]} {dt.day}", "min": round(v["min"],1), "max": round(v["max"],1), "d": v["desc"].capitalize()})
-        return res
-    except: return []
+                diario[fecha]["min"] = min(diario[fecha]["min"], temp)
+                diario[fecha]["max"] = max(diario[fecha]["max"], temp)
+
+        dias = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]
+        salida = []
+        for f, v in list(diario.items())[:5]:
+            d = datetime.datetime.strptime(f, "%Y-%m-%d")
+            salida.append({
+                "f": f"{dias[d.weekday()]} {d.day}",
+                "min": round(v["min"],1),
+                "max": round(v["max"],1),
+                "d": v["desc"].capitalize()
+            })
+        return salida
+    except:
+        return []
 
 clima = traer_datos_pro(LAT, LON)
 
-# === BARRA LATERAL ===
+# ================= SIDEBAR =================
 with st.sidebar:
-    st.markdown("<div style='text-align:center; background:#1e3d2f; padding:10px; border-radius:10px; color:white;'><h3>🛡️ AGROGUARDIAN</h3><small>SISTEMA ACTIVO 24/7</small></div>", unsafe_allow_html=True)
-    menu = st.radio("MENÚ OPERATIVO", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"])
-    st.divider()
-    if st.button("🔄 ACTUALIZAR DATOS"): st.experimental_rerun()
+    st.markdown("""
+    <div style="background:#1e3d2f;padding:12px;border-radius:10px;color:white;text-align:center">
+        <h3>🛡️ AGROGUARDIAN</h3>
+        <small>Sistema activo 24/7</small>
+    </div>
+    """, unsafe_allow_html=True)
 
-# === PÁGINAS ===
+    menu = st.radio(
+        "MENÚ",
+        ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"]
+    )
 
+    if st.button("🔄 Actualizar"):
+        st.rerun()
+
+# ================= PÁGINAS =================
+
+# ---------- MONITOREO TOTAL ----------
 if menu == "📊 Monitoreo Total":
     st.markdown("""
-        <div style="background: linear-gradient(to right, #4c1d95, #7c3aed, #a78bfa); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🚜 AgroGuardian Pro 24/7</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">CENTRO DE INTELIGENCIA AGROCLIMÁTICA</p>
-        </div>
+    <div style="background:linear-gradient(to right,#4c1d95,#7c3aed);
+    padding:25px;border-radius:15px;color:white;text-align:center">
+    <h1>🚜 AgroGuardian 24/7</h1>
+    <p>Centro de inteligencia agroclimática</p>
+    </div>
     """, unsafe_allow_html=True)
 
-    dir_viento = obtener_direccion_cardinal(clima['v_dir'])
+    d_viento = obtener_direccion_cardinal(clima["v_dir"])
 
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("TEMP.", f"{clima['temp']}°C")
-    m2.metric("HUMEDAD", f"{clima['hum']}%")
-    m3.metric("VIENTO", f"{clima['v_vel']} km/h", f"Dir: {dir_viento}")
-    m4.metric("ET0 HOY", f"{clima['etc']} mm")
-    m5.metric("LLUVIA EST.", f"{clima['lluvia_est']} mm")
-
-    st.divider()
-
-    st.subheader("⛈️ Radar de Tormentas y Precipitación")
-    windy_widget_url = f"https://www.windy.com/widgets?radar,{LAT},{LON},8&metricTemp=default&metricWind=default&key={API_KEY}"
-    st.components.v1.iframe(windy_widget_url, height=500, scrolling=False)
-    
-
-    st.subheader("⛈️ Radar de Tormentas y Precipitación (Windy)")
-    windy_url = f"https://www.windy.com/multimodel?radar,{LAT},{LON},8&key={API_KEY}"
-    st.components.v1.iframe(windy_url, height=500, scrolling=True)
+    c1,c2,c3,c4,c5 = st.columns(5)
+    c1.metric("Temperatura", f"{clima['temp']} °C")
+    c2.metric("Humedad", f"{clima['hum']} %")
+    c3.metric("Viento", f"{clima['v_vel']} km/h", d_viento)
+    c4.metric("Presión", f"{clima['presion']} hPa")
+    c5.metric("Estado", "OK")
 
     st.divider()
 
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
-        m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
-        folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri', name='Vista Satelital (HD)', overlay=False).add_to(m)
-        folium.Marker([LAT, LON], icon=folium.Icon(color="purple", icon="leaf")).add_to(m)
+    st.subheader("🌧️ Radar meteorológico")
+    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
+
+    st.markdown(f"""
+    <div style="display:flex;justify-content:center;margin-top:25px">
+        <a href="{windy_link}" target="_blank"
+        style="background:#2563eb;color:white;padding:18px 34px;
+        border-radius:14px;font-weight:700;text-decoration:none;">
+        🌧️ Abrir radar Windy
+        </a>
+    </div>
+    <p style="text-align:center;color:#555;font-size:0.85rem">
+    Se abre en una nueva pestaña (recomendado)
+    </p>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    col1,col2 = st.columns([2,1])
+    with col1:
+        m = folium.Map(location=[LAT,LON], zoom_start=14)
+        folium.Marker([LAT,LON], tooltip="Lote").add_to(m)
         folium_static(m, width=700, height=400)
-    
-    with c2:
+
+    with col2:
         st.subheader("📅 Pronóstico")
         for p in obtener_pronostico():
-            st.write(f"**{p['f']}**: {p['min']}°/{p['max']}°")
-            st.caption(p['d'])
+            st.write(f"**{p['f']}** {p['min']}° / {p['max']}°")
+            st.caption(p["d"])
 
-st.subheader("🌦️ Radar meteorológico")
-
-windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
-
-st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top:30px;">
-    <a href="{windy_link}" target="_blank"
-       style="
-       text-decoration:none;
-       background:linear-gradient(135deg,#2563eb,#1e40af);
-       color:white;
-       padding:18px 35px;
-       border-radius:14px;
-       font-size:1.1rem;
-       font-weight:700;
-       box-shadow:0 8px 20px rgba(0,0,0,0.25);
-       ">
-       🌧️ VER RADAR EN WINDY
-    </a>
-</div>
-<p style="text-align:center; margin-top:10px; color:#555; font-size:0.85rem;">
-Se abre en una pestaña nueva (recomendado)
-</p>
-""", unsafe_allow_html=True)
-
-
+# ---------- BALANCE HÍDRICO ----------
 elif menu == "💧 Balance Hídrico":
-    st.markdown(f"""
-        <div style="background: linear-gradient(to right, #2563eb, #3b82f6); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0; font-size: 2rem;">💧 Gestión Hídrica Pro</h1>
-            <p style="margin: 0; opacity: 0.9;">Sincronizado con Reportes de Campo</p>
-        </div>
-    """ , unsafe_allow_html=True)
+    st.title("💧 Balance hídrico")
+    st.info("Módulo en expansión 🚧")
 
-    cultivo_bot, kc_bot, fecha_bot, etapa_bot = "No definido", 0.85, "Sin datos", "N/A"
-    
-    if os.path.exists('estado_lote.json'):
-        try:
-            with open('estado_lote.json', 'r', encoding='utf-8') as f:
-                db = json.load(f)
-                cultivo_bot = db.get("cultivo", "N/D")
-                kc_bot = db.get("kc", 0.85)
-                fecha_bot = db.get("ultima_actualizacion", "N/D")
-                etapa_bot = db.get("etapa", "N/D")
-            st.success(f"✅ **Sincronizado:** Lote de **{cultivo_bot}** en etapa **{etapa_bot}**")
-        except: pass
-
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        st.subheader("⚙️ Parámetros de Suelo")
-        cc = st.number_input("Capacidad de Campo (mm)", 150, 400, 250)
-        pm = st.number_input("Punto Marchitez (mm)", 50, 150, 100)
-        kc_ajustado = st.slider("Ajuste Manual de Kc", 0.1, 1.3, float(kc_bot))
-    
-    with c2:
-        st.subheader("📊 Consumo hídrico")
-        etc = round(clima['etc'] * kc_ajustado, 2)
-        st.metric("ETc Real", f"{etc} mm/día")
-        lluvia = st.number_input("Lluvia Real (mm)", 0.0, 200.0, float(clima['lluvia_est']))
-
-    st.divider()
-    reserva_base = 185.0 
-    agua_hoy = min(cc, max(pm, reserva_base + lluvia - etc))
-    util_pct = int(((agua_hoy - pm) / (cc - pm)) * 100)
-    
-    cv1, cv2 = st.columns([1, 2])
-    with cv1:
-        color_r = "#2ecc71" if util_pct > 50 else "#f1c40f" if util_pct > 30 else "#e74c3c"
-        st.markdown(f"""
-            <div style="border:1px solid #eee; border-radius:15px; padding:20px; text-align:center; background:white; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                <p style="color:#666; margin:0; font-size:0.9rem;">AGUA ÚTIL</p>
-                <h1 style="color:{color_r}; margin:0; font-size:50px;">{util_pct}%</h1>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with cv2:
-        st.subheader("🚜 Recomendación")
-        if util_pct < 45: st.error(f"🚨 **ALERTA:** {cultivo_bot} requiere riego.")
-        else: st.success(f"✅ **ESTADO ÓPTIMO:** Reservas suficientes.")
-
+# ---------- RADAR GRANIZO ----------
 elif menu == "⛈️ Radar Granizo":
-    st.markdown("""
-        <style>
-        [data-testid="stMetric"] {
-            background: white;
-            border: none !important;
-            border-left: none !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            padding: 15px !important;
-            border-radius: 12px;
-        }
-        /* Eliminar la barra lateral verde de Streamlit */
-        [data-testid="stMetric"] > div {
-            border-left: none !important;
-        }
-        </style>
+    st.title("⛈️ Riesgo de granizo")
+
+    riesgo = 0
+    if clima["presion"] < 1010: riesgo += 30
+    if clima["hum"] > 70: riesgo += 30
+    if clima["temp"] > 28: riesgo += 40
+
+    nivel = "BAJO" if riesgo < 40 else "MODERADO" if riesgo < 75 else "ALTO"
+    st.metric("Riesgo estimado", nivel)
+
+    st.subheader("🌩️ Radar Windy")
+    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
+
+    st.markdown(f"""
+    <div style="display:flex;justify-content:center;margin-top:20px">
+        <a href="{windy_link}" target="_blank"
+        style="background:#dc2626;color:white;padding:16px 30px;
+        border-radius:12px;font-weight:700;text-decoration:none;">
+        🚀 Ver radar granizo
+        </a>
+    </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-        <div style="background: linear-gradient(to right, #1e293b, #334155); padding:25px; border-radius:15px; color:white; text-align:center; margin-bottom:20px;">
-            <h2 style="color:white; margin:0;">🛰️ Monitor Doppler y Riesgo de Granizo</h2>
-            <p style="opacity:0.8; margin:0;">Detección de celdas convectivas en tiempo real</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    puntos_riesgo = 0
-    if clima['presion'] < 1010: puntos_riesgo += 30
-    if clima['hum'] > 70: puntos_riesgo += 30
-    if clima['temp'] > 28: puntos_riesgo += 40
-    
-    color_idx = "#2ecc71" if puntos_riesgo < 40 else "#f39c12" if puntos_riesgo < 75 else "#e74c3c"
-    nivel_texto = "BAJO" if puntos_riesgo < 40 else "MODERADO" if puntos_riesgo < 75 else "ALTO / INMINENTE"
-
-    col_a, col_b = st.columns([1, 3])
-    with col_a:
-        st.metric("RIESGO ESTIMADO", nivel_texto)
-    with col_b:
-        st.markdown(f"""
-            <div style="background:{color_idx}; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">
-                ÍNDICE DE INESTABILIDAD: {puntos_riesgo}% <br>
-                <small>Factores: Presión {clima['presion']} hPa | Temp {clima['temp']}°C</small>
-            </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-
-st.subheader("🌦️ Radar meteorológico")
-
-windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
-
-st.markdown(f"""
-<div style="display:flex; justify-content:center; margin-top:30px;">
-    <a href="{windy_link}" target="_blank"
-       style="
-       text-decoration:none;
-       background:linear-gradient(135deg,#2563eb,#1e40af);
-       color:white;
-       padding:18px 35px;
-       border-radius:14px;
-       font-size:1.1rem;
-       font-weight:700;
-       box-shadow:0 8px 20px rgba(0,0,0,0.25);
-       ">
-       🌧️ VER RADAR EN WINDY
-    </a>
-</div>
-<p style="text-align:center; margin-top:10px; color:#555; font-size:0.85rem;">
-Se abre en una pestaña nueva (recomendado)
-</p>
-""", unsafe_allow_html=True)
-
-    with st.expander("❓ ¿Cómo leer el radar para granizo?"):
+    with st.expander("❓ Cómo interpretar"):
         st.write("""
-        - **Verde/Amarillo:** Lluvia normal.
-        - **Rojo/Fucsia:** Tormenta fuerte.
-        - **Púrpura/Blanco:** Probabilidad muy alta de **granizo** (alta densidad de hielo).
+        Verde/Amarillo: lluvia  
+        Rojo: tormenta fuerte  
+        Púrpura/Blanco: posible granizo  
         """)
 
+# ---------- HELADAS ----------
 elif menu == "❄️ Heladas":
-    st.markdown("<div style='background: linear-gradient(to right, #075985, #0ea5e9); padding:25px; border-radius:15px; color:white; text-align:center;'><h2>❄️ Alerta de Heladas</h2></div>", unsafe_allow_html=True)
-    
-    colh1, colh2 = st.columns(2)
-    with colh1: st.info("📅 **Primera Helada:** 15 de Mayo")
-    with colh2: st.warning("📅 **Última Helada Est:** 12 de Septiembre")
+    st.title("❄️ Alerta de heladas")
+    for p in obtener_pronostico():
+        if p["min"] <= 0:
+            st.error(f"{p['f']} ❄️ Helada ({p['min']}°C)")
+        elif p["min"] <= 3:
+            st.warning(f"{p['f']} 🌱 Riesgo ({p['min']}°C)")
+        else:
+            st.success(f"{p['f']} ✅ Sin riesgo")
 
-    pronos = obtener_pronostico()
-    if pronos:
-        for p in pronos:
-            t_min = p['min']
-            if t_min <= 0: st.error(f"**{p['f']}**: 🧊 HELADA METEOROLÓGICA ({t_min}°C)")
-            elif t_min <= 3: st.warning(f"**{p['f']}**: 🌱 HELADA AGROMETEOROLÓGICA (Suelo est: {round(t_min-3,1)}°C)")
-            else: st.success(f"**{p['f']}**: ✅ SIN RIESGO ({t_min}°C)")
-
+# ---------- BITÁCORA ----------
 elif menu == "📝 Bitácora":
-    st.title("📝 Bitácora de Campo")
-    novedad = st.text_area("Observaciones:")
-    if st.button("💾 GUARDAR"): st.success("Registro guardado.")
-
-
+    st.title("📝 Bitácora de campo")
+    txt = st.text_area("Observaciones")
+    if st.button("Guardar"):
+        st.success("Registro guardado")
