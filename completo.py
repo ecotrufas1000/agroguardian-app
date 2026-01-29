@@ -13,18 +13,36 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-.main { background-color: #f4f7f6; }
+/* Fondo general verde menta suave */
+.main {
+    background-color: #d0f0c0;
+    color: white;
+}
+
+/* Métricos con fondo blanco para resaltar */
 [data-testid="stMetric"] {
     background: white;
     border-radius: 12px;
     padding: 15px !important;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     border: none !important;
+    color: black;  /* texto negro dentro del métrico */
 }
+
 [data-testid="stMetricValue"] {
     font-size: 1.8rem !important;
     font-weight: bold;
     color: #1e3d2f;
+}
+
+/* Texto general blanco */
+h1, h2, h3, h4, h5, h6, p, span, div {
+    color: white !important;
+}
+
+/* Links y botones */
+a, button, .stButton>button {
+    color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -417,6 +435,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
