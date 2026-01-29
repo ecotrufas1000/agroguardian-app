@@ -262,6 +262,52 @@ elif menu == "💧 Balance Hídrico":
             st.warning("⚠️ **ATENCIÓN:** Reservas en descenso, monitorear")
         else:
             st.success("✅ **ESTADO ÓPTIMO:** Buen nivel de agua disponible")
+
+# ---------- RADAR GRANIZO ----------
+elif menu == "⛈️ Radar Granizo":
+    st.title("⛈️ Riesgo de granizo")
+
+    # --- Cálculo de riesgo simple basado en clima actual ---
+    riesgo = 0
+    if clima["presion"] < 1010: riesgo += 30
+    if clima["hum"] > 70: riesgo += 30
+    if clima["temp"] > 28: riesgo += 40
+
+    nivel = "BAJO" if riesgo < 40 else "MODERADO" if riesgo < 75 else "ALTO"
+    st.metric("Riesgo agrometeorológico", nivel)
+
+    # --- Botón a Windy ---
+    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
+    st.markdown(f"""
+    <div style="display:flex;justify-content:center;margin-top:15px">
+        <a href="{windy_link}" target="_blank"
+        style="background:#2563eb;color:white;padding:18px 34px;
+        border-radius:14px;font-weight:700;text-decoration:none;">
+        🌧️ Abrir mapa de granizo Windy
+        </a>
+    </div>
+    <p style="text-align:center;color:#555;font-size:0.85rem">
+    Se abre en una nueva pestaña (recomendado)
+    </p>
+    """, unsafe_allow_html=True)
+
+    # --- Consejos de acción ---
+    st.subheader("💡 Recomendaciones para el productor")
+    if nivel == "ALTO":
+        st.warning("""
+        🚨 **ALTO riesgo de granizo**
+        - Revisar seguros de cultivos.
+        - Proteger invernaderos y coberturas.
+        - Evitar tareas de campo en parcelas expuestas.
+        """)
+    elif nivel == "MODERADO":
+        st.info("""
+        ⚠️ **Riesgo moderado**
+        - Vigilar radar en las próximas horas.
+        - Preparar medidas preventivas.
+        """)
+    else:
+        st.success("✅ Riesgo bajo. Condiciones estables.")
 # ---------- HELADAS ----------
 elif menu == "❄️ Heladas":
     st.title("❄️ Riesgo de Heladas")
@@ -371,6 +417,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
