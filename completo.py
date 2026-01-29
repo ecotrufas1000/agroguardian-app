@@ -149,7 +149,6 @@ if menu == "📊 Monitoreo Total":
     st.subheader("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
     m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
 
-    # Vista Satelital HD
     folium.TileLayer(
         tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         attr='Esri',
@@ -157,7 +156,6 @@ if menu == "📊 Monitoreo Total":
         overlay=False
     ).add_to(m)
 
-    # Capa NDWI pública (Sentinel-2, vía WMS de USGS)
     folium.raster_layers.WmsTileLayer(
         url='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi',
         layers='MODIS_Terra_NDWI_8Day',
@@ -168,13 +166,8 @@ if menu == "📊 Monitoreo Total":
         control=True
     ).add_to(m)
 
-    # Marcador central
     folium.Marker([LAT, LON], icon=folium.Icon(color="purple", icon="leaf")).add_to(m)
-
-    # Control de capas
     folium.LayerControl().add_to(m)
-
-    # Mostrar mapa
     folium_static(m, width=700, height=400)
 
     # === PRONÓSTICO ===
@@ -182,6 +175,26 @@ if menu == "📊 Monitoreo Total":
     for p in obtener_pronostico():
         st.write(f"**{p['f']}** {p['min']}° / {p['max']}°")
         st.caption(p["d"])
+
+    # ================= RADAR METEOROLÓGICO =================
+    st.subheader("🌧️ Radar meteorológico")
+    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
+
+    st.markdown(f"""
+    <div style="display:flex;justify-content:center;margin-top:25px">
+        <a href="{windy_link}" target="_blank"
+        style="background:#2563eb;color:white;padding:18px 34px;
+        border-radius:14px;font-weight:700;text-decoration:none;">
+        🌧️ Abrir radar Windy
+        </a>
+    </div>
+    <p style="text-align:center;color:#555;font-size:0.85rem">
+    Se abre en una nueva pestaña (recomendado)
+    </p>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
 
 
     # ================= RADAR METEOROLÓGICO =================
@@ -387,6 +400,7 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
 
