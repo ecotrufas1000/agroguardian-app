@@ -262,53 +262,6 @@ elif menu == "💧 Balance Hídrico":
             st.warning("⚠️ **ATENCIÓN:** Reservas en descenso, monitorear")
         else:
             st.success("✅ **ESTADO ÓPTIMO:** Buen nivel de agua disponible")
-# ---------- RADAR GRANIZO ----------
-elif menu == "⛈️ Radar Granizo":
-    st.title("⛈️ Riesgo de granizo")
-
-    # --- Cálculo de riesgo simple basado en clima actual ---
-    riesgo = 0
-    if clima["presion"] < 1010: riesgo += 30
-    if clima["hum"] > 70: riesgo += 30
-    if clima["temp"] > 28: riesgo += 40
-
-    nivel = "BAJO" if riesgo < 40 else "MODERADO" if riesgo < 75 else "ALTO"
-    st.metric("Riesgo agrometeorológico", nivel)
-
-    # --- Botón a Windy ---
-    windy_link = f"https://www.windy.com/-Radar-radar?radar,{LAT},{LON},8"
-    st.markdown(f"""
-    <div style="display:flex;justify-content:center;margin-top:15px">
-        <a href="{windy_link}" target="_blank"
-        style="background:#2563eb;color:white;padding:18px 34px;
-        border-radius:14px;font-weight:700;text-decoration:none;">
-        🌧️ Abrir mapa de granizo Windy
-        </a>
-    </div>
-    <p style="text-align:center;color:#555;font-size:0.85rem">
-    Se abre en una nueva pestaña (recomendado)
-    </p>
-    """, unsafe_allow_html=True)
-
-    # --- Consejos de acción ---
-    st.subheader("💡 Recomendaciones para el productor")
-    if nivel == "ALTO":
-        st.warning("""
-        🚨 **ALTO riesgo de granizo**
-        - Revisar seguros de cultivos.
-        - Proteger invernaderos y coberturas.
-        - Evitar tareas de campo en parcelas expuestas.
-        """)
-    elif nivel == "MODERADO":
-        st.info("""
-        ⚠️ **Riesgo moderado**
-        - Vigilar radar en las próximas horas.
-        - Preparar medidas preventivas.
-        """)
-    else:
-        st.success("✅ Riesgo bajo. Condiciones estables.")
-
-
 # ---------- HELADAS ----------
 elif menu == "❄️ Heladas":
     st.title("❄️ Riesgo de Heladas")
@@ -363,6 +316,36 @@ elif menu == "❄️ Heladas":
     else:
         st.success("✅ Riesgo bajo. Condiciones estables.")
 
+    # --- HISTÓRICO + PRONÓSTICO GRÁFICO ---
+    st.subheader("📈 Histórico y pronóstico de temperaturas mínimas")
+
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    # Histórico de 7 días (simulado o desde estación si disponible)
+    fechas_hist = pd.date_range(end=pd.Timestamp.today(), periods=7)
+    temps_hist = [clima["temp"] - i for i in range(7,0,-1)]  # simulado
+
+    # Pronóstico 2 días
+    fechas_fut = [pd.Timestamp.today() + pd.Timedelta(hours=3*i) for i in range(16)]
+    temps_fut = [i["main"]["temp_min"] for i in pronos["list"][:16]] if "list" in pronos else [clima["temp"]]*16
+
+    df_hist = pd.DataFrame({"Fecha": fechas_hist, "Temp_min": temps_hist})
+    df_fut = pd.DataFrame({"Fecha": fechas_fut, "Temp_min": temps_fut})
+
+    plt.figure(figsize=(10,4))
+    plt.plot(df_hist["Fecha"], df_hist["Temp_min"], marker="o", label="Histórico")
+    plt.plot(df_fut["Fecha"], df_fut["Temp_min"], marker="x", linestyle="--", color="red", label="Pronóstico 48h")
+    plt.axhline(0, color="blue", linestyle=":", label="Cero °C")
+    plt.title("Temperaturas mínimas - Histórico vs Pronóstico")
+    plt.xlabel("Fecha")
+    plt.ylabel("°C")
+    plt.xticks(rotation=45)
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    st.pyplot(plt)
+
+
 # ---------- BITÁCORA ----------
 elif menu == "📝 Bitácora":
     st.title("📝 Bitácora de eventos agroclimáticos")
@@ -388,6 +371,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
+
 
 
 
