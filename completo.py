@@ -199,18 +199,12 @@ if menu == "📊 Monitoreo Total":
 
     st.divider()
 
-    # ================= MAPA PEQUEÑO + PRONÓSTICO =================
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        m = folium.Map(location=[LAT, LON], zoom_start=14)
-        folium.Marker([LAT, LON], tooltip="Lote").add_to(m)
-        folium_static(m, width=700, height=400)
+    # ================= PRONÓSTICO =================
+st.subheader("📅 Pronóstico")
+for p in obtener_pronostico():
+    st.write(f"**{p['f']}** {p['min']}° / {p['max']}°")
+    st.caption(p["d"])
 
-    with col2:
-        st.subheader("📅 Pronóstico")
-        for p in obtener_pronostico():
-            st.write(f"**{p['f']}** {p['min']}° / {p['max']}°")
-            st.caption(p["d"])
 
 
 # ---------- BALANCE HÍDRICO ----------
@@ -389,6 +383,7 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
 
 
 
