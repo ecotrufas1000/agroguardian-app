@@ -33,7 +33,12 @@ st.markdown("""
 
 # ================= DATOS BASE =================
 LAT, LON = -38.298, -58.208
-API_KEY = st.secrets["OPENWEATHER_API_KEY"]  # OpenWeather (NO Windy)
+API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
+
+if not API_KEY:
+    st.error("❌ Falta configurar la API Key de OpenWeather")
+    st.stop()
+
 
 # ================= FUNCIONES =================
 def obtener_direccion_cardinal(grados):
@@ -224,3 +229,4 @@ elif menu == "📝 Bitácora":
     txt = st.text_area("Observaciones")
     if st.button("Guardar"):
         st.success("Registro guardado")
+
