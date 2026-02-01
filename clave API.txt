@@ -1,0 +1,14 @@
+AIzaSyCxLycdk0Gh9BRf6nwDCfNxHmBUGn_bGoY
+
+Detalles de la clave de API
+Clave de API
+AIzaSyCxLycdk0Gh9BRf6nwDCfNxHmBUGn_bGoY
+Nombre
+AgroGuardian
+Nombre del proyecto
+projects/76151262504
+Número del proyecto
+76151262504
+
+clave Open Weather
+2762051ad62d06f1d0fe146033c1c7c8

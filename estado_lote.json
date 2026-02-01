@@ -1,0 +1,20 @@
+{
+    "cultivo": "\ud83c\udf4a C\u00edtricos",
+    "kc": 0.7,
+    "etapa": "Final",
+    "ultima_actualizacion": "29/01 18:03",
+    "\ud83c\udf31 Soja": {
+        "Etapa": "Inicial",
+        "KC": 0.4,
+        "Balance": 8.0,
+        "Tipo": "Cereal",
+        "Fecha": "2026-01-30 16:42"
+    },
+    "\ud83c\udf40 Pastura (Alfalfa/Mix)": {
+        "Etapa": "Medio",
+        "KC": 1.0,
+        "Balance": 5.0,
+        "Tipo": "Cereal",
+        "Fecha": "2026-01-30 18:19"
+    }
+}
