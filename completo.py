@@ -954,17 +954,3 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
