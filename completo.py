@@ -160,20 +160,18 @@ with st.sidebar:
         st.write("Vigilancia satelital y climática 24/7.")
 
 # ================= PÁGINAS =================
-
 if menu == "📊 Monitoreo Total":
     st.markdown("""
     <div style="
         background: linear-gradient(135deg, #26A69A, #00897B);
         padding: 20px 40px;
-        border-radius: 50px; /* Bordes muy redondeados tipo pastilla */
+        border-radius: 50px;
         color: white;
         text-align: center;
         margin-bottom: 25px;
         box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
     ">
-        <h1 style="color: white; margin: 0; padding: 0; font-size: 28px;">🚜 AgroGuardian 24/7</h1>
-        <p style="color: white; margin: 5px 0 0 0; opacity: 0.9; font-size: 16px;">Monitoreo Inteligente del agroclima</p>
+    <h1 style="color: white; margin: 0; padding: 0; font-size: 28px;">🚜 AgroGuardian 24/7</h1>
     </div>
     """, unsafe_allow_html=True)
     d_viento = obtener_direccion_cardinal(clima["v_dir"])
