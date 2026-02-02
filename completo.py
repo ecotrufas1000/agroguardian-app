@@ -476,7 +476,7 @@ elif menu == "📝 Bitácora":
             st.markdown(f"- **{item['fecha']}**: {item['evento']}")
     else:
         st.info("No hay eventos registrados todavía.")
-=======
+#=======
 import streamlit as st
 from streamlit_folium import folium_static
 import folium
