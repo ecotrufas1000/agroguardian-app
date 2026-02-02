@@ -148,7 +148,21 @@ with st.sidebar:
 
     if st.button("🔄 Actualizar"):
         st.rerun()
-
+# ---------------------------------------------------------
+    # 4. AQUÍ PEGAS EL NUEVO CÓDIGO (Justo antes de que termine el 'with')
+    # ---------------------------------------------------------
+    st.markdown("---") 
+    st.markdown("### 🛠️ Estado del Sistema")
+    
+    st.info(f"""
+    **Servidor:** En línea 🌐
+    **Ubicación:** {LAT}, {LON}
+    **Sincronización:** {datetime.datetime.now().strftime('%H:%M:%S')}
+    """)
+    
+    with st.expander("ℹ️ Acerca de"):
+        st.write("Vigilancia satelital y climática 24/7.")
+    # ---------------------------------------------------------
 # ================= PÁGINAS =================
 # ---------- MONITOREO TOTAL ----------
 if menu == "📊 Monitoreo Total":
