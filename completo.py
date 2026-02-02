@@ -141,11 +141,11 @@ with st.sidebar:
 
    # ... (esto es lo que ya tienes arriba)
    menu = st.radio(
-        "MENÚ",
-        ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"],
-        index=0,
-        label_visibility="collapsed",
-        key="menu_v3"
+       "MENÚ",
+       ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"],
+       index=0,
+       label_visibility="collapsed",
+       key="menu_v3"
     )
 
     if st.button("🔄 Actualizar"):
