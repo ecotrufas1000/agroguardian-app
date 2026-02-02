@@ -159,12 +159,11 @@ with st.sidebar:
     with st.expander("ℹ️ Acerca de"):
         st.write("Vigilancia satelital y climática 24/7.")
 
-# --- ASEGÚRATE DE QUE ESTA LÍNEA NO TENGA ESPACIOS AL PRINCIPIO ---
-if menu == "📊 Monitoreo Total":
-================ PÁGINAS =================
-# ---------- MONITOREO TOTAL ----------
+# ================= PÁGINAS =================
+
 if menu == "📊 Monitoreo Total":
     st.markdown("""
+    <div style="background: linear-gradient(135deg, #26A69A, #00897B);
     <div style="
         background: linear-gradient(135deg, #26A69A, #00897B);
         padding: 20px 40px;
