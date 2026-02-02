@@ -140,37 +140,28 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
    # ... (esto es lo que ya tienes arriba)
-    menu = st.radio(
+   menu = st.radio(
         "MENÚ",
         ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"],
         index=0,
         label_visibility="collapsed",
-        key="menu_principal_final" # <--- Agregamos esto para evitar errores
+        key="menu_v3"
     )
 
     if st.button("🔄 Actualizar"):
         st.rerun()
 
-    # --- ESTO ES LO QUE PEGAS AHORA ---
-    # Fíjate que el borde izquierdo esté alineado con el "if" de arriba
-    st.markdown("---") 
+    st.markdown("---")
     st.markdown("### 🛠️ Estado del Sistema")
     
-    st.info(f"""
-    **Servidor:** En línea 🌐
-    **Ubicación:** {LAT}, {LON}
-    **Sincronización:** {datetime.datetime.now().strftime('%H:%M:%S')}
-    """)
+    st.info(f"**Servidor:** En línea 🌐\n\n**Ubicación:** {LAT}, {LON}\n\n**Sincronización:** {datetime.datetime.now().strftime('%H:%M:%S')}")
     
     with st.expander("ℹ️ Acerca de"):
-         st.write("Vigilancia satelital y climática 24/7.")
-    # ----------------------------------
+        st.write("Vigilancia satelital y climática 24/7.")
 
-# Aquí termina el bloque del sidebar y empieza el contenido principal
-# (Esta línea de "if menu" va pegada al borde izquierdo, sin espacios)
+# --- ASEGÚRATE DE QUE ESTA LÍNEA NO TENGA ESPACIOS AL PRINCIPIO ---
 if menu == "📊 Monitoreo Total":
-    # ---------------------------------------------------------
-# ================= PÁGINAS =================
+================ PÁGINAS =================
 # ---------- MONITOREO TOTAL ----------
 if menu == "📊 Monitoreo Total":
     st.markdown("""
