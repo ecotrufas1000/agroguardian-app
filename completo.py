@@ -89,59 +89,29 @@ def obtener_pronostico():
 clima = traer_datos_pro(LAT, LON)
 
 # ================= SIDEBAR =================
+# ================= SIDEBAR =================
 with st.sidebar:
     st.markdown("""
     <div style="background:#26A69A;padding:12px;border-radius:10px;color:white;text-align:center">
         <h3> AGROGUARDIAN</h3>
         <small>Sistema activo 24/7</small>
     </div>
-
-    
-<style>
-    /* Contenedor principal para asegurar que ocupen todo el ancho */
-    div[role="radiogroup"] {
-        display: flex;
-        flex-direction: column;
-        gap: 0px;
-    }
-
-    /* Menú lateral: pastillas uniformes y alineadas */
-    div[role="radiogroup"] > label {
-        display: flex;
-        align-items: center;
-        width: 100%;              /* Obliga a todas a medir lo mismo (el ancho del sidebar) */
-        box-sizing: border-box;   /* Asegura que el padding no afecte el ancho total */
-        padding: 2px 12px;        /* Altura baja */
-        border-radius: 10px;
-        margin-bottom: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        color: white;
-        background: linear-gradient(to bottom, #a8e6a2, #4caf50);
-        transition: all 0.2s ease;
-    }
-
-    /* Espaciado del texto respecto al botón circular */
-    div[role="radiogroup"] > label div:first-child {
-        margin-right: 10px;
-    }
-
-    /* Hover y Estado Activo */
-    div[role="radiogroup"] > label:hover {
-        background: linear-gradient(to bottom, #b4f0b0, #57b657);
-    }
-
-    div[role="radiogroup"] > label[data-checked="true"] {
-        background: linear-gradient(to bottom, #4caf50, #2e7d32);
-    }
-</style> 
- 
+    <style>
+        div[role="radiogroup"] { display: flex; flex-direction: column; gap: 0px; }
+        div[role="radiogroup"] > label {
+            display: flex; align-items: center; width: 100%;
+            box-sizing: border-box; padding: 2px 12px;
+            border-radius: 10px; margin-bottom: 8px;
+            font-weight: 600; font-size: 14px; cursor: pointer;
+            color: white; background: linear-gradient(to bottom, #a8e6a2, #4caf50);
+            transition: all 0.2s ease;
+        }
+        div[role="radiogroup"] > label:hover { background: linear-gradient(to bottom, #b4f0b0, #57b657); }
+        div[role="radiogroup"] > label[data-checked="true"] { background: linear-gradient(to bottom, #4caf50, #2e7d32); }
+    </style>
     """, unsafe_allow_html=True)
 
-   # ... (esto es lo que ya tienes arriba)
-   # AHORA SÍ, ALINEADO A 4 ESPACIOS
-     menu = st.radio(
+    menu = st.radio(
         "MENÚ",
         ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"],
         index=0,
@@ -168,8 +138,7 @@ if menu == "📊 Monitoreo Total":
         text-align: center; margin-bottom: 25px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);">
         <h1 style="color: white; margin: 0; padding: 0; font-size: 28px;">🚜 AgroGuardian 24/7</h1>
     </div>
-    """, unsafe_allow_html=True)
-    d_viento = obtener_direccion_cardinal(clima["v_dir"])
+    """, unsafe_allow_html=True)    d_viento = obtener_direccion_cardinal(clima["v_dir"])
 
     c1,c2,c3,c4,c5 = st.columns(5)
     c1.metric("Temperatura", f"{clima['temp']} °C")
