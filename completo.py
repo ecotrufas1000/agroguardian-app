@@ -139,18 +139,20 @@ with st.sidebar:
  
     """, unsafe_allow_html=True)
 
+   # ... (esto es lo que ya tienes arriba)
     menu = st.radio(
         "MENÚ",
         ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"],
         index=0,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="menu_principal_final" # <--- Agregamos esto para evitar errores
     )
 
     if st.button("🔄 Actualizar"):
         st.rerun()
-# ---------------------------------------------------------
-    # 4. AQUÍ PEGAS EL NUEVO CÓDIGO (Justo antes de que termine el 'with')
-    # ---------------------------------------------------------
+
+    # --- ESTO ES LO QUE PEGAS AHORA ---
+    # Fíjate que el borde izquierdo esté alineado con el "if" de arriba
     st.markdown("---") 
     st.markdown("### 🛠️ Estado del Sistema")
     
@@ -162,6 +164,11 @@ with st.sidebar:
     
     with st.expander("ℹ️ Acerca de"):
         st.write("Vigilancia satelital y climática 24/7.")
+    # ----------------------------------
+
+# Aquí termina el bloque del sidebar y empieza el contenido principal
+# (Esta línea de "if menu" va pegada al borde izquierdo, sin espacios)
+if menu == "📊 Monitoreo Total":
     # ---------------------------------------------------------
 # ================= PÁGINAS =================
 # ---------- MONITOREO TOTAL ----------
