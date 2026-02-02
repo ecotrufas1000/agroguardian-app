@@ -5,6 +5,7 @@ import requests
 import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
+import pytz
 
 # ================= CONFIGURACIÓN GENERAL =================
 st.set_page_config(
@@ -121,8 +122,10 @@ with st.sidebar:
 
     if st.button("🔄 Actualizar"):
         st.rerun()
-# --- RELOJ DIGITAL ---
-    hora_actual = datetime.datetime.now().strftime('%H:%M')
+# --- RELOJ DIGITAL CON HORA ARGENTINA ---
+    zona_horaria = pytz.timezone('America/Argentina/Buenos_Aires')
+    hora_arg = datetime.datetime.now(zona_horaria).strftime('%H:%M')
+    
     st.markdown(f"""
         <div style='text-align: center; 
                     padding: 10px; 
@@ -130,11 +133,10 @@ with st.sidebar:
                     border-radius: 10px; 
                     margin-top: 10px;
                     border: 1px solid rgba(38, 166, 154, 0.2);'>
-            <span style='font-size: 0.8em; color: #666;'>HORA LOCAL</span><br>
-            <span style='font-size: 1.5em; font-weight: bold; color: #26A69A;'>{hora_actual} hs</span>
+            <span style='font-size: 0.8em; color: #666;'>HORA LOCAL (ARG)</span><br>
+            <span style='font-size: 1.5em; font-weight: bold; color: #26A69A;'>{hora_arg} hs</span>
         </div>
-    """, unsafe_allow_html=True)
-    # ---------------------
+    """, unsafe_allow_html=True)    # ---------------------
 
     st.markdown("---")
     st.markdown("---")
