@@ -121,7 +121,22 @@ with st.sidebar:
 
     if st.button("🔄 Actualizar"):
         st.rerun()
+# --- RELOJ DIGITAL ---
+    hora_actual = datetime.datetime.now().strftime('%H:%M')
+    st.markdown(f"""
+        <div style='text-align: center; 
+                    padding: 10px; 
+                    background-color: rgba(38, 166, 154, 0.1); 
+                    border-radius: 10px; 
+                    margin-top: 10px;
+                    border: 1px solid rgba(38, 166, 154, 0.2);'>
+            <span style='font-size: 0.8em; color: #666;'>HORA LOCAL</span><br>
+            <span style='font-size: 1.5em; font-weight: bold; color: #26A69A;'>{hora_actual} hs</span>
+        </div>
+    """, unsafe_allow_html=True)
+    # ---------------------
 
+    st.markdown("---")
     st.markdown("---")
     st.markdown("### 🛠️ Estado del Sistema")
     
