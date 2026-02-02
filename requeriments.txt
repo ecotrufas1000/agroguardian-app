@@ -1,5 +1,12 @@
+<<<<<<< HEAD
 streamlit
 streamlit-folium
 folium
 requests
+=======
+streamlit
+streamlit-folium
+folium
+requests
+>>>>>>> e0612e52aaefd4a57207d4f317bafd3b97a81d7e
 pandas

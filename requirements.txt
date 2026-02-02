@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 streamlit
 streamlit-folium
 folium
@@ -6,3 +7,17 @@ pandas
 pyTelegramBotAPI
 google-generativeai
 Pillow
+=======
+streamlit
+streamlit-folium
+folium
+requests
+matplotlib
+pandas
+pyTelegramBotAPI
+google-generativeai
+Pillow
+python-dotenv
+
+
+>>>>>>> e0612e52aaefd4a57207d4f317bafd3b97a81d7e
