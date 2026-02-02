@@ -163,7 +163,6 @@ with st.sidebar:
 
 if menu == "📊 Monitoreo Total":
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #26A69A, #00897B);
     <div style="
         background: linear-gradient(135deg, #26A69A, #00897B);
         padding: 20px 40px;
