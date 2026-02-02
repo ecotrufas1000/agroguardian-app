@@ -163,7 +163,7 @@ with st.sidebar:
     """)
     
     with st.expander("ℹ️ Acerca de"):
-        st.write("Vigilancia satelital y climática 24/7.")
+         st.write("Vigilancia satelital y climática 24/7.")
     # ----------------------------------
 
 # Aquí termina el bloque del sidebar y empieza el contenido principal
