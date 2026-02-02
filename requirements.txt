@@ -6,14 +6,6 @@ pandas
 pyTelegramBotAPI
 google-generativeai
 Pillow
-streamlit
-streamlit-folium
-folium
-requests
 matplotlib
-pandas
-pyTelegramBotAPI
-google-generativeai
-Pillow
 python-dotenv
 
