@@ -141,7 +141,7 @@ with st.sidebar:
 
    # ... (esto es lo que ya tienes arriba)
    # AHORA SÍ, ALINEADO A 4 ESPACIOS
-    menu = st.radio(
+     menu = st.radio(
         "MENÚ",
         ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Heladas", "📝 Bitácora"],
         index=0,
