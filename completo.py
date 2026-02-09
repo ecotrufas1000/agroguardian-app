@@ -99,7 +99,19 @@ st.markdown("""
 API_KEY = st.secrets.get("OPENWEATHER_API_KEY", "2762051ad62d06f1d0fe146033c1c7c8")
 LAT, LON = -38.298, -58.208
 BITACORA_JSON = "bitacora_campo.json"
+# --- NUEVA FUNCIÓN DE CARGA ---
+def cargar_memoria_completa():
+    if os.path.exists("memoria_lotes.json"):
+        with open("memoria_lotes.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
+# Cargamos todo el JSON
+memoria_full = cargar_memoria_completa()
+
+# Extraemos la carpeta del usuario (usamos el primer chat_id que encontre)
+chat_id_key = list(memoria_full.keys())[0] if memoria_full else "general"
+datos_memoria = memoria_full.get(chat_id_key, {}) # <--- ACÁ NACE LA VARIABLE
 @st.cache_data(ttl=600)
 def traer_datos(lat, lon):
     try:
@@ -181,69 +193,93 @@ elif menu == "❄️ Análisis de Heladas":
         else:
             st.success("ATMÓSFERA ESTABLE.")
 
+# --- COLOCAR ESTO AL PRINCIPIO DE TU ARCHIVO (Fuera de los IF) ---
+def cargar_datos_seguro():
+    if os.path.exists("memoria_lotes.json"):
+        with open("memoria_lotes.json", "r", encoding="utf-8") as f:
+            full_data = json.load(f)
+            # Obtenemos el primer chat_id disponible
+            if full_data:
+                first_key = list(full_data.keys())[0]
+                return full_data.get(first_key, {})
+    return {}
+
+# Cargamos la variable globalmente para que todas las páginas la vean
+datos_memoria = cargar_datos_seguro()
+
+# ==========================================
+# 5. DESPLIEGUE DE PÁGINAS (CORREGIDO)
+# ==========================================
+
+# ... (tus otros bloques if/elif)
+
 elif menu == "🌧️ Pluviómetro":
     st.markdown('<p class="terminal-header">Hydraulic Records // Pluviometer Data</p>', unsafe_allow_html=True)
     
-    # 1. Recuperar datos del JSON
+    # 1. Recuperar datos del JSON con seguridad
     lote_sel = datos_memoria.get("lote_activo", "General")
-    # Traemos la lista de lluvias del lote seleccionado
-    todas_lluvias = datos_memoria.get("registro_lluvias", {}).get(lote_sel, [])
+    registro_lluvias = datos_memoria.get("registro_lluvias", {})
+    todas_lluvias = registro_lluvias.get(lote_sel, [])
     
     if not todas_lluvias:
         st.info(f"📍 No hay registros de lluvia para el lote {lote_sel}. Podés cargar datos desde el Bot de Telegram con el botón 'ANOTAR LLUVIA'.")
     else:
-        import pandas as pd
-        import plotly.express as px
+        try:
+            import pandas as pd
+            import plotly.express as px
 
-        # 2. Procesamiento de datos con Pandas
-        df = pd.DataFrame(todas_lluvias)
-        df['fecha'] = pd.to_datetime(df['fecha'])
-        df['mm'] = df['mm'].astype(float)
-        
-        # Extraemos año y mes para los acumulados
-        df['año'] = df['fecha'].dt.year
-        df['mes_idx'] = df['fecha'].dt.strftime('%Y-%m') # Para agrupar
-        df['mes_nombre'] = df['fecha'].dt.strftime('%b %y') # Para mostrar
+            # 2. Procesamiento de datos con Pandas
+            df = pd.DataFrame(todas_lluvias)
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            df['mm'] = pd.to_numeric(df['mm'], errors='coerce') # Evita errores si hay texto
+            
+            # Extraemos año y mes para los acumulados
+            df['año'] = df['fecha'].dt.year
+            df['mes_idx'] = df['fecha'].dt.strftime('%Y-%m') 
+            df['mes_nombre'] = df['fecha'].dt.strftime('%b %y') 
 
-        # 3. Métricas Principales (Arriba)
-        mes_actual = datetime.datetime.now().strftime("%Y-%m")
-        total_mes = df[df['mes_idx'] == mes_actual]['mm'].sum()
-        total_año = df[df['año'] == datetime.datetime.now().year]['mm'].sum()
+            # 3. Métricas Principales
+            hoy = datetime.datetime.now()
+            mes_actual_str = hoy.strftime("%Y-%m")
+            
+            total_mes = df[df['mes_idx'] == mes_actual_str]['mm'].sum()
+            total_año = df[df['año'] == hoy.year]['mm'].sum()
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("ESTE MES", f"{total_mes} mm", delta="Acumulado")
-        c2.metric("ANUAL", f"{total_año} mm", delta="Total Ciclo", delta_color="normal")
-        c3.metric("EVENTOS", f"{len(df)}", delta="Registros")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("ESTE MES", f"{total_mes:.1f} mm", delta="Acumulado")
+            c2.metric("ANUAL", f"{total_año:.1f} mm", delta="Total Ciclo", delta_color="normal")
+            c3.metric("EVENTOS", f"{len(df)}", delta="Registros")
 
-        st.markdown("---")
+            st.markdown("---")
 
-        # 4. Gráfico de Barras Interactivo (Plotly)
-        st.subheader("📊 Historial de Precipitaciones")
-        fig = px.bar(
-            df, 
-            x='fecha', 
-            y='mm',
-            title=f"Lluvias registradas: {lote_sel}",
-            labels={'fecha': 'Fecha del Evento', 'mm': 'Milímetros'},
-            template="plotly_dark"
-        )
-        
-        # Estética Neón para el gráfico
-        fig.update_traces(marker_color='#00ffc3', marker_line_color='#ffffff', marker_line_width=0.5, opacity=0.8)
-        fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=False),
-            yaxis=dict(gridcolor='#30363d')
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            # 4. Gráfico de Barras Interactivo
+            st.subheader("📊 Historial de Precipitaciones")
+            fig = px.bar(
+                df, 
+                x='fecha', 
+                y='mm',
+                title=f"Lluvias registradas: {lote_sel}",
+                labels={'fecha': 'Fecha', 'mm': 'Milímetros'},
+                template="plotly_dark"
+            )
+            
+            fig.update_traces(marker_color='#00ffc3', marker_line_color='#ffffff', marker_line_width=0.5, opacity=0.8)
+            fig.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=False),
+                yaxis=dict(gridcolor='#30363d')
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-        # 5. Resumen Mensual (Tabla de Laboratorio)
-        st.subheader("🗓️ Resumen Mensual")
-        resumen = df.groupby('mes_nombre')['mm'].sum().reset_index()
-        resumen.columns = ['Mes', 'Total Lluvia (mm)']
-        
-        st.table(resumen.sort_index(ascending=False))   
+            # 5. Resumen Mensual
+            st.subheader("🗓️ Resumen Mensual")
+            resumen = df.groupby('mes_nombre')['mm'].sum().reset_index()
+            resumen.columns = ['Mes', 'Total Lluvia (mm)']
+            st.table(resumen.sort_index(ascending=False))
+            
+        except Exception as e:
+            st.error(f"Ocurrió un error al procesar los datos: {e}") 
 
 elif menu == "💧 Balance Hídrico":
     st.markdown('<p class="terminal-header">Hydric Status // Evapotranspiration Model</p>', unsafe_allow_html=True)
