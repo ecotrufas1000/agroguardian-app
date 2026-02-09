@@ -181,7 +181,7 @@ elif menu == "❄️ Análisis de Heladas":
         else:
             st.success("ATMÓSFERA ESTABLE.")
 
- elif menu == "🌧️ Pluviómetro":
+elif menu == "🌧️ Pluviómetro":
     st.markdown('<p class="terminal-header">Hydraulic Records // Pluviometer Data</p>', unsafe_allow_html=True)
     
     # 1. Recuperar datos del JSON
