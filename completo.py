@@ -25,23 +25,74 @@ def calcular_gdc_diario(t_max, t_min, t_base=10):
     return max(0, ((max(t_max, t_base) + max(t_min, t_base)) / 2) - t_base)
 
 # ==========================================
-# 2. CONFIGURACIÓN Y ESTÉTICA "LAB TERMINAL"
 # ==========================================
-st.set_page_config(page_title="AgroGuardian Lab Terminal", layout="wide", page_icon="🛰️")
+# 1. CONFIGURACIÓN Y ESTÉTICA DE LABORATORIO (CORREGIDA)
+# ==========================================
+st.set_page_config(page_title="AgroGuardian Pro | Lab Terminal", layout="wide", page_icon="🛰️")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+    
+    /* Fondo general */
     .stApp { background-color: #0b0e14; color: #e2e8f0; }
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    [data-testid="stMetricValue"] { font-family: 'Roboto Mono', monospace !important; font-size: 1.8rem !important; color: #00ffc3 !important; }
-    div[data-testid="stMetric"] { background-color: #161b22 !important; border: 1px solid #30363d !important; padding: 10px !important; border-radius: 4px !important; }
-    .terminal-header { font-family: 'Roboto Mono', monospace; color: #8b949e; border-bottom: 1px solid #30363d; padding-bottom: 5px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; }
+
+    /* --- CAMBIO SOLICITADO: COLOR DE LAS VARIABLES --- */
+    /* Cambia el nombre de la variable en st.metric */
+    [data-testid="stMetricLabel"] {
+        color: #ffffff !important; /* Blanco puro para máxima legibilidad */
+        font-family: 'Roboto Mono', monospace !important;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-size: 0.85rem !important;
+        opacity: 0.9;
+    }
+
+    /* Estilo del valor numérico (Verde Lab) */
+    [data-testid="stMetricValue"] {
+        font-family: 'Roboto Mono', monospace !important;
+        font-size: 1.8rem !important;
+        color: #00ffc3 !important;
+    }
+
+    /* Contenedor de la métrica */
+    div[data-testid="stMetric"] {
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
+        padding: 15px !important;
+        border-radius: 4px !important;
+    }
+
+    /* Headers estilo Terminal */
+    .terminal-header {
+        font-family: 'Roboto Mono', monospace;
+        color: #8b949e;
+        border-bottom: 1px solid #30363d;
+        padding-bottom: 5px;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 0.8rem;
+    }
+
+    /* Sidebar y Radio Buttons */
     [data-testid="stSidebar"] { background-color: #0d1117 !important; border-right: 1px solid #30363d; }
-    div[role="radiogroup"] > label { background: #161b22 !important; border: 1px solid #30363d !important; border-radius: 4px !important; color: #e2e8f0 !important; margin-bottom: 4px !important; }
+    
+    /* Nombre de las opciones en el menú lateral */
+    div[role="radiogroup"] > label p {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    div[role="radiogroup"] > label {
+        background: #161b22 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 4px !important;
+        margin-bottom: 4px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
-
 # ==========================================
 # 3. CONEXIÓN Y DATOS
 # ==========================================
