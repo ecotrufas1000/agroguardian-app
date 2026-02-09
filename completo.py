@@ -181,7 +181,69 @@ elif menu == "❄️ Análisis de Heladas":
         else:
             st.success("ATMÓSFERA ESTABLE.")
 
+ elif menu == "🌧️ Pluviómetro":
+    st.markdown('<p class="terminal-header">Hydraulic Records // Pluviometer Data</p>', unsafe_allow_html=True)
     
+    # 1. Recuperar datos del JSON
+    lote_sel = datos_memoria.get("lote_activo", "General")
+    # Traemos la lista de lluvias del lote seleccionado
+    todas_lluvias = datos_memoria.get("registro_lluvias", {}).get(lote_sel, [])
+    
+    if not todas_lluvias:
+        st.info(f"📍 No hay registros de lluvia para el lote {lote_sel}. Podés cargar datos desde el Bot de Telegram con el botón 'ANOTAR LLUVIA'.")
+    else:
+        import pandas as pd
+        import plotly.express as px
+
+        # 2. Procesamiento de datos con Pandas
+        df = pd.DataFrame(todas_lluvias)
+        df['fecha'] = pd.to_datetime(df['fecha'])
+        df['mm'] = df['mm'].astype(float)
+        
+        # Extraemos año y mes para los acumulados
+        df['año'] = df['fecha'].dt.year
+        df['mes_idx'] = df['fecha'].dt.strftime('%Y-%m') # Para agrupar
+        df['mes_nombre'] = df['fecha'].dt.strftime('%b %y') # Para mostrar
+
+        # 3. Métricas Principales (Arriba)
+        mes_actual = datetime.datetime.now().strftime("%Y-%m")
+        total_mes = df[df['mes_idx'] == mes_actual]['mm'].sum()
+        total_año = df[df['año'] == datetime.datetime.now().year]['mm'].sum()
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("ESTE MES", f"{total_mes} mm", delta="Acumulado")
+        c2.metric("ANUAL", f"{total_año} mm", delta="Total Ciclo", delta_color="normal")
+        c3.metric("EVENTOS", f"{len(df)}", delta="Registros")
+
+        st.markdown("---")
+
+        # 4. Gráfico de Barras Interactivo (Plotly)
+        st.subheader("📊 Historial de Precipitaciones")
+        fig = px.bar(
+            df, 
+            x='fecha', 
+            y='mm',
+            title=f"Lluvias registradas: {lote_sel}",
+            labels={'fecha': 'Fecha del Evento', 'mm': 'Milímetros'},
+            template="plotly_dark"
+        )
+        
+        # Estética Neón para el gráfico
+        fig.update_traces(marker_color='#00ffc3', marker_line_color='#ffffff', marker_line_width=0.5, opacity=0.8)
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=False),
+            yaxis=dict(gridcolor='#30363d')
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 5. Resumen Mensual (Tabla de Laboratorio)
+        st.subheader("🗓️ Resumen Mensual")
+        resumen = df.groupby('mes_nombre')['mm'].sum().reset_index()
+        resumen.columns = ['Mes', 'Total Lluvia (mm)']
+        
+        st.table(resumen.sort_index(ascending=False))   
 
 elif menu == "💧 Balance Hídrico":
     st.markdown('<p class="terminal-header">Hydric Status // Evapotranspiration Model</p>', unsafe_allow_html=True)
