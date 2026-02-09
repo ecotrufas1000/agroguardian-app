@@ -128,7 +128,7 @@ v_rumbo = obtener_direccion_viento(clima['v_dir'])
 # ==========================================
 with st.sidebar:
     st.markdown("<h2 style='color:#00ffc3; font-family:monospace;'>AG-TERMINAL v2.6</h2>", unsafe_allow_html=True)
-    menu = st.radio("SISTEMAS", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"])
+    menu = st.radio("SISTEMAS", ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"])
     st.divider()
     if st.button("🔄 RE-SCAN"): st.rerun()
 
