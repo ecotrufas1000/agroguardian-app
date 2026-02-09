@@ -195,7 +195,8 @@ elif menu == "⛈️ Radar Granizo":
     c1, c2, c3 = st.columns(3)
     
     # Supongamos que traemos la presión actual de la API
-    presion_actual = clima['presion'] 
+    # Reemplazo seguro para evitar el KeyError
+    presion_actual = clima.get('presion', 1013.2) # 1013.2 es el valor estándar si no hay dato
     
     c1.metric("PRESIÓN HPA", f"{presion_actual}", "-1.5 hPa/3h" if clima['v_vel'] > 20 else "Estable")
     c2.metric("DESARROLLO VERTICAL", "ALTO" if clima['hum'] > 85 else "MEDIO")
