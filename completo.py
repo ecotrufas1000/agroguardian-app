@@ -1,4 +1,5 @@
-import streamlit as st
+import streamlit as st # <--- PRIMERO SIEMPRE VA ESTO
+from supabase import create_client
 from streamlit_folium import folium_static
 import folium
 import requests
@@ -6,6 +7,16 @@ import datetime
 import json
 import os
 import math
+
+# AHORA SÍ, USAMOS LOS SECRETS
+# Recordá que estos nombres deben coincidir EXACTO con los que pegaste en la web de Streamlit
+try:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    supabase = create_client(url, key)
+except Exception as e:
+    st.error("⚠️ Error: No se encontraron los Secrets de Supabase.")
+    st.stop() # Esto detiene la app si no hay conexión, para evitar errores en cadena
 
 # ==========================================
 # 1. MOTOR CIENTÍFICO (Cálculos y Vectores)
