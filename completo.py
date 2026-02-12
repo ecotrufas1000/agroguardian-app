@@ -226,16 +226,17 @@ datos_memoria = cargar_datos_seguro()
 # ... (tus otros bloques if/elif)
 
 elif menu == "🌧️ Pluviómetro":
-  st.subheader("🌧️ Registros de Lluvia (Nube)")
-
-try:
-import pandas as pd
-# 1. Traer datos de Supabase
-respuesta = supabase.table("registros_lluvia").select("*").execute()
-datos_nube = respuesta.data
-
-except Exception as e:
-st.error(f"Error: {e}")
+    st.title("Registros de Lluvia")
+    try:
+        res = supabase.table("registros_lluvia").select("*").execute()
+        if res.data:
+            import pandas as pd
+            df = pd.DataFrame(res.data)
+            st.dataframe(df)
+        else:
+            st.write("No hay datos")
+    except Exception as e:
+        st.error(e)
 elif menu == "💧 Balance Hídrico":
     st.markdown('<p class="terminal-header">Hydric Status // Evapotranspiration Model</p>', unsafe_allow_html=True)
     kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
