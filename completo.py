@@ -21,8 +21,8 @@ st.set_page_config(
 # ==========================================================
 try:
     supabase = create_client(
-        st.secrets["SUPABASE_URL"],
-        st.secrets["SUPABASE_KEY"]
+        st.secrets["https://ieodzygauglvdkendvmj.supabase.co"],
+        st.secrets["sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"]
     )
 except:
     st.error("⚠️ Error: No se encontraron los Secrets de Supabase.")
