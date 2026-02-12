@@ -1,3 +1,4 @@
+import datetime
 import streamlit as st # <--- PRIMERO SIEMPRE VA ESTO
 from supabase import create_client
 from streamlit_folium import folium_static
