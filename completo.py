@@ -6,11 +6,16 @@ import requests
 import json
 import os
 import math
+# Conexión a Supabase
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
-OPENWEATHER_API_KEY = st.secrets["OPENWEATHER_API_KEY"]
 
+# Conexión a Clima (Cambiamos el nombre para que coincida con tu función)
+API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+
+# Coordenadas (Asegurate que estén definidas)
+LAT, LON = -38.298, -58.208
 # ==========================================================
 # 1. CONFIGURACIÓN BASE
 # ==========================================================
