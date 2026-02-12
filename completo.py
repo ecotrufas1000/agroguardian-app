@@ -229,8 +229,8 @@ elif menu == "🌧️ Pluviómetro":
     
     # 1. Recuperar datos del JSON con seguridad
     lote_sel = datos_memoria.get("lote_activo", "General")
-    registro_lluvias = datos_memoria.get("registro_lluvias", {})
-    todas_lluvias = registro_lluvias.get(lote_sel, [])
+    registros_lluvias = datos_memoria.get("registros_lluvias", {})
+    todas_lluvias = registros_lluvias.get(lote_sel, [])
     
     if not todas_lluvias:
         st.info(f"📍 No hay registros de lluvia para el lote {lote_sel}. Podés cargar datos desde el Bot de Telegram con el botón 'ANOTAR LLUVIA'.")
