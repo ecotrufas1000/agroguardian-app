@@ -6,6 +6,10 @@ import requests
 import json
 import os
 import math
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+supabase = create_client(url, key)
+OPENWEATHER_API_KEY = st.secrets["OPENWEATHER_API_KEY"]
 
 # ==========================================================
 # 1. CONFIGURACIÓN BASE
@@ -15,22 +19,6 @@ st.set_page_config(
     layout="wide",
     page_icon="🛰️"
 )
-
-# ==========================================================
-# 2. CONEXIONES (SUPABASE + API)
-# ==========================================================
-try:
-    supabase = create_client(
-        st.secrets["https://ieodzygauglvdkendvmj.supabase.co"],
-        st.secrets["sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"]
-    )
-except:
-    st.error("⚠️ Error: No se encontraron los Secrets de Supabase.")
-    st.stop()
-
-API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
-LAT, LON = -38.298, -58.208
-BITACORA_JSON = "bitacora_campo.json"
 
 # ==========================================================
 # 3. FUNCIONES CIENTÍFICAS
