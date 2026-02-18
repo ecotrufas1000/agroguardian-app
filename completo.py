@@ -7,6 +7,17 @@ import json
 import math
 import os # Lo dejamos por si lo usa alguna función interna
 
+def obtener_ultimo_gps():
+    try:
+        # Buscamos el último registro en una tabla que guarde coordenadas
+        # (Asegurate de que tu bot guarde el GPS en una tabla llamada 'ubicaciones' o similar)
+        res = supabase.table("registros_lluvia").select("lat, lon").order("fecha", desc=True).limit(1).execute()
+        if res.data:
+            return res.data[0]['lat'], res.data[0]['lon']
+    except:
+        pass
+    return -38.298, -58.208  # Ubicación por defecto si falla
+
 # ==========================================================
 # 1. CONEXIÓN A DATOS (NUBE)
 # ==========================================================
@@ -19,7 +30,8 @@ supabase = create_client(url, key)
 API_KEY = st.secrets["OPENWEATHER_API_KEY"]
 
 # Coordenadas Base
-LAT, LON = -38.298, -58.208
+# Ahora la ubicación es dinámica
+LAT, LON = obtener_ultimo_gps()
 BITACORA_JSON = "bitacora.json" # Definimos la variable para que no de error al final
 
 # ==========================================================
