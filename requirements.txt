@@ -7,6 +7,5 @@ pyTelegramBotAPI
 google-generativeai
 Pillow
 matplotlib
-python-dotenv
 supabase
 plotly
