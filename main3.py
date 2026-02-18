@@ -284,82 +284,58 @@ def recibir_ubicacion_gps(message):
 # ======================================================
 # LÓGICA DE CLIMA Y CÁLCULOS
 # ======================================================
-@bot.message_handler(func=lambda m: "CLIMA ACTUAL" in m.text.upper())
-def clima_actual(message):
+# ======================================================
+# CLIMA ACTUAL
+# ======================================================
+@bot.message_handler(func=lambda m: m.text and "CLIMA ACTUAL" in m.text.upper())
+def mostrar_clima(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
-    
     if not lat:
-        return bot.send_message(message.chat.id, "📍 Enviá tu ubicación primero con el botón del menú.")
+        return bot.send_message(message.chat.id, "📍 vinculá tu GPS primero.")
 
     try:
-        # 1. Usamos la URL de clima actual (/weather)
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
-        response = requests.get(url)
-        r = response.json()
+        r = requests.get(url).json()
 
-        if response.status_code != 200:
-            return bot.send_message(message.chat.id, f"❌ Error de API: {r.get('message', 'No autorizado')}")
+        if "main" not in r:
+            return bot.send_message(message.chat.id, f"❌ Error de API: {r.get('message', 'Llave inválida')}")
 
-        # 2. Extraemos los datos (usando .get para evitar el error KeyError: 'main')
-        temp = r.get('main', {}).get('temp')
-        hum = r.get('main', {}).get('humidity')
-        v_vel = round(r.get('wind', {}).get('speed', 0) * 3.6, 1) # Convertimos a km/h
-        desc = r.get('weather', [{}])[0].get('description', 'Sin datos').capitalize()
-
-        # 3. Armamos el texto profesional
-        texto = (
-            f"📊 *DATOS ATMOSFÉRICOS ACTUALES*\n\n"
-            f"🌡️ *Temp:* `{temp}°C` \n"
-            f"💧 *Humedad:* `{hum}%` \n"
-            f"🌬️ *Viento:* `{v_vel} km/h` \n"
-            f"🛰️ *Estado:* `{desc}`"
-        )
+        temp = r['main']['temp']
+        hum = r['main']['humidity']
+        texto = f"🌡️ *Temp:* `{temp}°C` | *HR:* `{hum}%` \n☁️ `{r['weather'][0]['description'].upper()}`"
         
         bot.send_message(message.chat.id, texto, parse_mode="Markdown")
         menu_principal_profesional(message.chat.id)
-
     except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ Error técnico: {str(e)}")
-        # ======================================================
-# LÓGICA DE PRONÓSTICO (PRÓXIMOS DÍAS)
+        bot.send_message(message.chat.id, f"⚠️ Error: {e}")
+
 # ======================================================
-@bot.message_handler(func=lambda m: "PRONÓSTICO" in m.text.upper())
+# PRONÓSTICO
+# ======================================================
+@bot.message_handler(func=lambda m: m.text and "PRONÓSTICO" in m.text.upper())
 def mostrar_pronostico(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
-    
-    if not lat or not lon:
-        return bot.send_message(message.chat.id, "📍 *Error:* Primero vinculá tu GPS con el botón del menú.")
+    if not lat:
+        return bot.send_message(message.chat.id, "📍 vinculá tu GPS primero.")
 
     try:
-        # IMPORTANTE: El pronóstico usa la URL que termina en /forecast
         url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
-        response = requests.get(url)
-        data = response.json()
+        r = requests.get(url).json()
 
-        if response.status_code != 200:
-            return bot.send_message(message.chat.id, f"❌ Error de API: {data.get('message', 'No autorizado')}")
+        if "list" not in r:
+            return bot.send_message(message.chat.id, "❌ Error al obtener pronóstico.")
 
-        texto = "📅 *PRONÓSTICO PRÓXIMOS DÍAS*\n\n"
-        
-        # El forecast trae datos cada 3hs. Saltamos de a 8 para tener un dato por día (8 * 3hs = 24hs)
-        for bloque in data["list"][::8][:5]: 
-            # Formateamos la fecha (viene como 2024-05-20 12:00:00)
-            fecha_cruda = bloque["dt_txt"].split()[0] 
-            dia_mes = "/".join(fecha_cruda.split("-")[1:][::-1]) # Convierte a DD/MM
-            
-            temp = bloque['main']['temp']
-            desc = bloque['weather'][0]['description'].capitalize()
-            
-            texto += f"🔹 *{dia_mes}:* `{temp}°C` | {desc}\n"
+        texto = "📅 *PRONÓSTICO 5 DÍAS*\n\n"
+        for b in r["list"][::8]:
+            fecha = b["dt_txt"].split()[0]
+            texto += f"🔹 {fecha}: `{b['main']['temp']}°C` | {b['weather'][0]['description']}\n"
 
         bot.send_message(message.chat.id, texto, parse_mode="Markdown")
         menu_principal_profesional(message.chat.id)
-
     except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ Error en pronóstico: {str(e)}")
-# ======================================================
+        bot.send_message(message.chat.id, f"⚠️ Error: {e}")# ======================================================
 # CONFIGURACIÓN LOTE / CULTIVO
 # ======================================================
 def guardar_lote(message):
@@ -539,6 +515,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
