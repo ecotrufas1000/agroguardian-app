@@ -10,6 +10,13 @@ import os
 # BORRÁ cualquier línea que diga "from google import genai"
 # USÁ esta forma que es la más estable para bots:
 import google.generativeai as genai
+
+
+# 2. Configuración con la variable de entorno que pusiste en Render
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+
+# 3. Definición del modelo
+model = genai.GenerativeModel('gemini-1.5-flash')
 from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
@@ -485,6 +492,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
