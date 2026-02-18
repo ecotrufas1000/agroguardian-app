@@ -288,30 +288,40 @@ def mostrar_clima(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
     if not lat or not lon:
-        bot.send_message(message.chat.id, "📍 *Error:* Primero vinculá tu GPS con el botón del menú.")
+        bot.send_message(message.chat.id, "📍 *Error:* Primero vinculá tu GPS.")
         return
     
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
-    r = requests.get(url).json()
-    
-    temp = r['main']['temp']
-    hum = r['main']['humidity']
-    v_vel = round(r['wind']['speed'] * 3.6, 1)
-    
-    # Punto de rocío
-    a, b = 17.27, 237.7
-    alpha = ((a * temp) / (b + temp)) + math.log(hum/100.0)
-    t_dp = round((b * alpha) / (a - alpha), 1)
-    
-    texto = (
-        f"📊 *DATOS ATMOSFÉRICOS*\n"
-        f"🌡️ Temp: `{temp}°C` | HR: `{hum}%` \n"
-        f"❄️ Dew Point: `{t_dp}°C` \n"
-        f"🌬️ Viento: `{v_vel} km/h` \n"
-        f"🛰️ Estado: `{r['weather'][0]['description'].upper()}`"
-    )
-    bot.send_message(message.chat.id, texto, parse_mode="Markdown")
-    menu_principal_profesional(message.chat.id)
+    try:
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+        response = requests.get(url)
+        r = response.json()
+
+        # Si la API da error, esto evita que el bot se trabe
+        if response.status_code != 200:
+            bot.send_message(message.chat.id, f"❌ Error de API: {r.get('message', 'No autorizado')}")
+            return
+
+        temp = r['main']['temp']
+        hum = r['main']['humidity']
+        v_vel = round(r['wind']['speed'] * 3.6, 1)
+        
+        # Punto de rocío
+        a, b = 17.27, 237.7
+        alpha = ((a * temp) / (b + temp)) + math.log(hum/100.0)
+        t_dp = round((b * alpha) / (a - alpha), 1)
+        
+        texto = (
+            f"📊 *DATOS ATMOSFÉRICOS*\n"
+            f"🌡️ Temp: `{temp}°C` | HR: `{hum}%` \n"
+            f"❄️ Dew Point: `{t_dp}°C` \n"
+            f"🌬️ Viento: `{v_vel} km/h` \n"
+            f"🛰️ Estado: `{r['weather'][0]['description'].upper()}`"
+        )
+        bot.send_message(message.chat.id, texto, parse_mode="Markdown")
+        menu_principal_profesional(message.chat.id)
+        
+    except Exception as e:
+        bot.send_message(message.chat.id, f"⚠️ Hubo un problema técnico: {e}")
 
 # ======================================================
 # CONFIGURACIÓN LOTE / CULTIVO
@@ -493,6 +503,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
