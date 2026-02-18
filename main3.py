@@ -47,7 +47,7 @@ Thread(target=run).start()
 # ======================================================
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-WEATHER_KEY = os.getenv("WEATHER_KEY")
+OPENWEATHER_KEY = os.getenv("OPENWEATHER_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllb2R6eWdhdWdsdmRrZW5kdm1qIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY4MTYxMywiZXhwIjoyMDg2MjU3NjEzfQ._UyIH2L5u89t8O-HQkzdJ_BNTIR61okZxA-mLpJnsLE"
 SUPABASE_URL = "https://ieodzygauglvdkendvmj.supabase.co"
@@ -492,6 +492,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
