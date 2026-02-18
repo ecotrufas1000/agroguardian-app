@@ -287,7 +287,6 @@ def recibir_ubicacion_gps(message):
 # ======================================================
 # CLIMA ACTUAL
 # ======================================================
-@bot.message_handler(func=lambda m: m.text and "CLIMA ACTUAL" in m.text.upper())
 def mostrar_clima(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
@@ -295,6 +294,7 @@ def mostrar_clima(message):
         return bot.send_message(message.chat.id, "📍 vinculá tu GPS primero.")
 
     try:
+        # UNIFICADO: Usamos OPENWEATHER_KEY que definiste arriba
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
         r = requests.get(url).json()
 
@@ -303,39 +303,34 @@ def mostrar_clima(message):
 
         temp = r['main']['temp']
         hum = r['main']['humidity']
-        texto = f"🌡️ *Temp:* `{temp}°C` | *HR:* `{hum}%` \n☁️ `{r['weather'][0]['description'].upper()}`"
+        v_vel = round(r.get('wind', {}).get('speed', 0) * 3.6, 1)
+        texto = f"🌡️ *Temp:* `{temp}°C` | *HR:* `{hum}%` \n🌬️ *Viento:* `{v_vel} km/h` \n☁️ `{r['weather'][0]['description'].upper()}`"
         
         bot.send_message(message.chat.id, texto, parse_mode="Markdown")
         menu_principal_profesional(message.chat.id)
     except Exception as e:
         bot.send_message(message.chat.id, f"⚠️ Error: {e}")
 
-# ======================================================
-# PRONÓSTICO
-# ======================================================
-@bot.message_handler(func=lambda m: m.text and "PRONÓSTICO" in m.text.upper())
 def mostrar_pronostico(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
-    if not lat:
-        return bot.send_message(message.chat.id, "📍 vinculá tu GPS primero.")
-
+    if not lat: return bot.send_message(message.chat.id, "📍 Vincular GPS primero.")
+    
     try:
+        # UNIFICADO: Usamos OPENWEATHER_KEY
         url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
-        r = requests.get(url).json()
+        data = requests.get(url).json()
+        
+        if "list" not in data:
+            return bot.send_message(message.chat.id, "⚠️ Error en la llave de clima.")
 
-        if "list" not in r:
-            return bot.send_message(message.chat.id, "❌ Error al obtener pronóstico.")
-
-        texto = "📅 *PRONÓSTICO 5 DÍAS*\n\n"
-        for b in r["list"][::8]:
-            fecha = b["dt_txt"].split()[0]
-            texto += f"🔹 {fecha}: `{b['main']['temp']}°C` | {b['weather'][0]['description']}\n"
-
-        bot.send_message(message.chat.id, texto, parse_mode="Markdown")
+        res = "📅 *PRONÓSTICO 3 DÍAS*\n"
+        for b in data["list"][::8][:3]:
+            res += f"• {b['dt_txt'][:10]}: `{b['main']['temp']}°C` | {b['weather'][0]['description']}\n"
+        bot.send_message(message.chat.id, res, parse_mode="Markdown")
         menu_principal_profesional(message.chat.id)
     except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ Error: {e}")# ======================================================
+        bot.send_message(message.chat.id, f"❌ Error: {e}")
 # CONFIGURACIÓN LOTE / CULTIVO
 # ======================================================
 def guardar_lote(message):
@@ -374,16 +369,15 @@ def analizar_foto(message):
     downloaded = bot.download_file(file_info.file_path)
 
     try:
-        response = client.models.generate_content(
-            model=MODEL_VISION,
-            contents=[
-                "Actúa como un ingeniero agrónomo. Analiza plagas, enfermedades o deficiencias. Sé breve.",
-                genai_types.Part.from_bytes(downloaded, mime_type="image/jpeg")
-            ]
-        )
+        # Usamos el objeto 'model' que configuraste arriba
+        img_data = [{'mime_type': 'image/jpeg', 'data': downloaded}]
+        prompt = "Actúa como un ingeniero agrónomo. Analiza plagas, enfermedades o deficiencias en esta foto de cultivo. Sé breve y profesional."
+        
+        response = model.generate_content([prompt, img_data[0]])
         bot.send_message(message.chat.id, f"🔬 *REPORTE IA:*\n{response.text}", parse_mode="Markdown")
     except Exception as e:
-        bot.send_message(message.chat.id, "⚠️ Error en motor IA.")
+        print(f"Error Gemini: {e}")
+        bot.send_message(message.chat.id, "⚠️ Error en motor IA (Gemini). Revisá tu API Key.")
     
     menu_principal_profesional(message.chat.id)
 
@@ -515,6 +509,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
