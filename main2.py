@@ -87,15 +87,33 @@ def obtener_usuario(chat_id):
     return None
 
 def guardar_usuario(chat_id, lat, lon):
+    # --- PARTE A: Guardar en el archivo local del Bot ---
     data = {}
     if os.path.exists('usuarios.json'):
         with open('usuarios.json', 'r', encoding='utf-8') as f:
             try: data = json.load(f)
             except: data = {}
+    
+    # Mantenemos la lógica de la suscripción (15 días)
     vence = data.get(str(chat_id), {}).get("vence", (datetime.datetime.now() + datetime.timedelta(days=15)).strftime("%Y-%m-%d"))
     data[str(chat_id)] = {"lat": lat, "lon": lon, "vence": vence}
+    
     with open('usuarios.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
+
+    # --- PARTE B: Enviar a la App (Supabase) ---
+    try:
+        datos_nube = {
+            "fecha": datetime.datetime.now().isoformat(),
+            "lote": "GPS DINAMICO",
+            "mm": 0,
+            "lat": lat,
+            "lon": lon
+        }
+        supabase.table("registros_lluvia").insert(datos_nube).execute()
+        print(f"🛰️ Ubicación enviada a la App: {lat}, {lon}")
+    except Exception as e:
+        print(f"⚠️ No se pudo actualizar el mapa de la App: {e}")
 
 def es_activo(chat_id):
     u = obtener_usuario(chat_id)
