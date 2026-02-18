@@ -1,14 +1,11 @@
+pyTelegramBotAPI
+supabase
+google-generativeai
+requests
+flask
+pandas
 streamlit
 streamlit-folium
 folium
-requests
-pandas
-pyTelegramBotAPI
-google-generativeai
-Pillow
-matplotlib
-supabase
-plotly
-python-dotenv
 altair==4.2.2
 
