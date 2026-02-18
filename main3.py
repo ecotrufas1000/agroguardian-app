@@ -47,8 +47,12 @@ SUPABASE_URL = "https://ieodzygauglvdkendvmj.supabase.co"
 
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
-client = genai.Client(api_key=GEMINI_API_KEY)
+# Así es como debe quedar para que funcione:
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-flash')
 
+# Luego, cuando quieras usarlo en tus funciones, usás:
+# response = model.generate_content("Tu pregunta aquí")
 # Nombres de modelos actualizados
 MODEL_TEXT = "gemini-2.0-flash"
 MODEL_VISION = "gemini-2.0-flash"
@@ -481,6 +485,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
