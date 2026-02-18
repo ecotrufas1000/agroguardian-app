@@ -7,26 +7,24 @@ import json
 import math
 import os # Lo dejamos por si lo usa alguna función interna
 
-def obtener_ultimo_gps():
+# ==========================================================
+# 1. OBTENCIÓN DE UBICACIÓN (Desde Supabase)
+# ==========================================================
+def obtener_posicion_dinamica():
     try:
-        # Buscamos el último registro en una tabla que guarde coordenadas
-        # (Asegurate de que tu bot guarde el GPS en una tabla llamada 'ubicaciones' o similar)
-        res = supabase.table("registros_lluvia").select("lat, lon").order("fecha", desc=True).limit(1).execute()
-        if res.data:
-            return res.data[0]['lat'], res.data[0]['lon']
-    except:
-        pass
-    # --- UBICACIÓN DINÁMICA ---
-try:
-    # Traemos el último registro de lluvia que tenga coordenadas
-    res_gps = supabase.table("registros_lluvia").select("lat, lon").order("created_at", desc=True).limit(1).execute()
-    if res_gps.data and res_gps.data[0]['lat'] is not None:
-        LAT = float(res_gps.data[0]['lat'])
-        LON = float(res_gps.data[0]['lon'])
-    else:
-        LAT, LON = -38.298, -58.208 # Ubicación de respaldo
-except Exception:
-    LAT, LON = -38.298, -58.208 # Ubicación de respaldo si hay error
+        # Buscamos el último registro que tenga coordenadas válidas
+        res = supabase.table("registros_lluvia").select("lat, lon").order("id", desc=True).limit(1).execute()
+        
+        if res.data and res.data[0].get('lat'):
+            return float(res.data[0]['lat']), float(res.data[0]['lon'])
+    except Exception as e:
+        st.sidebar.warning(f"Usando ubicación GPS de respaldo")
+    
+    # Si falla la base de datos o está vacío, usa tu ubicación fija por defecto
+    return -38.298, -58.208 
+
+# Asignamos las variables que usará el mapa y el clima
+LAT, LON = obtener_posicion_dinamica()
 
 # ==========================================================
 # 1. CONEXIÓN A DATOS (NUBE)
