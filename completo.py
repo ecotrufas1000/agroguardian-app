@@ -6,10 +6,14 @@ import requests
 import json
 import os
 import math
-# Conexión a Supabase
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
+# Reemplazá tus líneas 9, 10 y 11 en GitHub por estas 3:
+url = "https://ieodzygauglvdkendvmj.supabase.co"
+key = "sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"
 supabase = create_client(url, key)
+# Conexión a Supabase
+#url = st.secrets["SUPABASE_URL"]
+#key = st.secrets["SUPABASE_KEY"]
+# = create_client(url, key)
 
 # Conexión a Clima (Cambiamos el nombre para que coincida con tu función)
 API_KEY = st.secrets["OPENWEATHER_API_KEY"]
