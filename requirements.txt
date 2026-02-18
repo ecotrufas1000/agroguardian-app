@@ -1,4 +1,3 @@
-streamlit
 streamlit-folium
 folium
 requests
@@ -8,4 +7,10 @@ google-generativeai
 Pillow
 matplotlib
 supabase
+streamlit
 plotly
+pyTelegramBotAPI
+requests
+python-dotenv
+google-genai
+supabase
