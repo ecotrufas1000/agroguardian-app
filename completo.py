@@ -5,10 +5,21 @@ import folium
 import requests
 import json
 import math
-import os # Lo dejamos por si lo usa alguna función interna
+import os 
 
 # ==========================================================
-# 1. OBTENCIÓN DE UBICACIÓN (Desde Supabase)
+# 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
+# ==========================================================
+url = st.secrets["supabase_url"]
+key = st.secrets["supabase_key"]
+supabase = create_client(url, key)
+
+# Conexión a Clima
+API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+BITACORA_JSON = "bitacora.json"
+
+# ==========================================================
+# 2. OBTENCIÓN DE UBICACIÓN (ARRANQUE)
 # ==========================================================
 def obtener_posicion_dinamica():
     try:
@@ -18,28 +29,14 @@ def obtener_posicion_dinamica():
         if res.data and res.data[0].get('lat'):
             return float(res.data[0]['lat']), float(res.data[0]['lon'])
     except Exception as e:
-        st.sidebar.warning(f"Usando ubicación GPS de respaldo")
+        # Si algo falla, no bloqueamos la app
+        pass
     
-    # Si falla la base de datos o está vacío, usa tu ubicación fija por defecto
+    # Ubicación fija por defecto (Respaldo)
     return -38.298, -58.208 
 
 # Asignamos las variables que usará el mapa y el clima
 LAT, LON = obtener_posicion_dinamica()
-
-# ==========================================================
-# 1. CONEXIÓN A DATOS (NUBE)
-# ==========================================================
-# Usamos st.secrets para que funcione en la web sin archivos locales
-url = st.secrets["supabase_url"]
-key = st.secrets["supabase_key"]
-supabase = create_client(url, key)
-
-# Conexión a Clima
-API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-
-# Coordenadas Base
-# Ahora la ubicación es dinámica
-LAT, LON = obtener_ultimo_gps()
 BITACORA_JSON = "bitacora.json" # Definimos la variable para que no de error al final
 
 # ==========================================================
