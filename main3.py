@@ -471,15 +471,11 @@ def guardar_lluvia(message):
 def start(message):
     menu_principal_profesional(message.chat.id)
 
-
-
-# ... (aquí irían todos tus @bot.message_handler) ...
+# ... (aquí van tus funciones de clima, ubicación, etc.) ...
 
 if __name__ == "__main__":
     print("🤖 AgroGuardian Lab Iniciado")
-    # Reemplazá tu bot.polling() por este que es más resistente:
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
-
 
 
 
