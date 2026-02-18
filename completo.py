@@ -206,31 +206,52 @@ elif menu == "🌧️ Pluviómetro":
                 st.plotly_chart(fig_diario, use_container_width=True)
 
             st.divider()
-
-           # --- GRÁFICO 2: MENSUAL (TODO EL AÑO) ---
+# --- GRÁFICO 2: MENSUAL (TODO EL AÑO) ---
             st.subheader("📊 Acumulados Mensuales")
-            df_mensual = df.groupby('mes_idx')['mm'].sum().reset_index()
             
+            # 1. Nombres y lista de base
+            meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+            
+            # 2. Agrupar datos por mes de los registros actuales
+            df['mes_num'] = df['fecha'].dt.month
+            resumen_anual = df[df['fecha'].dt.year == hoy.year].groupby('mes_num')['mm'].sum().reset_index()
+            
+            # 3. Crear DataFrame con los 12 meses (asegurando que todos existan)
+            df_doce = pd.DataFrame({'mes_num': range(1, 13), 'letra': meses_letras})
+            df_final = pd.merge(df_doce, resumen_anual, on='mes_num', how='left').fillna(0)
+            
+            # 4. Configurar el Gráfico
             fig_mensual = px.bar(
-                df_mensual, x='mes_idx', y='mm',
-                title="Total acumulado por mes",
-                labels={'mes_idx': 'Mes', 'mm': 'Total mm'},
-                text_auto='.1f', # Un decimal para que no sea tan largo el número
+                df_final, 
+                x='mes_num', # Usamos el número para el eje X internamente
+                y='mm',
+                title=f"Acumulado Mensual {hoy.year}",
+                text_auto='.0f',
                 template="plotly_dark"
             )
             
-            # Ajustes de estética: Color y Ancho de barra
-            fig_mensual.update_traces(
-                marker_color='#3d5afe', 
-                opacity=0.9,
-                width=0.4 # <-- Esto controla el ancho individual de la barra (0.1 a 1.0)
+            # 5. El Truco: Cambiamos las etiquetas del eje X (números por letras)
+            fig_mensual.update_layout(
+                xaxis=dict(
+                    tickmode='array',
+                    tickvals=list(range(1, 13)),
+                    ticktext=meses_letras, # Aquí le decimos que muestre las letras
+                    title="Mes"
+                ),
+                yaxis=dict(
+                    range=[0, max(df_final['mm'].max() * 1.3, 50)], # Siempre desde 0
+                    title="Milímetros",
+                    gridcolor='#30363d'
+                ),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                bargap=0.4
             )
             
-            fig_mensual.update_layout(
-                bargap=0.5, # <-- Esto agrega espacio entre las barras
-                xaxis=dict(type='category'), # Asegura que los meses se vean como etiquetas
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
+            fig_mensual.update_traces(
+                marker_color='#3d5afe', 
+                opacity=0.8,
+                width=0.6
             )
             
             st.plotly_chart(fig_mensual, use_container_width=True)
