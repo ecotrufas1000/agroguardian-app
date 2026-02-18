@@ -17,7 +17,6 @@ from supabase import create_client
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OPENWEATHER_KEY = os.environ.get("OPENWEATHER_KEY") or os.environ.get("WEATHER_KEY") or os.environ.get("OPENWEATHER_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = "https://ieodzygauglvdkendvmj.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllb2R6eWdhdWdsdmRrZW5kdm1qIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY4MTYxMywiZXhwIjoyMDg2MjU3NjEzfQ._UyIH2L5u89t8O-HQkzdJ_BNTIR61okZxA-mLpJnsLE"
@@ -214,8 +213,22 @@ def recibir_ubicacion_gps(message):
     menu_principal_profesional(chat_id)
 
 # ======================================================
-# CLIMA ACTUAL — CORREGIDO
+# CLIMA ACTUAL — Open-Meteo (sin API key, 100% gratis)
 # ======================================================
+
+# Códigos WMO de clima → descripción en español
+def descripcion_wmo(code):
+    tabla = {
+        0: "☀️ Despejado", 1: "🌤 Mayormente despejado", 2: "⛅ Parcialmente nublado",
+        3: "☁️ Nublado", 45: "🌫 Niebla", 48: "🌫 Niebla con escarcha",
+        51: "🌦 Llovizna leve", 53: "🌦 Llovizna moderada", 55: "🌧 Llovizna intensa",
+        61: "🌧 Lluvia leve", 63: "🌧 Lluvia moderada", 65: "🌧 Lluvia intensa",
+        71: "🌨 Nieve leve", 73: "🌨 Nieve moderada", 75: "❄️ Nieve intensa",
+        80: "🌦 Chaparrones leves", 81: "🌧 Chaparrones moderados", 82: "⛈ Chaparrones intensos",
+        95: "⛈ Tormenta", 96: "⛈ Tormenta con granizo", 99: "⛈ Tormenta con granizo intenso"
+    }
+    return tabla.get(code, f"Código {code}")
+
 def mostrar_clima(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
@@ -225,26 +238,23 @@ def mostrar_clima(message):
 
     try:
         url = (
-            f"https://api.openweathermap.org/data/2.5/weather"
-            f"?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={lat}&longitude={lon}"
+            f"&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
+            f"&wind_speed_unit=kmh"
         )
         r = requests.get(url).json()
+        c = r["current"]
 
-        if "main" not in r:
-            return bot.send_message(
-                message.chat.id,
-                f"❌ Error de API clima: {r.get('message', 'Llave inválida')}"
-            )
-
-        temp  = r['main']['temp']
-        hum   = r['main']['humidity']
-        v_vel = round(r.get('wind', {}).get('speed', 0) * 3.6, 1)
-        desc  = r['weather'][0]['description'].upper()
+        temp  = c["temperature_2m"]
+        hum   = c["relative_humidity_2m"]
+        viento = c["wind_speed_10m"]
+        desc  = descripcion_wmo(c["weather_code"])
 
         texto = (
             f"🌡️ *Temp:* `{temp}°C` | *HR:* `{hum}%`\n"
-            f"🌬️ *Viento:* `{v_vel} km/h`\n"
-            f"☁️ `{desc}`"
+            f"🌬️ *Viento:* `{viento} km/h`\n"
+            f"☁️ {desc}"
         )
         bot.send_message(message.chat.id, texto, parse_mode="Markdown")
 
@@ -254,7 +264,7 @@ def mostrar_clima(message):
     menu_principal_profesional(message.chat.id)
 
 # ======================================================
-# PRONÓSTICO — CORREGIDO (una sola definición, usa OPENWEATHER_KEY)
+# PRONÓSTICO 3 DÍAS — Open-Meteo (sin API key, 100% gratis)
 # ======================================================
 def mostrar_pronostico(message):
     memoria = leer_memoria(message.chat.id)
@@ -265,23 +275,26 @@ def mostrar_pronostico(message):
 
     try:
         url = (
-            f"https://api.openweathermap.org/data/2.5/forecast"
-            f"?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={lat}&longitude={lon}"
+            f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code"
+            f"&forecast_days=3&timezone=auto"
         )
         data = requests.get(url).json()
-
-        if "list" not in data:
-            return bot.send_message(
-                message.chat.id,
-                f"⚠️ Error pronóstico: {data.get('message', 'Llave inválida')}"
-            )
+        d = data["daily"]
 
         res = "📅 *PRONÓSTICO 3 DÍAS*\n"
-        for b in data["list"][::8][:3]:
-            fecha = b['dt_txt'][:10]
-            temp  = b['main']['temp']
-            desc  = b['weather'][0]['description']
-            res += f"• {fecha}: `{temp}°C` | {desc}\n"
+        for i in range(3):
+            fecha  = d["time"][i]
+            tmax   = d["temperature_2m_max"][i]
+            tmin   = d["temperature_2m_min"][i]
+            lluvia = d["precipitation_sum"][i]
+            desc   = descripcion_wmo(d["weather_code"][i])
+            res += (
+                f"\n📆 *{fecha}*\n"
+                f"   🌡 `{tmin}°C → {tmax}°C` | 🌧 `{lluvia} mm`\n"
+                f"   {desc}\n"
+            )
 
         bot.send_message(message.chat.id, res, parse_mode="Markdown")
 
@@ -467,6 +480,7 @@ def start(message):
 if __name__ == "__main__":
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
