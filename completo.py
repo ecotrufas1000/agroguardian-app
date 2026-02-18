@@ -241,14 +241,7 @@ elif menu == "🌧️ Pluviómetro":
                 bargap=0.2 # Reducimos un poco el gap para que las barras no sean hilos
             )
             
-            st.plotly_chart(fig_diario, use_container_width=True, config={
-                'staticPlot': False,      # Permite que se vea el numerito al tocar, pero...
-                'scrollZoom': False,      # Desactiva zoom con rueda
-                'doubleClick': 'reset',   # Resetea si se tilda
-                'displayModeBar': False,  # Esconde la barra de herramientas de arriba
-                'editable': False
-            })
-
+            st.plotly_chart(fig_diario, use_container_width=True, config={'staticPlot': True})
             st.divider()
 # --- GRÁFICO 2: MENSUAL (TODO EL AÑO) ---
             st.subheader("📊 Acumulados Mensuales")
@@ -298,11 +291,7 @@ elif menu == "🌧️ Pluviómetro":
                 width=0.6
             )
             
-            st.plotly_chart(fig_mensual, use_container_width=True, config={
-                'displayModeBar': False,
-                'staticPlot': False,
-                'scrollZoom': False
-            })
+            st.plotly_chart(fig_mensual, use_container_width=True, config={'staticPlot': True})
             # Tabla oculta por si querés ver los números exactos
             with st.expander("📝 Ver todos los registros (Historial completo)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
