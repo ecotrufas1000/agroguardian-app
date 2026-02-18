@@ -6,3 +6,7 @@ supabase
 altair==4.2.2
 requests
 plotly
+pyTelegramBotAPI
+google-generativeai
+flask
+python-dotenv
