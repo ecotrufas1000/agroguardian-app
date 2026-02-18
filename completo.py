@@ -191,19 +191,55 @@ elif menu == "🌧️ Pluviómetro":
 
             # --- GRÁFICO 1: DIARIO (MES EN CURSO) ---
             st.subheader(f"📅 Detalle Diario: {hoy.strftime('%B %Y')}")
-            df_mes_actual = df[df['fecha'].dt.strftime("%Y-%m") == mes_actual_str]
             
-            if df_mes_actual.empty:
-                st.warning("No hay lluvias registradas en el mes actual.")
-            else:
-                fig_diario = px.bar(
-                    df_mes_actual, x='fecha', y='mm',
-                    title="Milímetros por día (Mes actual)",
-                    labels={'fecha': 'Día', 'mm': 'Milímetros'},
-                    text_auto=True, template="plotly_dark"
-                )
-                fig_diario.update_traces(marker_color='#00ffc3', opacity=0.8)
-                st.plotly_chart(fig_diario, use_container_width=True)
+            # 1. Determinar cuántos días tiene el mes actual
+            import calendar
+            ultimo_dia = calendar.monthrange(hoy.year, hoy.month)[1]
+            dias_del_mes = list(range(1, ultimo_dia + 1))
+            
+            # 2. Filtrar datos del mes actual y agrupar por día
+            df['dia_num'] = df['fecha'].dt.day
+            resumen_diario = df[df['mes_idx'] == mes_actual_str].groupby('dia_num')['mm'].sum().reset_index()
+            
+            # 3. Crear DataFrame base con todos los días del mes
+            df_mes_completo = pd.DataFrame({'dia_num': dias_del_mes})
+            df_diario_final = pd.merge(df_mes_completo, resumen_diario, on='dia_num', how='left').fillna(0)
+            
+            # 4. Configurar el Gráfico Diario
+            fig_diario = px.bar(
+                df_diario_final, 
+                x='dia_num', 
+                y='mm',
+                title="Lluvias por día",
+                text_auto='.0f',
+                template="plotly_dark"
+            )
+            
+            # 5. Estética idéntica al Anual
+            fig_diario.update_traces(
+                marker_color='#3d5afe', # Mismo azul que el anual
+                opacity=0.8,
+                width=0.6 # Ancho estilizado
+            )
+            
+            fig_diario.update_layout(
+                xaxis=dict(
+                    tickmode='linear',
+                    tick0=1,
+                    dtick=1,
+                    title="Día del Mes"
+                ),
+                yaxis=dict(
+                    range=[0, max(df_diario_final['mm'].max() * 1.3, 30)], # Mínimo escala de 30mm
+                    title="Milímetros",
+                    gridcolor='#30363d'
+                ),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                bargap=0.3
+            )
+            
+            st.plotly_chart(fig_diario, use_container_width=True)
 
             st.divider()
 # --- GRÁFICO 2: MENSUAL (TODO EL AÑO) ---
