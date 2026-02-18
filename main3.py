@@ -147,24 +147,49 @@ def callback_menu(call):
     elif call.data.startswith("etapa_"): calcular_balance(call)
 
 # ======================================================
-# RECEPCIÓN GPS (HANDLER DE UBICACIÓN)
+# ======================================================
+# RECEPCIÓN GPS (HANDLER DE UBICACIÓN) - CORREGIDO
 # ======================================================
 @bot.message_handler(content_types=['location'])
 def recibir_ubicacion_gps(message):
     chat_id = message.chat.id
     lat, lon = message.location.latitude, message.location.longitude
+    
+    # 1. Guardar en memoria local (para las funciones del Bot)
     actualizar_memoria(chat_id, "lat", lat)
     actualizar_memoria(chat_id, "lon", lon)
     
     memoria = leer_memoria(chat_id)
     lote = memoria.get("lote_activo", "Sin Lote")
+    
     if lote != "Sin Lote":
         lotes = memoria.get("lotes", {})
         lotes.setdefault(lote, {})
         lotes[lote]["lat"], lotes[lote]["lon"] = lat, lon
         actualizar_memoria(chat_id, "lotes", lotes)
 
-    bot.send_message(chat_id, f"✅ *GPS VINCULADO*\nLote: `{lote}`\nPosición: `{lat}, {lon}`", parse_mode="Markdown")
+    # 2. ENVIAR A SUPABASE (Para que la App mueva el mapa)
+    try:
+        registro_gps = {
+            "chat_id": str(chat_id),
+            "lote": f"GPS: {lote}",
+            "mm": 0,  # No afecta el pluviómetro
+            "lat": lat,
+            "lon": lon,
+            "fecha": datetime.datetime.now().isoformat()
+        }
+        supabase.table("registros_lluvia").insert(registro_gps).execute()
+        confirmacion_nube = "\n🌐 *Sincronizado con el Panel Web*"
+    except Exception as e:
+        print(f"Error subiendo GPS a nube: {e}")
+        confirmacion_nube = "\n⚠️ *Error: No se sincronizó con la Web*"
+
+    # 3. Respuesta al usuario
+    bot.send_message(
+        chat_id, 
+        f"✅ *GPS VINCULADO*\nLote: `{lote}`\nPosición: `{lat}, {lon}`{confirmacion_nube}", 
+        parse_mode="Markdown"
+    )
     menu_principal_profesional(chat_id)
 
 # ======================================================
@@ -371,4 +396,5 @@ def start(message):
 
 print("🤖 AgroGuardian Lab Iniciado.")
 bot.infinity_polling()
+
 
