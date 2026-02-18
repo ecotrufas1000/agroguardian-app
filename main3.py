@@ -290,7 +290,7 @@ def mostrar_clima(message):
         bot.send_message(message.chat.id, "📍 *Error:* Primero vinculá tu GPS con el botón del menú.")
         return
     
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_KEY}&units=metric&lang=es"
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
     r = requests.get(url).json()
     
     temp = r['main']['temp']
@@ -492,6 +492,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
