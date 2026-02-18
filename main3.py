@@ -6,9 +6,14 @@ import datetime
 import math
 from telebot import types
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types as genai_types
 import os
+# BORRÁ cualquier línea que diga "from google import genai"
+# USÁ esta forma que es la más estable para bots:
+import google.generativeai as genai
+
+# Configurá la API así:
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-flash')
 from flask import Flask
 from threading import Thread
 
@@ -471,6 +476,7 @@ while True:
         print(f"Error: {e}")
         import time
         time.sleep(5)
+
 
 
 
