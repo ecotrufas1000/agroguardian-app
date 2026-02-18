@@ -164,70 +164,69 @@ elif menu == "🌧️ Pluviómetro":
         import plotly.express as px
         import datetime
 
-        # 1. Recuperar datos desde Supabase
+        # 1. Recuperar datos
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
         if not res.data:
-            st.info("📍 No hay registros de lluvia en la base de datos. Podés cargar datos desde el Bot de Telegram.")
+            st.info("📍 No hay registros de lluvia.")
         else:
-            # 2. Procesamiento con Pandas
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce')
-            
-            # Extraemos año y mes para los acumulados
-            df['año'] = df['fecha'].dt.year
-            df['mes_idx'] = df['fecha'].dt.strftime('%Y-%m') 
-            df['mes_nombre'] = df['fecha'].dt.strftime('%b %y') 
+            df['mes_nombre'] = df['fecha'].dt.strftime('%b %Y')
+            df['mes_idx'] = df['fecha'].dt.to_period('M').astype(str)
 
-            # 3. Métricas Principales
+            # --- MÉTRICAS ---
             hoy = datetime.datetime.now()
             mes_actual_str = hoy.strftime("%Y-%m")
-            
-            total_mes = df[df['mes_idx'] == mes_actual_str]['mm'].sum()
-            total_año = df[df['año'] == hoy.year]['mm'].sum()
+            total_mes = df[df['fecha'].dt.strftime("%Y-%m") == mes_actual_str]['mm'].sum()
+            total_año = df[df['fecha'].dt.year == hoy.year]['mm'].sum()
 
             c1, c2, c3 = st.columns(3)
-            c1.metric("ESTE MES", f"{total_mes:.1f} mm", delta="Acumulado")
-            c2.metric("ANUAL", f"{total_año:.1f} mm", delta=f"Total {hoy.year}", delta_color="normal")
-            c3.metric("EVENTOS", f"{len(df)}", delta="Registros")
+            c1.metric("ESTE MES", f"{total_mes:.1f} mm")
+            c2.metric("TOTAL ANUAL", f"{total_año:.1f} mm")
+            c3.metric("REGISTROS", f"{len(df)}")
 
             st.divider()
 
-# 4. Gráfico de Barras Interactivo
-            st.subheader("📊 Historial de Precipitaciones")
-            fig = px.bar(
-                df, 
-                x='fecha', 
-                y='mm',
-                hover_data=['lote'], # Quitamos 'cuadro' porque no existe en tu tabla
-                title="Distribución de Lluvias",
-                labels={'fecha': 'Fecha', 'mm': 'Milímetros'},
-                template="plotly_dark"
-            )
+            # --- GRÁFICO 1: DIARIO (MES EN CURSO) ---
+            st.subheader(f"📅 Detalle Diario: {hoy.strftime('%B %Y')}")
+            df_mes_actual = df[df['fecha'].dt.strftime("%Y-%m") == mes_actual_str]
             
-            fig.update_traces(marker_color='#00ffc3', marker_line_color='#ffffff', marker_line_width=0.5, opacity=0.8)
-            fig.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=False),
-                yaxis=dict(gridcolor='#30363d')
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            if df_mes_actual.empty:
+                st.warning("No hay lluvias registradas en el mes actual.")
+            else:
+                fig_diario = px.bar(
+                    df_mes_actual, x='fecha', y='mm',
+                    title="Milímetros por día (Mes actual)",
+                    labels={'fecha': 'Día', 'mm': 'Milímetros'},
+                    text_auto=True, template="plotly_dark"
+                )
+                fig_diario.update_traces(marker_color='#00ffc3', opacity=0.8)
+                st.plotly_chart(fig_diario, use_container_width=True)
 
-            # 5. Tabla de datos crudos
-            with st.expander("📝 Ver registros detallados"):
-                # Aquí también quitamos 'cuadro' para que no falle
+            st.divider()
+
+            # --- GRÁFICO 2: MENSUAL (TODO EL AÑO) ---
+            st.subheader("📊 Acumulados Mensuales")
+            # Agrupamos por mes para el gráfico anual
+            df_mensual = df.groupby('mes_idx')['mm'].sum().reset_index()
+            
+            fig_mensual = px.bar(
+                df_mensual, x='mes_idx', y='mm',
+                title="Total acumulado por mes",
+                labels={'mes_idx': 'Mes', 'mm': 'Total mm'},
+                text_auto=True, template="plotly_dark"
+            )
+            fig_mensual.update_traces(marker_color='#3d5afe', opacity=0.9)
+            st.plotly_chart(fig_mensual, use_container_width=True)
+
+            # Tabla oculta por si querés ver los números exactos
+            with st.expander("📝 Ver todos los registros (Historial completo)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
             
-            # 6. Resumen Mensual
-            st.subheader("🗓️ Resumen Mensual")
-            resumen = df.groupby('mes_nombre')['mm'].sum().reset_index()
-            resumen.columns = ['Mes', 'Total Lluvia (mm)']
-            st.table(resumen.sort_values('Mes', ascending=False))
-            
     except Exception as e:
-        st.error(f"Ocurrió un error al procesar los datos: {e}")
+        st.error(f"Error al procesar gráficos: {e}")
 
 # -------------------------
 # BALANCE HÍDRICO
