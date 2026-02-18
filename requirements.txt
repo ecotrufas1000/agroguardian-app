@@ -3,6 +3,7 @@ supabase
 google-generativeai
 requests
 flask
+python-dotenv
 pandas
 streamlit
 streamlit-folium
