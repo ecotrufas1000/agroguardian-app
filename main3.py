@@ -1,7 +1,7 @@
 import telebot
 import requests
 import json
-import os
+
 import datetime
 import math
 from telebot import types
@@ -10,7 +10,11 @@ import os
 # BORRÁ cualquier línea que diga "from google import genai"
 # USÁ esta forma que es la más estable para bots:
 import google.generativeai as genai
+from dotenv import load_dotenv
+from flask import Flask
+from threading import Thread
 
+load_dotenv()
 # Configurá la API así:
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 model = genai.GenerativeModel('gemini-1.5-flash')
@@ -467,16 +471,14 @@ def guardar_lluvia(message):
 def start(message):
     menu_principal_profesional(message.chat.id)
 
-# Reemplazá tu bot.polling() final por esto:
-while True:
-    try:
-        print("🤖 AgroGuardian Lab escuchando...")
-        bot.infinity_polling(timeout=10, long_polling_timeout=5)
-    except Exception as e:
-        print(f"Error: {e}")
-        import time
-        time.sleep(5)
 
+
+# ... (aquí irían todos tus @bot.message_handler) ...
+
+if __name__ == "__main__":
+    print("🤖 AgroGuardian Lab Iniciado")
+    # Reemplazá tu bot.polling() por este que es más resistente:
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
 
 
 
