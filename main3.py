@@ -283,7 +283,8 @@ def recibir_ubicacion_gps(message):
 
 # ======================================================
 # LÓGICA DE CLIMA Y CÁLCULOS
-# ======================================================def mostrar_clima(message):
+# ======================================================
+    def mostrar_clima(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
     
@@ -506,6 +507,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
