@@ -321,6 +321,44 @@ def clima_actual(message):
 
     except Exception as e:
         bot.send_message(message.chat.id, f"⚠️ Error técnico: {str(e)}")
+        # ======================================================
+# LÓGICA DE PRONÓSTICO (PRÓXIMOS DÍAS)
+# ======================================================
+@bot.message_handler(func=lambda m: "PRONÓSTICO" in m.text.upper())
+def mostrar_pronostico(message):
+    memoria = leer_memoria(message.chat.id)
+    lat, lon = memoria.get("lat"), memoria.get("lon")
+    
+    if not lat or not lon:
+        return bot.send_message(message.chat.id, "📍 *Error:* Primero vinculá tu GPS con el botón del menú.")
+
+    try:
+        # IMPORTANTE: El pronóstico usa la URL que termina en /forecast
+        url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+        response = requests.get(url)
+        data = response.json()
+
+        if response.status_code != 200:
+            return bot.send_message(message.chat.id, f"❌ Error de API: {data.get('message', 'No autorizado')}")
+
+        texto = "📅 *PRONÓSTICO PRÓXIMOS DÍAS*\n\n"
+        
+        # El forecast trae datos cada 3hs. Saltamos de a 8 para tener un dato por día (8 * 3hs = 24hs)
+        for bloque in data["list"][::8][:5]: 
+            # Formateamos la fecha (viene como 2024-05-20 12:00:00)
+            fecha_cruda = bloque["dt_txt"].split()[0] 
+            dia_mes = "/".join(fecha_cruda.split("-")[1:][::-1]) # Convierte a DD/MM
+            
+            temp = bloque['main']['temp']
+            desc = bloque['weather'][0]['description'].capitalize()
+            
+            texto += f"🔹 *{dia_mes}:* `{temp}°C` | {desc}\n"
+
+        bot.send_message(message.chat.id, texto, parse_mode="Markdown")
+        menu_principal_profesional(message.chat.id)
+
+    except Exception as e:
+        bot.send_message(message.chat.id, f"⚠️ Error en pronóstico: {str(e)}")
 # ======================================================
 # CONFIGURACIÓN LOTE / CULTIVO
 # ======================================================
@@ -501,6 +539,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
