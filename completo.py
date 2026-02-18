@@ -4,30 +4,54 @@ from streamlit_folium import folium_static
 import folium
 import requests
 import json
-import os
 import math
-# Reemplazá tus líneas 9, 10 y 11 en GitHub por estas 3:
-url = "https://ieodzygauglvdkendvmj.supabase.co"
-key = "sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"
-supabase = create_client(url, key)
-# Conexión a Supabase
-#url = st.secrets["SUPABASE_URL"]
-#key = st.secrets["SUPABASE_KEY"]
-# = create_client(url, key)
+import os # Lo dejamos por si lo usa alguna función interna
 
-# Conexión a Clima (Cambiamos el nombre para que coincida con tu función)
+# ==========================================================
+# 1. CONEXIÓN A DATOS (NUBE)
+# ==========================================================
+# Usamos st.secrets para que funcione en la web sin archivos locales
+url = st.secrets["supabase_url"]
+key = st.secrets["supabase_key"]
+supabase = create_client(url, key)
+
+# Conexión a Clima
 API_KEY = st.secrets["OPENWEATHER_API_KEY"]
 
-# Coordenadas (Asegurate que estén definidas)
+# Coordenadas Base
 LAT, LON = -38.298, -58.208
+BITACORA_JSON = "bitacora.json" # Definimos la variable para que no de error al final
+
 # ==========================================================
-# 1. CONFIGURACIÓN BASE
+# 2. CONFIGURACIÓN DE PÁGINA (Debe ir antes de cualquier st.markdown)
 # ==========================================================
+st.set_page_config(
+    page_title="AgroGuardian Pro", 
+    layout="wide", 
+    initial_sidebar_state="expanded",
+    page_icon="🛰️"
+)
 
-
-# 1. Configuración de página con fondo oscuro
-st.set_page_config(page_title="AgroGuardian Pro", layout="wide", initial_sidebar_state="expanded")
-
+# 3. Inyección de CSS para estética "Dark Terminal"
+st.markdown("""
+    <style>
+    .stApp { background-color: #0d1117; color: #c9d1d9; }
+    [data-testid="stSidebar"] { background-color: #010409; border-right: 1px solid #30363d; }
+    h1, h2, h3, p { color: #00ffc3 !important; font-family: 'Courier New', monospace; }
+    .terminal-header {
+        background-color: #161b22;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 5px solid #00ffc3;
+        font-family: 'Courier New', monospace;
+        color: #00ffc3;
+        margin-bottom: 20px;
+    }
+    [data-testid="stMetricValue"] { color: #00ffc3 !important; font-family: 'Courier New', monospace; }
+    .stButton>button { background-color: #21262d; color: #00ffc3; border: 1px solid #30363d; }
+    .stButton>button:hover { border-color: #00ffc3; box-shadow: 0px 0px 10px #00ffc3; }
+    </style>
+    """, unsafe_allow_html=True)
 # 2. Inyección de CSS para estética "Dark Terminal"
 st.markdown("""
     <style>
