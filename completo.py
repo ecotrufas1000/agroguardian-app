@@ -23,8 +23,7 @@ LAT, LON = -38.298, -58.208
 # ==========================================================
 # 1. CONFIGURACIÓN BASE
 # ==========================================================
-st.set_page_config(
-    import streamlit as st
+
 
 # 1. Configuración de página con fondo oscuro
 st.set_page_config(page_title="AgroGuardian Pro", layout="wide", initial_sidebar_state="expanded")
