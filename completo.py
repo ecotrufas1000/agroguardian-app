@@ -194,13 +194,13 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # 4. Gráfico de Barras Interactivo
+# 4. Gráfico de Barras Interactivo
             st.subheader("📊 Historial de Precipitaciones")
             fig = px.bar(
                 df, 
                 x='fecha', 
                 y='mm',
-                hover_data=['lote', 'cuadro'], # Agregamos info del lote al pasar el mouse
+                hover_data=['lote'], # Quitamos 'cuadro' porque no existe en tu tabla
                 title="Distribución de Lluvias",
                 labels={'fecha': 'Fecha', 'mm': 'Milímetros'},
                 template="plotly_dark"
@@ -215,9 +215,10 @@ elif menu == "🌧️ Pluviómetro":
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # 5. Tabla de datos crudos (Resumen)
+            # 5. Tabla de datos crudos
             with st.expander("📝 Ver registros detallados"):
-                st.dataframe(df[['fecha', 'lote', 'cuadro', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
+                # Aquí también quitamos 'cuadro' para que no falle
+                st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
             
             # 6. Resumen Mensual
             st.subheader("🗓️ Resumen Mensual")
