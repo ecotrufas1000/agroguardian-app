@@ -158,16 +158,80 @@ elif menu == "❄️ Análisis de Heladas":
 # PLUVIÓMETRO
 # -------------------------
 elif menu == "🌧️ Pluviómetro":
-
+# -------------------------
+# PLUVIÓMETRO (Versión Pro con Supabase)
+# -------------------------
+elif menu == "🌧️ Pluviómetro":
+    st.markdown('<p style="color:#00ffc3; font-size:20px; font-weight:bold; font-family:monospace;">Hydraulic Records // Pluviometer Data</p>', unsafe_allow_html=True)
+    
     try:
-        res = supabase.table("registros_lluvia").select("*").order("created_at", desc=True).execute()
-        if res.data:
-            import pandas as pd
-            st.dataframe(pd.DataFrame(res.data))
+        import pandas as pd
+        import plotly.express as px
+        import datetime
+
+        # 1. Recuperar datos desde Supabase
+        res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
+        
+        if not res.data:
+            st.info("📍 No hay registros de lluvia en la base de datos. Podés cargar datos desde el Bot de Telegram.")
         else:
-            st.write("Sin registros.")
+            # 2. Procesamiento con Pandas
+            df = pd.DataFrame(res.data)
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            df['mm'] = pd.to_numeric(df['mm'], errors='coerce')
+            
+            # Extraemos año y mes para los acumulados
+            df['año'] = df['fecha'].dt.year
+            df['mes_idx'] = df['fecha'].dt.strftime('%Y-%m') 
+            df['mes_nombre'] = df['fecha'].dt.strftime('%b %y') 
+
+            # 3. Métricas Principales
+            hoy = datetime.datetime.now()
+            mes_actual_str = hoy.strftime("%Y-%m")
+            
+            total_mes = df[df['mes_idx'] == mes_actual_str]['mm'].sum()
+            total_año = df[df['año'] == hoy.year]['mm'].sum()
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("ESTE MES", f"{total_mes:.1f} mm", delta="Acumulado")
+            c2.metric("ANUAL", f"{total_año:.1f} mm", delta=f"Total {hoy.year}", delta_color="normal")
+            c3.metric("EVENTOS", f"{len(df)}", delta="Registros")
+
+            st.divider()
+
+            # 4. Gráfico de Barras Interactivo
+            st.subheader("📊 Historial de Precipitaciones")
+            fig = px.bar(
+                df, 
+                x='fecha', 
+                y='mm',
+                hover_data=['lote', 'cuadro'], # Agregamos info del lote al pasar el mouse
+                title="Distribución de Lluvias",
+                labels={'fecha': 'Fecha', 'mm': 'Milímetros'},
+                template="plotly_dark"
+            )
+            
+            fig.update_traces(marker_color='#00ffc3', marker_line_color='#ffffff', marker_line_width=0.5, opacity=0.8)
+            fig.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=False),
+                yaxis=dict(gridcolor='#30363d')
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # 5. Tabla de datos crudos (Resumen)
+            with st.expander("📝 Ver registros detallados"):
+                st.dataframe(df[['fecha', 'lote', 'cuadro', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
+            
+            # 6. Resumen Mensual
+            st.subheader("🗓️ Resumen Mensual")
+            resumen = df.groupby('mes_nombre')['mm'].sum().reset_index()
+            resumen.columns = ['Mes', 'Total Lluvia (mm)']
+            st.table(resumen.sort_values('Mes', ascending=False))
+            
     except Exception as e:
-        st.error(e)
+        st.error(f"Ocurrió un error al procesar los datos: {e}")
 
 # -------------------------
 # BALANCE HÍDRICO
