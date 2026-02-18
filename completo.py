@@ -154,11 +154,6 @@ elif menu == "❄️ Análisis de Heladas":
     else:
         st.success("Sin riesgo inmediato")
 
-# -------------------------
-# PLUVIÓMETRO
-# -------------------------
-elif menu == "🌧️ Pluviómetro":
-# -------------------------
 # PLUVIÓMETRO (Versión Pro con Supabase)
 # -------------------------
 elif menu == "🌧️ Pluviómetro":
