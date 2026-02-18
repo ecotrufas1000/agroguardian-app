@@ -227,10 +227,12 @@ elif menu == "🌧️ Pluviómetro":
                     tickmode='linear',
                     tick0=1,
                     dtick=1,
-                    title="Día del Mes"
+                    title="Día del Mes",
+                    tickangle=0, # <-- Esto fuerza a que los números estén derechos (0 grados)
+                    tickfont=dict(size=10) # <-- Achicamos un pelín la letra para que no se amontonen
                 ),
                 yaxis=dict(
-                    range=[0, max(df_diario_final['mm'].max() * 1.3, 30)], # Mínimo escala de 30mm
+                    range=[0, max(df_diario_final['mm'].max() * 1.3, 30)],
                     title="Milímetros",
                     gridcolor='#30363d'
                 ),
