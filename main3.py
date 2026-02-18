@@ -150,8 +150,8 @@ def callback_menu(call):
 # ======================================================
 # RECEPCIÓN GPS (HANDLER DE UBICACIÓN) - CORREGIDO
 # ======================================================
-#@bot.message_handler(content_types=['location'])
-bot.send_message(chat_id, f"🚀 ESTA ES LA VERSION NUEVA: {lat}, {lon}")
+@bot.message_handler(content_types=['location'])
+#bot.send_message(chat_id, f"🚀 ESTA ES LA VERSION NUEVA: {lat}, {lon}")
 def recibir_ubicacion_gps(message):
     chat_id = message.chat.id
     
@@ -447,6 +447,7 @@ def start(message):
 
 print("🤖 AgroGuardian Lab Iniciado.")
 bot.infinity_polling()
+
 
 
 
