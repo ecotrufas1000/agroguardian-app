@@ -150,7 +150,50 @@ def callback_menu(call):
 # ======================================================
 # RECEPCIÓN GPS (HANDLER DE UBICACIÓN) - CORREGIDO
 # ======================================================
-@bot.message_handler(content_types=['location'])
+#@bot.message_handler(content_types=['location'])
+bot.send_message(chat_id, f"🚀 ESTA ES LA VERSION NUEVA: {lat}, {lon}")
+def recibir_ubicacion_gps(message):
+    chat_id = message.chat.id
+    
+    # EXTRAEMOS LAS COORDENADAS REALES DEL MENSAJE DE TELEGRAM
+    lat_real = message.location.latitude
+    lon_real = message.location.longitude
+    
+    # 1. Guardamos en la memoria local del bot
+    actualizar_memoria(chat_id, "lat", lat_real)
+    actualizar_memoria(chat_id, "lon", lon_real)
+    
+    memoria = leer_memoria(chat_id)
+    lote = memoria.get("lote_activo", "General")
+    
+    # 2. Intentamos mandar a la nube (Supabase)
+    try:
+        registro_gps = {
+            "chat_id": str(chat_id),
+            "lote": f"GPS: {lote}",
+            "mm": 0,
+            "lat": lat_real,  # <--- USAMOS LA VARIABLE REAL
+            "lon": lon_real,  # <--- USAMOS LA VARIABLE REAL
+            "fecha": datetime.datetime.now().isoformat()
+        }
+        supabase.table("registros_lluvia").insert(registro_gps).execute()
+        sync_status = "🌐 *Sincronizado con Panel Web*"
+    except Exception as e:
+        print(f"Error Supabase: {e}")
+        sync_status = "⚠️ *Error de sincronización nube*"
+
+    # 3. Respuesta al usuario con las coordenadas REALES
+    # USAMOS lat_real y lon_real para que el mensaje no mienta
+    bot.send_message(
+        chat_id, 
+        f"✅ *GPS VINCULADO*\n"
+        f"Lote: `{lote}`\n"
+        f"📍 Lat: `{lat_real}`\n"
+        f"📍 Lon: `{lon_real}`\n"
+        f"{sync_status}", 
+        parse_mode="Markdown"
+    )
+    menu_principal_profesional(chat_id)
 def recibir_ubicacion_gps(message):
     chat_id = message.chat.id
     
@@ -404,6 +447,7 @@ def start(message):
 
 print("🤖 AgroGuardian Lab Iniciado.")
 bot.infinity_polling()
+
 
 
 
