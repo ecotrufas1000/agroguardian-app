@@ -6,6 +6,12 @@ import os
 import datetime
 from telebot import types
 import re
+from supabase import create_client
+
+# Usá las mismas llaves que en la App
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def escapar_markdown_v2(texto: str) -> str:
     """
