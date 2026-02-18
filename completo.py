@@ -16,7 +16,17 @@ def obtener_ultimo_gps():
             return res.data[0]['lat'], res.data[0]['lon']
     except:
         pass
-    return -38.298, -58.208  # Ubicación por defecto si falla
+    # --- UBICACIÓN DINÁMICA ---
+try:
+    # Traemos el último registro de lluvia que tenga coordenadas
+    res_gps = supabase.table("registros_lluvia").select("lat, lon").order("created_at", desc=True).limit(1).execute()
+    if res_gps.data and res_gps.data[0]['lat'] is not None:
+        LAT = float(res_gps.data[0]['lat'])
+        LON = float(res_gps.data[0]['lon'])
+    else:
+        LAT, LON = -38.298, -58.208 # Ubicación de respaldo
+except Exception:
+    LAT, LON = -38.298, -58.208 # Ubicación de respaldo si hay error
 
 # ==========================================================
 # 1. CONEXIÓN A DATOS (NUBE)
