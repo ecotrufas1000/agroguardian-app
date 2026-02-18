@@ -24,10 +24,69 @@ LAT, LON = -38.298, -58.208
 # 1. CONFIGURACIÓN BASE
 # ==========================================================
 st.set_page_config(
-    page_title="AgroGuardian Pro | Lab Terminal",
-    layout="wide",
-    page_icon="🛰️"
-)
+    import streamlit as st
+
+# 1. Configuración de página con fondo oscuro
+st.set_page_config(page_title="AgroGuardian Pro", layout="wide", initial_sidebar_state="expanded")
+
+# 2. Inyección de CSS para estética "Dark Terminal"
+st.markdown("""
+    <style>
+    /* Fondo principal y de barra lateral */
+    .stApp {
+        background-color: #0d1117;
+        color: #c9d1d9;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #010409;
+        border-right: 1px solid #30363d;
+    }
+    
+    /* Estética de títulos y cabeceras */
+    h1, h2, h3, p {
+        color: #00ffc3 !important;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Estilo para el encabezado tipo Terminal */
+    .terminal-header {
+        background-color: #161b22;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 5px solid #00ffc3;
+        font-family: 'Courier New', Courier, monospace;
+        color: #00ffc3;
+        margin-bottom: 20px;
+    }
+
+    /* Personalización de métricas */
+    [data-testid="stMetricValue"] {
+        color: #00ffc3 !important;
+        font-family: 'Courier New', monospace;
+    }
+    
+    /* Botones estilo neón */
+    .stButton>button {
+        background-color: #21262d;
+        color: #00ffc3;
+        border: 1px solid #30363d;
+        border-radius: 5px;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        border-color: #00ffc3;
+        box-shadow: 0px 0px 10px #00ffc3;
+        color: #00ffc3;
+    }
+    
+    /* Líneas separadoras */
+    hr {
+        border: 0;
+        height: 1px;
+        background: #30363d;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ==========================================================
 # 3. FUNCIONES CIENTÍFICAS
