@@ -1,34 +1,50 @@
 import telebot
 import requests
 import json
-
 import datetime
 import math
 from telebot import types
 from dotenv import load_dotenv
 import os
-# BORRÁ cualquier línea que diga "from google import genai"
-# USÁ esta forma que es la más estable para bots:
 import google.generativeai as genai
-
-
-# 2. Configuración con la variable de entorno que pusiste en Render
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-
-# 3. Definición del modelo
-model = genai.GenerativeModel('gemini-1.5-flash')
-from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
+from supabase import create_client
 
+# ======================================================
+# CONFIGURACIÓN INICIAL
+# ======================================================
 load_dotenv()
-# Configurá la API así:
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
-from flask import Flask
-from threading import Thread
 
-# --- TRUCO PARA RENDER ---
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+OPENWEATHER_KEY = os.environ.get("OPENWEATHER_KEY") or os.environ.get("WEATHER_KEY") or os.environ.get("OPENWEATHER_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+SUPABASE_URL = "https://ieodzygauglvdkendvmj.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllb2R6eWdhdWdsdmRrZW5kdm1qIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY4MTYxMywiZXhwIjoyMDg2MjU3NjEzfQ._UyIH2L5u89t8O-HQkzdJ_BNTIR61okZxA-mLpJnsLE"
+
+# Gemini
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+# Supabase
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Telegram Bot
+bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+BITACORA_JSON = "bitacora_campo.json"
+MEMORIA_PATH = "memoria_lotes.json"
+
+TABLA_KC = {
+    "🌽 Maíz":  {"Inicial": 0.3,  "Medio": 1.2,  "Final": 0.5},
+    "🌱 Soja":  {"Inicial": 0.4,  "Medio": 1.15, "Final": 0.5},
+    "🌾 Trigo": {"Inicial": 0.3,  "Medio": 1.15, "Final": 0.25},
+    "🥔 Papa":  {"Inicial": 0.5,  "Medio": 1.15, "Final": 0.75},
+}
+
+# ======================================================
+# TRUCO PARA RENDER (servidor web keep-alive)
+# ======================================================
 app = Flask(__name__)
 
 @app.route('/')
@@ -36,44 +52,9 @@ def health():
     return "Bot vivo", 200
 
 def run():
-    # Render usa el puerto 10000 por defecto
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
 
 Thread(target=run).start()
-# -------------------------
-
-# ======================================================
-# CONFIGURACIÓN
-# ======================================================
-load_dotenv()
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-# Definila así para que no importe cómo la llamaste en Render
-OPENWEATHER_KEY = os.environ.get("OPENWEATHER_KEY") or os.environ.get("WEATHER_KEY") or os.environ.get("OPENWEATHER_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllb2R6eWdhdWdsdmRrZW5kdm1qIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY4MTYxMywiZXhwIjoyMDg2MjU3NjEzfQ._UyIH2L5u89t8O-HQkzdJ_BNTIR61okZxA-mLpJnsLE"
-SUPABASE_URL = "https://ieodzygauglvdkendvmj.supabase.co"
-
-
-bot = telebot.TeleBot(TELEGRAM_TOKEN)
-# Así es como debe quedar para que funcione:
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-# Luego, cuando quieras usarlo en tus funciones, usás:
-# response = model.generate_content("Tu pregunta aquí")
-# Nombres de modelos actualizados
-MODEL_TEXT = "gemini-2.0-flash"
-MODEL_VISION = "gemini-2.0-flash"
-
-BITACORA_JSON = "bitacora_campo.json"
-MEMORIA_PATH = "memoria_lotes.json"
-
-TABLA_KC = {
-    "🌽 Maíz": {"Inicial": 0.3, "Medio": 1.2, "Final": 0.5},
-    "🌱 Soja": {"Inicial": 0.4, "Medio": 1.15, "Final": 0.5},
-    "🌾 Trigo": {"Inicial": 0.3, "Medio": 1.15, "Final": 0.25},
-    "🥔 Papa": {"Inicial": 0.5, "Medio": 1.15, "Final": 0.75},
-}
 
 # ======================================================
 # FUNCIONES DE MEMORIA
@@ -124,10 +105,6 @@ def grados_a_direccion(grados):
                    "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
     return direcciones[val % 16]
 
-def escapar_markdown_v2(texto: str) -> str:
-    caracteres = r'_*[]()~`>#+-=|{}.!'
-    return ''.join(f'\\{c}' if c in caracteres else c for c in texto)
-
 def enviar_mensaje_largo(chat_id, texto):
     MAX = 4000
     for i in range(0, len(texto), MAX):
@@ -139,21 +116,20 @@ def enviar_mensaje_largo(chat_id, texto):
 def menu_principal_profesional(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("🌡 CLIMA", callback_data="clima"),
-        types.InlineKeyboardButton("📅 PRONÓSTICO", callback_data="pronostico"),
-        types.InlineKeyboardButton("📍 VINCULAR GPS", callback_data="pedir_gps"),
-        types.InlineKeyboardButton("🌧️ ANOTAR LLUVIA", callback_data="anotar_lluvia"), # <--- AGREGÁ ESTA LÍNEA
-        types.InlineKeyboardButton("💧 BALANCE", callback_data="balance"),
-        types.InlineKeyboardButton("📷 FOTO AI", callback_data="foto_ai"),
-        types.InlineKeyboardButton("✏️ ANOTAR", callback_data="anotar"),
-        types.InlineKeyboardButton("📖 BITÁCORA", callback_data="bitacora"),
-        types.InlineKeyboardButton("📂 CONFIG LOTE", callback_data="config_lote"),
+        types.InlineKeyboardButton("🌡 CLIMA",          callback_data="clima"),
+        types.InlineKeyboardButton("📅 PRONÓSTICO",     callback_data="pronostico"),
+        types.InlineKeyboardButton("📍 VINCULAR GPS",   callback_data="pedir_gps"),
+        types.InlineKeyboardButton("🌧️ ANOTAR LLUVIA",  callback_data="anotar_lluvia"),
+        types.InlineKeyboardButton("💧 BALANCE",        callback_data="balance"),
+        types.InlineKeyboardButton("📷 FOTO AI",        callback_data="foto_ai"),
+        types.InlineKeyboardButton("✏️ ANOTAR",         callback_data="anotar"),
+        types.InlineKeyboardButton("📖 BITÁCORA",       callback_data="bitacora"),
+        types.InlineKeyboardButton("📂 CONFIG LOTE",    callback_data="config_lote"),
         types.InlineKeyboardButton("🌱 CONFIG CULTIVO", callback_data="config_cultivo"),
         types.InlineKeyboardButton("🌐 PANEL", url="https://agroguardian-app-eowdpzrknk8ybcuyf78gmq.streamlit.app")
     )
-    # ... resto de la función
-    
-    bot.send_message(chat_id,
+    bot.send_message(
+        chat_id,
         "🚜 *AGROGUARDIAN LAB v2.6*\nSeleccioná una operación:",
         reply_markup=markup,
         parse_mode="Markdown"
@@ -166,171 +142,155 @@ def menu_principal_profesional(chat_id):
 def callback_menu(call):
     chat_id = call.message.chat.id
 
-    if call.data == "clima": mostrar_clima(call.message)
-    elif call.data == "pronostico": mostrar_pronostico(call.message)
-    elif call.data == "pedir_gps": 
-        bot.send_message(chat_id, "📍 *INSTRUCCIÓN:* Presioná el icono del clip (📎) y enviá tu 'Ubicación' para sincronizar este lote.")
-    elif call.data == "anotar_lluvia": pedir_lluvia(call)
-    elif call.data == "balance": iniciar_balance_hidrico(call.message)
-    elif call.data == "foto_ai": pedir_foto(call.message)
-    elif call.data == "anotar": anotar_novedad(call.message)
-    elif call.data == "bitacora": ver_bitacora(call.message)
+    if call.data == "clima":
+        mostrar_clima(call.message)
+    elif call.data == "pronostico":
+        mostrar_pronostico(call.message)
+    elif call.data == "pedir_gps":
+        bot.send_message(chat_id, "📍 *INSTRUCCIÓN:* Presioná el icono del clip (📎) y enviá tu 'Ubicación' para sincronizar este lote.", parse_mode="Markdown")
+    elif call.data == "anotar_lluvia":
+        pedir_lluvia(call)
+    elif call.data == "balance":
+        iniciar_balance_hidrico(call.message)
+    elif call.data == "foto_ai":
+        pedir_foto(call.message)
+    elif call.data == "anotar":
+        anotar_novedad(call.message)
+    elif call.data == "bitacora":
+        ver_bitacora(call.message)
     elif call.data == "config_lote":
         msg = bot.send_message(chat_id, "📂 Escribí el nombre del lote:")
         bot.register_next_step_handler(msg, guardar_lote)
     elif call.data == "config_cultivo":
         msg = bot.send_message(chat_id, "🌱 Escribí el cultivo de este lote:")
         bot.register_next_step_handler(msg, guardar_cultivo)
-    elif call.data.startswith("balance_"): seleccionar_cultivo_balance(call)
-    elif call.data.startswith("etapa_"): calcular_balance(call)
+    elif call.data.startswith("balance_"):
+        seleccionar_cultivo_balance(call)
+    elif call.data.startswith("etapa_"):
+        calcular_balance(call)
 
 # ======================================================
-# ======================================================
-# RECEPCIÓN GPS (HANDLER DE UBICACIÓN) - CORREGIDO
+# RECEPCIÓN GPS — CORREGIDO (una sola definición)
 # ======================================================
 @bot.message_handler(content_types=['location'])
-#bot.send_message(chat_id, f"🚀 ESTA ES LA VERSION NUEVA: {lat}, {lon}")
 def recibir_ubicacion_gps(message):
     chat_id = message.chat.id
-    
-    # EXTRAEMOS LAS COORDENADAS REALES DEL MENSAJE DE TELEGRAM
+
     lat_real = message.location.latitude
     lon_real = message.location.longitude
-    
-    # 1. Guardamos en la memoria local del bot
+
+    # Guardar en memoria local
     actualizar_memoria(chat_id, "lat", lat_real)
     actualizar_memoria(chat_id, "lon", lon_real)
-    
+
     memoria = leer_memoria(chat_id)
     lote = memoria.get("lote_activo", "General")
-    
-    # 2. Intentamos mandar a la nube (Supabase)
+
+    # Intentar sincronizar con Supabase
     try:
         registro_gps = {
             "chat_id": str(chat_id),
             "lote": f"GPS: {lote}",
             "mm": 0,
-            "lat": lat_real,  # <--- USAMOS LA VARIABLE REAL
-            "lon": lon_real,  # <--- USAMOS LA VARIABLE REAL
+            "lat": lat_real,
+            "lon": lon_real,
             "fecha": datetime.datetime.now().isoformat()
         }
         supabase.table("registros_lluvia").insert(registro_gps).execute()
         sync_status = "🌐 *Sincronizado con Panel Web*"
     except Exception as e:
-        print(f"Error Supabase: {e}")
+        print(f"Error Supabase GPS: {e}")
         sync_status = "⚠️ *Error de sincronización nube*"
 
-    # 3. Respuesta al usuario con las coordenadas REALES
-    # USAMOS lat_real y lon_real para que el mensaje no mienta
     bot.send_message(
-        chat_id, 
+        chat_id,
         f"✅ *GPS VINCULADO*\n"
         f"Lote: `{lote}`\n"
         f"📍 Lat: `{lat_real}`\n"
         f"📍 Lon: `{lon_real}`\n"
-        f"{sync_status}", 
-        parse_mode="Markdown"
-    )
-    menu_principal_profesional(chat_id)
-def recibir_ubicacion_gps(message):
-    chat_id = message.chat.id
-    
-    # EXTRAEMOS LAS COORDENADAS REALES DEL MENSAJE DE TELEGRAM
-    lat_real = message.location.latitude
-    lon_real = message.location.longitude
-    
-    # 1. Guardamos en la memoria local del bot
-    actualizar_memoria(chat_id, "lat", lat_real)
-    actualizar_memoria(chat_id, "lon", lon_real)
-    
-    memoria = leer_memoria(chat_id)
-    lote = memoria.get("lote_activo", "General")
-    
-    # 2. Intentamos mandar a la nube (Supabase)
-    try:
-        registro_gps = {
-            "chat_id": str(chat_id),
-            "lote": f"GPS: {lote}",
-            "mm": 0,
-            "lat": lat_real,  # <--- USAMOS LA VARIABLE REAL
-            "lon": lon_real,  # <--- USAMOS LA VARIABLE REAL
-            "fecha": datetime.datetime.now().isoformat()
-        }
-        supabase.table("registros_lluvia").insert(registro_gps).execute()
-        sync_status = "🌐 *Sincronizado con Panel Web*"
-    except Exception as e:
-        print(f"Error Supabase: {e}")
-        sync_status = "⚠️ *Error de sincronización nube*"
-
-    # 3. Respuesta al usuario con las coordenadas REALES
-    # USAMOS lat_real y lon_real para que el mensaje no mienta
-    bot.send_message(
-        chat_id, 
-        f"✅ *GPS VINCULADO*\n"
-        f"Lote: `{lote}`\n"
-        f"📍 Lat: `{lat_real}`\n"
-        f"📍 Lon: `{lon_real}`\n"
-        f"{sync_status}", 
-        parse_mode="Markdown"
-    )
-    menu_principal_profesional(chat_id)    # 3. Respuesta al usuario
-    bot.send_message(
-        chat_id, 
-        f"✅ *GPS VINCULADO*\nLote: `{lote}`\nPosición: `{lat}, {lon}`{confirmacion_nube}", 
+        f"{sync_status}",
         parse_mode="Markdown"
     )
     menu_principal_profesional(chat_id)
 
 # ======================================================
-# LÓGICA DE CLIMA Y CÁLCULOS
-# ======================================================
-# ======================================================
-# CLIMA ACTUAL
+# CLIMA ACTUAL — CORREGIDO
 # ======================================================
 def mostrar_clima(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
+
     if not lat:
-        return bot.send_message(message.chat.id, "📍 vinculá tu GPS primero.")
+        return bot.send_message(message.chat.id, "📍 Vinculá tu GPS primero.")
 
     try:
-        # UNIFICADO: Usamos OPENWEATHER_KEY que definiste arriba
-        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+        url = (
+            f"https://api.openweathermap.org/data/2.5/weather"
+            f"?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+        )
         r = requests.get(url).json()
 
         if "main" not in r:
-            return bot.send_message(message.chat.id, f"❌ Error de API: {r.get('message', 'Llave inválida')}")
+            return bot.send_message(
+                message.chat.id,
+                f"❌ Error de API clima: {r.get('message', 'Llave inválida')}"
+            )
 
-        temp = r['main']['temp']
-        hum = r['main']['humidity']
+        temp  = r['main']['temp']
+        hum   = r['main']['humidity']
         v_vel = round(r.get('wind', {}).get('speed', 0) * 3.6, 1)
-        texto = f"🌡️ *Temp:* `{temp}°C` | *HR:* `{hum}%` \n🌬️ *Viento:* `{v_vel} km/h` \n☁️ `{r['weather'][0]['description'].upper()}`"
-        
-        bot.send_message(message.chat.id, texto, parse_mode="Markdown")
-        menu_principal_profesional(message.chat.id)
-    except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ Error: {e}")
+        desc  = r['weather'][0]['description'].upper()
 
+        texto = (
+            f"🌡️ *Temp:* `{temp}°C` | *HR:* `{hum}%`\n"
+            f"🌬️ *Viento:* `{v_vel} km/h`\n"
+            f"☁️ `{desc}`"
+        )
+        bot.send_message(message.chat.id, texto, parse_mode="Markdown")
+
+    except Exception as e:
+        bot.send_message(message.chat.id, f"⚠️ Error clima: {e}")
+
+    menu_principal_profesional(message.chat.id)
+
+# ======================================================
+# PRONÓSTICO — CORREGIDO (una sola definición, usa OPENWEATHER_KEY)
+# ======================================================
 def mostrar_pronostico(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
-    if not lat: return bot.send_message(message.chat.id, "📍 Vincular GPS primero.")
-    
+
+    if not lat:
+        return bot.send_message(message.chat.id, "📍 Vinculá tu GPS primero.")
+
     try:
-        # UNIFICADO: Usamos OPENWEATHER_KEY
-        url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+        url = (
+            f"https://api.openweathermap.org/data/2.5/forecast"
+            f"?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
+        )
         data = requests.get(url).json()
-        
+
         if "list" not in data:
-            return bot.send_message(message.chat.id, "⚠️ Error en la llave de clima.")
+            return bot.send_message(
+                message.chat.id,
+                f"⚠️ Error pronóstico: {data.get('message', 'Llave inválida')}"
+            )
 
         res = "📅 *PRONÓSTICO 3 DÍAS*\n"
         for b in data["list"][::8][:3]:
-            res += f"• {b['dt_txt'][:10]}: `{b['main']['temp']}°C` | {b['weather'][0]['description']}\n"
+            fecha = b['dt_txt'][:10]
+            temp  = b['main']['temp']
+            desc  = b['weather'][0]['description']
+            res += f"• {fecha}: `{temp}°C` | {desc}\n"
+
         bot.send_message(message.chat.id, res, parse_mode="Markdown")
-        menu_principal_profesional(message.chat.id)
+
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Error: {e}")
+        bot.send_message(message.chat.id, f"❌ Error pronóstico: {e}")
+
+    menu_principal_profesional(message.chat.id)
+
+# ======================================================
 # CONFIGURACIÓN LOTE / CULTIVO
 # ======================================================
 def guardar_lote(message):
@@ -363,32 +323,36 @@ def analizar_foto(message):
     if not message.photo:
         bot.send_message(message.chat.id, "❌ No se recibió imagen.")
         return
-    
-    bot.send_message(message.chat.id, "🧠 *LABORATORIO IA:* Analizando muestra...")
+
+    bot.send_message(message.chat.id, "🧠 *LABORATORIO IA:* Analizando muestra...", parse_mode="Markdown")
     file_info = bot.get_file(message.photo[-1].file_id)
     downloaded = bot.download_file(file_info.file_path)
 
     try:
-        # Usamos el objeto 'model' que configuraste arriba
-        img_data = [{'mime_type': 'image/jpeg', 'data': downloaded}]
-        prompt = "Actúa como un ingeniero agrónomo. Analiza plagas, enfermedades o deficiencias en esta foto de cultivo. Sé breve y profesional."
-        
-        response = model.generate_content([prompt, img_data[0]])
+        img_data = {'mime_type': 'image/jpeg', 'data': downloaded}
+        prompt = (
+            "Actúa como un ingeniero agrónomo. "
+            "Analiza plagas, enfermedades o deficiencias en esta foto de cultivo. "
+            "Sé breve y profesional."
+        )
+        response = model.generate_content([prompt, img_data])
         bot.send_message(message.chat.id, f"🔬 *REPORTE IA:*\n{response.text}", parse_mode="Markdown")
     except Exception as e:
         print(f"Error Gemini: {e}")
         bot.send_message(message.chat.id, "⚠️ Error en motor IA (Gemini). Revisá tu API Key.")
-    
+
     menu_principal_profesional(message.chat.id)
 
-# ---------------- ANOTAR Y BITÁCORA ----------------
+# ======================================================
+# ANOTAR Y BITÁCORA
+# ======================================================
 def anotar_novedad(message):
     msg = bot.send_message(message.chat.id, "✍️ Describí la novedad:")
     bot.register_next_step_handler(msg, guardar_novedad_paso)
 
 def guardar_novedad_paso(message):
     memoria = leer_memoria(message.chat.id)
-    lote = memoria.get("lote_activo", "Gral")
+    lote    = memoria.get("lote_activo", "Gral")
     cultivo = memoria.get("lotes", {}).get(lote, {}).get("cultivo", "N/D")
     guardar_bitacora_json(message.chat.id, lote, cultivo, "Novedad", message.text)
     bot.send_message(message.chat.id, "✅ Registrado en bitácora.")
@@ -397,129 +361,112 @@ def guardar_novedad_paso(message):
 def ver_bitacora(message):
     if not os.path.exists(BITACORA_JSON):
         bot.send_message(message.chat.id, "ℹ️ Log vacío.")
+        menu_principal_profesional(message.chat.id)
         return
+
     with open(BITACORA_JSON, "r", encoding="utf-8") as f:
         data = json.load(f)
+
     eventos = data.get(str(message.chat.id), [])
     if not eventos:
-        bot.send_message(message.chat.id, "❌ Sin eventos.")
+        bot.send_message(message.chat.id, "❌ Sin eventos registrados.")
     else:
         texto = "📑 *ÚLTIMOS REGISTROS*\n"
         for e in eventos[-5:]:
             texto += f"📅 `{e['fecha']}` | *{e['lote']}*: {e['detalle']}\n"
         bot.send_message(message.chat.id, texto, parse_mode="Markdown")
+
     menu_principal_profesional(message.chat.id)
 
 # ======================================================
-# OTROS (PRONOSTICO Y BALANCE)
+# BALANCE HÍDRICO — CORREGIDO (split seguro)
 # ======================================================
-def mostrar_pronostico(message):
-    memoria = leer_memoria(message.chat.id)
-    lat, lon = memoria.get("lat"), memoria.get("lon")
-    if not lat: return bot.send_message(message.chat.id, "📍 Vincular GPS primero.")
-    url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={WEATHER_KEY}&units=metric&lang=es"
-    data = requests.get(url).json()
-    res = "📅 *PRONÓSTICO 3 DÍAS*\n"
-    for b in data["list"][::8][:3]:
-        res += f"• {b['dt_txt'][:10]}: `{b['main']['temp']}°C` | {b['weather'][0]['description']}\n"
-    bot.send_message(message.chat.id, res, parse_mode="Markdown")
-    menu_principal_profesional(message.chat.id)
-
 def iniciar_balance_hidrico(message):
     markup = types.InlineKeyboardMarkup()
-    for c in TABLA_KC: markup.add(types.InlineKeyboardButton(c, callback_data=f"balance_{c}"))
+    for c in TABLA_KC:
+        markup.add(types.InlineKeyboardButton(c, callback_data=f"balance_{c}"))
     bot.send_message(message.chat.id, "🌱 Seleccioná cultivo:", reply_markup=markup)
 
 def seleccionar_cultivo_balance(call):
-    cultivo = call.data.replace("balance_", "")
+    # callback_data: "balance_🌽 Maíz"
+    cultivo = call.data[len("balance_"):]   # Evita problemas con emojis en split
     markup = types.InlineKeyboardMarkup()
-    for e in ["Inicial", "Medio", "Final"]: markup.add(types.InlineKeyboardButton(e, callback_data=f"etapa_{cultivo}_{e}"))
+    for e in ["Inicial", "Medio", "Final"]:
+        markup.add(types.InlineKeyboardButton(e, callback_data=f"etapa_{cultivo}_{e}"))
     bot.send_message(call.message.chat.id, f"📊 Etapa para {cultivo}:", reply_markup=markup)
 
 def calcular_balance(call):
-    _, cult, etap = call.data.split("_")
-    kc = TABLA_KC[cult][etap]
-    bal = 0.0 - (kc * 5.0) # Simplificado
-    bot.send_message(call.message.chat.id, f"💧 *BALANCE:* {bal:.2f} mm/día\nCultivo: {cult}\nEtapa: {etap}")
+    # callback_data: "etapa_🌽 Maíz_Inicial"
+    # Usamos maxsplit=2 para no romper con emojis ni espacios en el nombre del cultivo
+    partes = call.data.split("_", 2)
+    cult = partes[1]
+    etap = partes[2]
+
+    kc  = TABLA_KC.get(cult, {}).get(etap, 1.0)
+    bal = 0.0 - (kc * 5.0)
+
+    bot.send_message(
+        call.message.chat.id,
+        f"💧 *BALANCE:* `{bal:.2f}` mm/día\nCultivo: {cult}\nEtapa: {etap}",
+        parse_mode="Markdown"
+    )
     menu_principal_profesional(call.message.chat.id)
+
 # ======================================================
-# LÓGICA DE PLUVIÓMETRO
+# PLUVIÓMETRO
 # ======================================================
 def pedir_lluvia(call):
-    # Usamos call.message.chat.id porque viene de un botón
-    msg = bot.send_message(call.message.chat.id, "🌧️ *REGISTRO DE LLUVIAS*\n¿Cuántos mm marcó el pluviómetro?", parse_mode="Markdown")
+    msg = bot.send_message(
+        call.message.chat.id,
+        "🌧️ *REGISTRO DE LLUVIAS*\n¿Cuántos mm marcó el pluviómetro?",
+        parse_mode="Markdown"
+    )
     bot.register_next_step_handler(msg, guardar_lluvia)
-
-from supabase import create_client
-
-# Configura tus llaves (sacalas de Settings -> API en Supabase)
-SUPABASE_URL = "https://ieodzygauglvdkendvmj.supabase.co"
-SUPABASE_KEY = "sb_secret_SyWyA13u80LI9nz-if5iIw_bUqo0AZB" # <--- Usá la 'service_role' para tener permiso de escritura
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def guardar_lluvia(message):
     chat_id = str(message.chat.id)
     try:
-        # 1. Procesar número
-        val = message.text.replace(',', '.')
-        mm = float(val)
-        
+        mm = float(message.text.replace(',', '.'))
+
         memoria = leer_memoria(chat_id)
-        lote = memoria.get("lote_activo", "General")
-        
-        # 2. Preparar datos (sin tildes en las claves)
+        lote    = memoria.get("lote_activo", "General")
+
         registro_nube = {
             "chat_id": chat_id,
-            "lote": str(lote),
-            "mm": mm,
-            "fecha": datetime.datetime.now().isoformat()
+            "lote":    str(lote),
+            "mm":      mm,
+            "fecha":   datetime.datetime.now().isoformat()
         }
 
-        print(">>> Intentando subir dato...")
-
-        # 3. Insertar con manejo de error robusto
         try:
             supabase.table("registros_lluvia").insert(registro_nube).execute()
-            print(">>> EXITO: Dato en la nube.")
-            
-            bot.send_message(chat_id, f"✅ ¡Registrado! {mm} mm en {lote}")
-            menu_principal_profesional(chat_id)
-            
+            bot.send_message(chat_id, f"✅ ¡Registrado! `{mm}` mm en *{lote}*", parse_mode="Markdown")
         except Exception as e_db:
-            # Esto evita el error de ASCII en Windows
             error_msg = str(e_db).encode('utf-8', 'ignore').decode('ascii', 'ignore')
             print(f">>> ERROR SUPABASE: {error_msg}")
             bot.send_message(chat_id, "⚠️ Error de conexión con la base de datos.")
 
     except ValueError:
-        bot.send_message(chat_id, "❌ Error: Envía solo el número.")
+        bot.send_message(chat_id, "❌ Error: Enviá solo el número (ej: 12.5)")
     except Exception as e_gen:
-        print(f">>> ERROR GENERAL: {e_gen}")# ======================================================
+        print(f">>> ERROR GENERAL lluvia: {e_gen}")
+        bot.send_message(chat_id, "⚠️ Error inesperado al guardar la lluvia.")
+
+    menu_principal_profesional(chat_id)
+
+# ======================================================
+# COMANDO START
+# ======================================================
 @bot.message_handler(commands=["start"])
 def start(message):
     menu_principal_profesional(message.chat.id)
 
-# ... (aquí van tus funciones de clima, ubicación, etc.) ...
-
-
+# ======================================================
+# ARRANQUE
+# ======================================================
 if __name__ == "__main__":
-    # 1. Iniciar el servidor web para Render en segundo plano
-    Thread(target=run).start() 
-    
-    # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
-
-
-
-
-
-
-
-
-
-
-
 
 
 
