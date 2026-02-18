@@ -462,10 +462,15 @@ def guardar_lluvia(message):
 def start(message):
     menu_principal_profesional(message.chat.id)
 
-print("🤖 AgroGuardian Lab Iniciado.")
-bot.infinity_polling()
-    # Usamos call.message.chat.id porque viene de un botón
-
+# Reemplazá tu bot.polling() final por esto:
+while True:
+    try:
+        print("🤖 AgroGuardian Lab escuchando...")
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except Exception as e:
+        print(f"Error: {e}")
+        import time
+        time.sleep(5)
 
 
 
