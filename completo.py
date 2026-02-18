@@ -224,12 +224,12 @@ elif menu == "🌧️ Pluviómetro":
             
             fig_diario.update_layout(
                 xaxis=dict(
-                    tickmode='linear',
-                    tick0=1,
-                    dtick=1,
+                    tickmode='array', # Cambiamos a modo array para elegir exacto qué mostrar
+                    tickvals=[1, 5, 10, 15, 20, 25, ultimo_dia], # Mostramos los hitos y el último día
+                    ticktext=['1', '5', '10', '15', '20', '25', str(ultimo_dia)],
                     title="Día del Mes",
-                    tickangle=0, # <-- Esto fuerza a que los números estén derechos (0 grados)
-                    tickfont=dict(size=10) # <-- Achicamos un pelín la letra para que no se amontonen
+                    tickangle=0,
+                    tickfont=dict(size=12, color='#00ffc3') # Un toque de color para que resalten
                 ),
                 yaxis=dict(
                     range=[0, max(df_diario_final['mm'].max() * 1.3, 30)],
@@ -238,7 +238,7 @@ elif menu == "🌧️ Pluviómetro":
                 ),
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
-                bargap=0.3
+                bargap=0.2 # Reducimos un poco el gap para que las barras no sean hilos
             )
             
             st.plotly_chart(fig_diario, use_container_width=True)
