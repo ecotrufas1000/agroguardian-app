@@ -160,7 +160,7 @@ elif menu == "❄️ Análisis de Heladas":
 elif menu == "🌧️ Pluviómetro":
 
     try:
-        res = supabase.table("registros_lluvia").select("*").execute()
+        res = supabase.table("registros_lluvia").select("*").order("created_at", desc=True).execute()
         if res.data:
             import pandas as pd
             st.dataframe(pd.DataFrame(res.data))
