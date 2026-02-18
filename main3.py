@@ -284,49 +284,43 @@ def recibir_ubicacion_gps(message):
 # ======================================================
 # LÓGICA DE CLIMA Y CÁLCULOS
 # ======================================================
-    def mostrar_clima(message):
+   @bot.message_handler(func=lambda m: "CLIMA ACTUAL" in m.text.upper())
+def clima_actual(message):
     memoria = leer_memoria(message.chat.id)
     lat, lon = memoria.get("lat"), memoria.get("lon")
     
-    if not lat or not lon:
-        bot.send_message(message.chat.id, "📍 *Error:* Primero vinculá tu GPS.")
-        return
-    
+    if not lat:
+        return bot.send_message(message.chat.id, "📍 Enviá tu ubicación primero con el botón del menú.")
+
     try:
-        # IMPORTANTE: Asegurate que OPENWEATHER_KEY esté bien definida arriba
+        # 1. Usamos la URL de clima actual (/weather)
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_KEY}&units=metric&lang=es"
         response = requests.get(url)
         r = response.json()
-        
-        # SI LA API RESPONDE ERROR (Aquí es donde fallaba antes)
-        if response.status_code != 200:
-            mensaje_error = r.get('message', 'Error desconocido')
-            bot.send_message(message.chat.id, f"❌ *Error de Clima:* {mensaje_error.capitalize()}")
-            return
 
-        # SI LA API RESPONDE BIEN, RECIÉN AHÍ LEEMOS LOS DATOS
-        temp = r['main']['temp']
-        hum = r['main']['humidity']
-        v_vel = round(r['wind']['speed'] * 3.6, 1)
-        
-        # Punto de rocío
-        a, b = 17.27, 237.7
-        alpha = ((a * temp) / (b + temp)) + math.log(hum/100.0)
-        t_dp = round((b * alpha) / (a - alpha), 1)
-        
+        if response.status_code != 200:
+            return bot.send_message(message.chat.id, f"❌ Error de API: {r.get('message', 'No autorizado')}")
+
+        # 2. Extraemos los datos (usando .get para evitar el error KeyError: 'main')
+        temp = r.get('main', {}).get('temp')
+        hum = r.get('main', {}).get('humidity')
+        v_vel = round(r.get('wind', {}).get('speed', 0) * 3.6, 1) # Convertimos a km/h
+        desc = r.get('weather', [{}])[0].get('description', 'Sin datos').capitalize()
+
+        # 3. Armamos el texto profesional
         texto = (
-            f"📊 *DATOS ATMOSFÉRICOS*\n"
-            f"🌡️ Temp: `{temp}°C` | HR: `{hum}%` \n"
-            f"❄️ Dew Point: `{t_dp}°C` \n"
-            f"🌬️ Viento: `{v_vel} km/h` \n"
-            f"🛰️ Estado: `{r['weather'][0]['description'].upper()}`"
+            f"📊 *DATOS ATMOSFÉRICOS ACTUALES*\n\n"
+            f"🌡️ *Temp:* `{temp}°C` \n"
+            f"💧 *Humedad:* `{hum}%` \n"
+            f"🌬️ *Viento:* `{v_vel} km/h` \n"
+            f"🛰️ *Estado:* `{desc}`"
         )
+        
         bot.send_message(message.chat.id, texto, parse_mode="Markdown")
         menu_principal_profesional(message.chat.id)
 
     except Exception as e:
         bot.send_message(message.chat.id, f"⚠️ Error técnico: {str(e)}")
-
 # ======================================================
 # CONFIGURACIÓN LOTE / CULTIVO
 # ======================================================
@@ -507,6 +501,7 @@ if __name__ == "__main__":
     # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
 
 
 
