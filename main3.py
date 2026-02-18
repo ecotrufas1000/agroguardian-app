@@ -473,10 +473,14 @@ def start(message):
 
 # ... (aquí van tus funciones de clima, ubicación, etc.) ...
 
+
 if __name__ == "__main__":
+    # 1. Iniciar el servidor web para Render en segundo plano
+    Thread(target=run).start() 
+    
+    # 2. Iniciar el Bot
     print("🤖 AgroGuardian Lab Iniciado")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
-
 
 
 
