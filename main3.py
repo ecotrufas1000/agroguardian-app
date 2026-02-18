@@ -8,6 +8,23 @@ from telebot import types
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types as genai_types
+import os
+from flask import Flask
+from threading import Thread
+
+# --- TRUCO PARA RENDER ---
+app = Flask(__name__)
+
+@app.route('/')
+def health():
+    return "Bot vivo", 200
+
+def run():
+    # Render usa el puerto 10000 por defecto
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+
+Thread(target=run).start()
+# -------------------------
 
 # ======================================================
 # CONFIGURACIÓN
@@ -448,6 +465,7 @@ def start(message):
 print("🤖 AgroGuardian Lab Iniciado.")
 bot.infinity_polling()
     # Usamos call.message.chat.id porque viene de un botón
+
 
 
 
