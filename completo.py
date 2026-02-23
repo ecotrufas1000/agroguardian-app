@@ -6,43 +6,36 @@ import requests
 import json
 import os
 import math
-import datetime
-import pandas as pd
-import plotly.express as px
-
-# 1. CONFIGURACIÓN Y ESTILO (Terminal Dark)
-st.set_page_config(page_title="AgroGuardian Pro", layout="wide", page_icon="🚜")
-
-st.markdown("""
-    <style>
-        .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
-        [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
-        h1, h2, h3, span, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
-        [data-testid="stMetricValue"] { color: #00ffc3 !important; text-shadow: 0px 0px 10px #00ffc3; }
-        .stButton>button { background-color: #161b22 !important; color: #00ffc3 !important; border: 1px solid #00ffc3 !important; width: 100%; }
-        header, footer, .stDeployButton {visibility: hidden !important; display: none !important;}
-    </style>
-""", unsafe_allow_html=True)
-
-# 2. GESTIÓN DE NAVEGACIÓN
-if 'navegacion' not in st.session_state:
-    st.session_state['navegacion'] = "📊 Monitoreo Total"
-
-if st.button("🚜 VOLVER AL PANEL PRINCIPAL"):
-    st.session_state['navegacion'] = "📊 Monitoreo Total"
-    st.rerun()
-
-# 3. CONEXIÓN A DATOS
+# Reemplazá tus líneas 9, 10 y 11 en GitHub por estas 3:
 url = "https://ieodzygauglvdkendvmj.supabase.co"
 key = "sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"
 supabase = create_client(url, key)
-API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-LAT, LON = -38.298, -58.208
+# Conexión a Supabase
+#url = st.secrets["SUPABASE_URL"]
+#key = st.secrets["SUPABASE_KEY"]
+# = create_client(url, key)
 
-# 4. FUNCIONES CIENTÍFICAS
+# Conexión a Clima (Cambiamos el nombre para que coincida con tu función)
+API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+
+# Coordenadas (Asegurate que estén definidas)
+LAT, LON = -38.298, -58.208
+# ==========================================================
+# 1. CONFIGURACIÓN BASE
+# ==========================================================
+st.set_page_config(
+    page_title="AgroGuardian Pro | Lab Terminal",
+    layout="wide",
+    page_icon="🛰️"
+)
+
+# ==========================================================
+# 3. FUNCIONES CIENTÍFICAS
+# ==========================================================
 def obtener_direccion_viento(grados):
     val = int((grados / 22.5) + 0.5)
-    direcciones = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
+    direcciones = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                   "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
     return direcciones[val % 16]
 
 def calcular_punto_rocio(T, HR):
@@ -50,98 +43,224 @@ def calcular_punto_rocio(T, HR):
     alpha = ((a * T) / (b + T)) + math.log(HR/100.0)
     return round((b * alpha) / (a - alpha), 1)
 
+def calcular_gdc_diario(t_max, t_min, t_base=10):
+    return max(0, ((max(t_max, t_base) + max(t_min, t_base)) / 2) - t_base)
+
+def cargar_memoria():
+    if os.path.exists("memoria_lotes.json"):
+        with open("memoria_lotes.json", "r", encoding="utf-8") as f:
+            full_data = json.load(f)
+            if full_data:
+                first_key = list(full_data.keys())[0]
+                return full_data.get(first_key, {})
+    return {}
+
 @st.cache_data(ttl=600)
 def traer_datos(lat, lon):
     try:
-        return requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es").json()
-    except: return None
+        return requests.get(
+            f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
+        ).json()
+    except:
+        return None
 
-# 5. OBTENCIÓN DE DATOS
+# ==========================================================
+# 4. CARGA DE DATOS
+# ==========================================================
+datos_memoria = cargar_memoria()
 r_raw = traer_datos(LAT, LON)
+
 if not r_raw:
-    st.error("🚨 ERROR DE CONEXIÓN")
+    st.error("🚨 ERROR: No se detecta respuesta meteorológica.")
     st.stop()
 
 clima = {
     "temp": r_raw["main"]["temp"],
+    "t_max": r_raw["main"]["temp_max"],
+    "t_min": r_raw["main"]["temp_min"],
     "hum": r_raw["main"]["humidity"],
     "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1),
     "v_dir": r_raw["wind"]["deg"],
+    "desc": r_raw["weather"][0]["description"].capitalize(),
     "presion": r_raw["main"].get("pressure", 1013.2)
 }
+
 t_dp = calcular_punto_rocio(clima['temp'], clima['hum'])
+gdc_hoy = calcular_gdc_diario(clima['t_max'], clima['t_min'])
 v_rumbo = obtener_direccion_viento(clima['v_dir'])
 
-# 6. SIDEBAR
+# ==========================================================
+# 5. SIDEBAR
+# ==========================================================
 with st.sidebar:
-    st.markdown("## 🚜 AG-TERMINAL")
-    opciones = ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
-    
-    idx_actual = opciones.index(st.session_state['navegacion'])
-    seleccion = st.radio("SISTEMAS", opciones, index=idx_actual, key="menu_radio")
-    
-    if seleccion != st.session_state['navegacion']:
-        st.session_state['navegacion'] = seleccion
+    st.markdown("## AG-TERMINAL v2.6")
+    menu = st.radio(
+        "SISTEMAS",
+        [
+            "📊 Monitoreo Total",
+            "💧 Balance Hídrico",
+            "🌧️ Pluviómetro",
+            "⛈️ Radar Granizo",
+            "❄️ Análisis de Heladas",
+            "📝 Bitácora"
+        ]
+    )
+    if st.button("🔄 RE-SCAN"):
         st.rerun()
 
-# 7. LÓGICA DE PÁGINAS
-pagina = st.session_state['navegacion']
+# ==========================================================
+# 6. PÁGINAS
+# ==========================================================
 
-if pagina == "📊 Monitoreo Total":
-    c1, c2, c3, c4 = st.columns(4)
+# -------------------------
+# MONITOREO
+# -------------------------
+if menu == "📊 Monitoreo Total":
+
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("TEMPERATURA", f"{clima['temp']}°C")
     c2.metric("PTO. ROCÍO", f"{t_dp}°C")
-    c3.metric("HUMEDAD", f"{clima['hum']}%")
-    c4.metric("VIENTO", f"{clima['v_vel']} km/h", v_rumbo)
+    c3.metric("GDC (B10)", f"{gdc_hoy:.1f}")
+    c4.metric("HUMEDAD", f"{clima['hum']}%")
+    c5.metric("VIENTO", f"{clima['v_vel']} km/h", v_rumbo)
+
     st.divider()
-    m = folium.Map(location=[LAT, LON], zoom_start=15)
-    folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
-    folium_static(m, width=700, height=400)
 
-elif pagina == "🌧️ Pluviómetro":
-    st.markdown("### 🌧️ HYDRAULIC RECORDS")
-    res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
-    if res.data:
-        df = pd.DataFrame(res.data)
-        df['fecha'] = pd.to_datetime(df['fecha'])
-        df['mm'] = pd.to_numeric(df['mm'])
-        
-        c1, c2 = st.columns(2)
-        c1.metric("TOTAL REGISTRADO", f"{df['mm'].sum():.1f} mm")
-        c2.metric("MÁXIMO EVENTO", f"{df['mm'].max():.1f} mm")
+    col_map, col_wind = st.columns([2,1])
 
-        fig = px.bar(df, x='fecha', y='mm', title="HISTORIAL DE LLUVIAS", template="plotly_dark")
-        fig.update_traces(marker_color='#00ffc3')
-        st.plotly_chart(fig, use_container_width=True)
-        st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
-    else:
-        st.info("Esperando datos de Supabase...")
+    with col_map:
+        m = folium.Map(location=[LAT, LON], zoom_start=15)
+        folium.TileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attr='Esri'
+        ).add_to(m)
+        folium_static(m, width=700, height=400)
 
-elif pagina == "💧 Balance Hídrico":
-    st.markdown("### 💧 CÁLCULO DE ETc")
-    kc = st.slider("Kc del Cultivo (Coeficiente)", 0.3, 1.2, 0.8)
-    eto_base = 4.5 # Estimación base para la zona
-    etc = round(eto_base * kc, 2)
-    st.metric("Evapotranspiración del Cultivo (ETc)", f"{etc} mm/día")
-    st.info("Fórmula: ETc = ETo × Kc. Este valor indica cuánta agua está perdiendo tu cultivo hoy.")
+    with col_wind:
+        st.metric("Dirección", f"{clima['v_dir']}°", v_rumbo)
 
-elif pagina == "❄️ Análisis de Heladas":
-    st.markdown("### ❄️ DETECTOR DE RIESGO")
+# -------------------------
+# HELADAS
+# -------------------------
+elif menu == "❄️ Análisis de Heladas":
+
     dif = 3.5 if clima['v_vel'] < 5 else 1.2
-    temp_suelo = round(clima['temp'] - dif, 1)
-    st.metric("Temp. Suelo (Est.)", f"{temp_suelo}°C")
-    
+    st.metric("Temp. Suelo (Est.)", f"{round(clima['temp'] - dif, 1)}°C")
+
     if t_dp <= 0:
-        st.error(f"🚨 RIESGO DE HELADA NEGRA: Punto de rocío muy bajo ({t_dp}°C). Daño celular inminente sin escarcha.")
+        st.error(f"HELADA NEGRA: Punto de rocío {t_dp}°C")
     elif clima['temp'] < 3:
-        st.warning("⚠️ RIESGO DE HELADA BLANCA: Condiciones para formación de escarcha.")
+        st.warning("RIESGO DE HELADA BLANCA")
     else:
-        st.success("✅ SIN RIESGO INMEDIATO")
+        st.success("Sin riesgo inmediato")
 
-elif pagina == "⛈️ Radar Granizo":
-    st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
+# PLUVIÓMETRO (Versión Pro con Supabase)
+# -------------------------
+elif menu == "🌧️ Pluviómetro":
+    st.markdown('<p style="color:#00ffc3; font-size:20px; font-weight:bold; font-family:monospace;">Hydraulic Records // Pluviometer Data</p>', unsafe_allow_html=True)
+    
+    try:
+        import pandas as pd
+        import plotly.express as px
+        import datetime
 
-elif pagina == "📝 Bitácora":
-    st.markdown("### 📝 REGISTROS DE CAMPO")
-    st.info("Conectado a bitacora.json")
-    # (Acá iría la lógica de lectura de JSON que tenías)
+        # 1. Recuperar datos desde Supabase
+        res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
+        
+        if not res.data:
+            st.info("📍 No hay registros de lluvia en la base de datos. Podés cargar datos desde el Bot de Telegram.")
+        else:
+            # 2. Procesamiento con Pandas
+            df = pd.DataFrame(res.data)
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            df['mm'] = pd.to_numeric(df['mm'], errors='coerce')
+            
+            # Extraemos año y mes para los acumulados
+            df['año'] = df['fecha'].dt.year
+            df['mes_idx'] = df['fecha'].dt.strftime('%Y-%m') 
+            df['mes_nombre'] = df['fecha'].dt.strftime('%b %y') 
+
+            # 3. Métricas Principales
+            hoy = datetime.datetime.now()
+            mes_actual_str = hoy.strftime("%Y-%m")
+            
+            total_mes = df[df['mes_idx'] == mes_actual_str]['mm'].sum()
+            total_año = df[df['año'] == hoy.year]['mm'].sum()
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("ESTE MES", f"{total_mes:.1f} mm", delta="Acumulado")
+            c2.metric("ANUAL", f"{total_año:.1f} mm", delta=f"Total {hoy.year}", delta_color="normal")
+            c3.metric("EVENTOS", f"{len(df)}", delta="Registros")
+
+            st.divider()
+
+# 4. Gráfico de Barras Interactivo
+            st.subheader("📊 Historial de Precipitaciones")
+            fig = px.bar(
+                df, 
+                x='fecha', 
+                y='mm',
+                hover_data=['lote'], # Quitamos 'cuadro' porque no existe en tu tabla
+                title="Distribución de Lluvias",
+                labels={'fecha': 'Fecha', 'mm': 'Milímetros'},
+                template="plotly_dark"
+            )
+            
+            fig.update_traces(marker_color='#00ffc3', marker_line_color='#ffffff', marker_line_width=0.5, opacity=0.8)
+            fig.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=False),
+                yaxis=dict(gridcolor='#30363d')
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # 5. Tabla de datos crudos
+            with st.expander("📝 Ver registros detallados"):
+                # Aquí también quitamos 'cuadro' para que no falle
+                st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
+            
+            # 6. Resumen Mensual
+            st.subheader("🗓️ Resumen Mensual")
+            resumen = df.groupby('mes_nombre')['mm'].sum().reset_index()
+            resumen.columns = ['Mes', 'Total Lluvia (mm)']
+            st.table(resumen.sort_values('Mes', ascending=False))
+            
+    except Exception as e:
+        st.error(f"Ocurrió un error al procesar los datos: {e}")
+
+# -------------------------
+# BALANCE HÍDRICO
+# -------------------------
+elif menu == "💧 Balance Hídrico":
+
+    kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
+    st.metric("ETc", f"{round(4.8 * kc, 2)} mm/día")
+
+# -------------------------
+# RADAR GRANIZO
+# -------------------------
+elif menu == "⛈️ Radar Granizo":
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("PRESIÓN", f"{clima['presion']} hPa")
+    c2.metric("HUMEDAD", f"{clima['hum']}%")
+    c3.metric("ESTADO", "ONLINE")
+
+    windy_url = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar"
+    st.components.v1.iframe(windy_url, height=600)
+
+    if clima['presion'] < 1010 and clima['hum'] > 80:
+        st.error("⚠️ Condiciones favorables para granizo")
+
+# -------------------------
+# BITÁCORA
+# -------------------------
+elif menu == "📝 Bitácora":
+
+    if os.path.exists(BITACORA_JSON):
+        with open(BITACORA_JSON, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            for uid, eventos in data.items():
+                for e in reversed(eventos[-15:]):
+                    st.write(f"{e['fecha']} - {e['lote']} → {e['detalle']}")
