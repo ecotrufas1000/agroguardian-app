@@ -7,47 +7,6 @@ import json
 import math
 import os 
 import streamlit as st
-# CSS para ocultar TODO lo que marcaste en amarillo
-st.markdown("""
-    <style>
-        /* 1. ELIMINACIÓN TOTAL DE CABECERA Y FOOTER */
-        header, [data-testid="stHeader"], footer, [data-testid="stFooter"] {
-            display: none !important;
-            visibility: hidden !important;
-            height: 0 !important;
-        }
-
-        /* 2. ELIMINACIÓN DEL BOTÓN DE DEPLOY Y MENÚ (Móvil y PC) */
-        .stAppDeployButton, [data-testid="stAppDeployButton"], 
-        #MainMenu, [data-testid="stSidebarCollapsedControl"] {
-            display: none !important;
-            visibility: hidden !important;
-        }
-
-        /* 3. ELIMINACIÓN DEL ICONO DE CARGA Y ESTADO (Lo que ves en el celu abajo) */
-        [data-testid="stStatusWidget"], .stStatusWidget, 
-        [data-testid="stConnectionStatus"], .st-emotion-cache-10hz6m6 {
-            display: none !important;
-            visibility: hidden !important;
-        }
-
-        /* 4. AJUSTE DE PANTALLA COMPLETA */
-        .stApp {
-            margin-top: -60px !important; /* Sube la app para tapar el hueco del header */
-        }
-        
-        .block-container {
-            padding-top: 0rem !important;
-            padding-bottom: 0rem !important;
-            max-width: 100% !important;
-        }
-
-        /* 5. OCULTAR EL BOTÓN DE 'MANAGE APP' QUE APARECE EN CELULARES */
-        div[class^="st-emotion-cache"] > button {
-            display: none !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
 # ==========================================================
 # 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
 # ==========================================================
