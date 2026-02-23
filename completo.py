@@ -61,12 +61,16 @@ st.markdown("""
 
 # ==========================================================
 # ==========================================================
-# 2. LÓGICA DE NAVEGACIÓN (Rescate Total)
 # ==========================================================
-if st.button("🚜 RESETEAR Y VOLVER AL PANEL"):
-    # Borramos TODO el estado para forzar a la app a nacer de nuevo
-    for key in st.session_state.keys():
-        del st.session_state[key]
+# 2. LÓGICA DE NAVEGACIÓN (Fuerza Bruta)
+# ==========================================
+if "reset_trigger" not in st.session_state:
+    st.session_state.reset_trigger = 0
+
+if st.button("🚜 VOLVER AL PANEL PRINCIPAL"):
+    # Cambiamos el ID para forzar a Streamlit a destruir todos los widgets
+    st.session_state.reset_trigger += 1
+    st.session_state["menu_principal"] = "📊 Monitoreo Total"
     st.rerun()
 
 # ==========================================================
@@ -126,23 +130,20 @@ v_rumbo = obtener_direccion_viento(clima['v_dir'])
 
 # ==========================================================
 # ==========================================================
-# 6. SIDEBAR Y MENÚ (Con memoria sincronizada)
+# ==========================================================
+# 6. SIDEBAR Y MENÚ (Con Reset de Widget)
 # ==========================================================
 with st.sidebar:
     st.markdown("## 🚜 AG-TERMINAL")
     
-    # Definimos las opciones
     opciones = ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
     
-    # Si por alguna razón perdimos la posición, volvemos a la primera
-    if "menu_principal" not in st.session_state:
-        st.session_state["menu_principal"] = opciones[0]
-
-    # El radio button ahora usa el índice de la lista para no confundirse
+    # El secreto es cambiar el 'key' dinámicamente con el trigger
     menu = st.radio(
         "SISTEMAS_MENU",
         opciones,
-        key="menu_principal"
+        index=0,
+        key=f"menu_{st.session_state.reset_trigger}" 
     )
     
     st.markdown("---")
