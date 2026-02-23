@@ -6,23 +6,27 @@ import requests
 import json
 import math
 import os 
-# CSS Reforzado para ocultar todo rastro de Streamlit
+import streamlit as st
+
+# CSS TOTAL - Oculta todo rastro de Streamlit
 st.markdown("""
     <style>
-        /* Oculta el menú de hamburguesa (arriba a la derecha) */
-        .stAppToolbar {visibility: hidden !important;}
+        /* 1. Ocultar el menú de hamburguesa (arriba a la derecha) */
+        #MainMenu {visibility: hidden;}
+        .stAppToolbar {display: none !important;}
         
-        /* Oculta el footer (Made with Streamlit) */
-        footer {visibility: hidden !important;}
+        /* 2. Ocultar el footer (Made with Streamlit) */
+        footer {visibility: hidden;}
+        .stAppFooter {display: none !important;}
         
-        /* Oculta la barra de decoración superior */
-        .stAppHeader {background: none !important; border: none !important;}
-        
-        /* OPCIONAL: Elimina el espacio extra arriba para que el menú AG quede pegado al borde */
+        /* 3. Ocultar la barra de decoración superior (la línea de color) */
+        header {visibility: hidden;}
+        .stAppHeader {display: none !important;}
+
+        /* 4. Ajustar el espacio para que no quede un hueco arriba */
         .block-container {padding-top: 0rem !important;}
     </style>
-""", unsafe_allow_html=True)
-# ==========================================================
+""", unsafe_allow_html=True)# ==========================================================
 # 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
 # ==========================================================
 url = st.secrets["supabase_url"]
