@@ -60,13 +60,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 2. LÓGICA DE NAVEGACIÓN (Rescate para Celular)
 # ==========================================================
-if "menu_principal" not in st.session_state:
-    st.session_state["menu_principal"] = "📊 Monitoreo Total"
-
-if st.button("🚜 VOLVER AL PANEL PRINCIPAL"):
-    st.session_state["menu_principal"] = "📊 Monitoreo Total"
+# 2. LÓGICA DE NAVEGACIÓN (Rescate Total)
+# ==========================================================
+if st.button("🚜 RESETEAR Y VOLVER AL PANEL"):
+    # Borramos TODO el estado para forzar a la app a nacer de nuevo
+    for key in st.session_state.keys():
+        del st.session_state[key]
     st.rerun()
 
 # ==========================================================
@@ -125,23 +125,28 @@ gdc_hoy = calcular_gdc_diario(clima['t_max'], clima['t_min'])
 v_rumbo = obtener_direccion_viento(clima['v_dir'])
 
 # ==========================================================
-# 6. SIDEBAR Y MENÚ
+# ==========================================================
+# 6. SIDEBAR Y MENÚ (Con memoria sincronizada)
 # ==========================================================
 with st.sidebar:
     st.markdown("## 🚜 AG-TERMINAL")
+    
+    # Definimos las opciones
+    opciones = ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
+    
+    # Si por alguna razón perdimos la posición, volvemos a la primera
+    if "menu_principal" not in st.session_state:
+        st.session_state["menu_principal"] = opciones[0]
+
+    # El radio button ahora usa el índice de la lista para no confundirse
     menu = st.radio(
         "SISTEMAS_MENU",
-        ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+        opciones,
         key="menu_principal"
     )
     
     st.markdown("---")
-    # Indicador de Sistema
-    col1, col2 = st.columns([1, 4])
-    col1.markdown("<div style='height:12px;width:12px;background-color:#00ffc3;border-radius:50%;margin-top:5px;box-shadow:0 0 10px #00ffc3;'></div>", unsafe_allow_html=True)
-    col2.markdown("<span style='color:#00ffc3;font-weight:bold;'>SYS_ONLINE</span>", unsafe_allow_html=True)
-    st.caption(f"SYNC: {datetime.datetime.now().strftime('%H:%M:%S')}")
-
+    st.markdown("<span style='color:#00ffc3;font-weight:bold;'>● SYS_ONLINE</span>", unsafe_allow_html=True)
 # ==========================================================
 # 7. LÓGICA DE PÁGINAS
 # ==========================================================
