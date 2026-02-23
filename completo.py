@@ -6,7 +6,15 @@ import requests
 import json
 import math
 import os 
-
+# Ocultar íconos y marca de Streamlit
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
 # ==========================================================
 # 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
 # ==========================================================
