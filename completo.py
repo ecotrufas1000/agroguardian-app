@@ -35,12 +35,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. BOTÓN DE RESCATE (Ahora sí funciona 100%)
+# 3. BOTÓN DE RESCATE PARA CELULAR
 if st.button("🚜 VOLVER AL PANEL PRINCIPAL"):
-    if "menu_principal" in st.session_state:
-        st.session_state["menu_principal"] = "📊 Monitoreo Total"
+    # Forzamos el valor del radio button en la memoria
+    st.session_state["menu_principal"] = "📊 Monitoreo Total"
     st.rerun()
-
 # 4. CONEXIÓN A DATOS
 url = st.secrets["supabase_url"]
 key = st.secrets["supabase_key"]
