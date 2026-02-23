@@ -487,8 +487,21 @@ st.sidebar.caption(f"📅 Sincro: {fecha_actual}")
 
 st.sidebar.write("") # Espacio en blanco
 
-# BOTÓN DE SOPORTE (Usando la función oficial de Streamlit para que no falle)
-numero_soporte = "5491100000000"  # <-- CAMBIÁ ESTE NÚMERO
+# CSS para botón negro de fondo, sin tocar el color del texto
+st.markdown("""
+    <style>
+    div[data-baseweb="button"] > button {
+        background-color: black !important;
+    }
+
+    div[data-baseweb="button"] > button:hover {
+        background-color: #333333 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Botón de soporte
+numero_soporte = "5491154074144"
 texto_wa = "Hola! Necesito asistencia técnica con AgroGuardian."
 url_wa = f"https://wa.me/{numero_soporte}?text={texto_wa.replace(' ', '%20')}"
 
