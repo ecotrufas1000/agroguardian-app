@@ -35,8 +35,6 @@ h1, h2, h3, p { color: #00ffc3 !important; font-family: 'Courier New', monospace
 # 3️⃣ SESSION STATE PARA NAVEGACIÓN
 if "menu_principal" not in st.session_state:
     st.session_state.menu_principal = "📊 Monitoreo Total"
-if "volver_menu" not in st.session_state:
-    st.session_state.volver_menu = False
 
 # 4️⃣ SIDEBAR
 with st.sidebar:
@@ -47,18 +45,26 @@ with st.sidebar:
         st.session_state.menu_principal = "📊 Monitoreo Total"
         st.rerun()
 
-    # Menú lateral con radio buttons reflejando la sección actual
+    # Lista de opciones de menú
+    opciones_menu = ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro",
+                     "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
+
+    # Calculamos el índice seguro para radio
+    try:
+        index_actual = opciones_menu.index(st.session_state.menu_principal)
+    except ValueError:
+        index_actual = 0
+        st.session_state.menu_principal = opciones_menu[0]
+
+    # Menú lateral
     menu = st.radio(
         "SISTEMAS",
-        ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro",
-         "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
-        index=["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro",
-               "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
-              .index(st.session_state.menu_principal),
+        opciones_menu,
+        index=index_actual,
         key="menu_principal"
     )
 
-    # Botón de soporte
+    # Botón de soporte con fondo negro
     numero_soporte = "5491154074144"
     texto_wa = "Hola! Necesito asistencia técnica con AgroGuardian."
     url_wa = f"https://wa.me/{numero_soporte}?text={texto_wa.replace(' ', '%20')}"
@@ -68,41 +74,42 @@ with st.sidebar:
         </a>
     """, unsafe_allow_html=True)
 
+    # Botón de re-scan
     if st.button("🔄 RE-SCAN"):
         st.rerun()
 
 # 5️⃣ LÓGICA DE PÁGINAS
 if menu == "📊 Monitoreo Total":
     st.header("📊 MONITOREO TOTAL")
-    # Aquí va tu código de métricas, mapas, etc.
     st.write("Contenido del monitoreo...")
+
 elif menu == "💧 Balance Hídrico":
     st.header("💧 BALANCE HÍDRICO")
     st.write("Contenido del balance hídrico...")
+
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ PLUVIÓMETRO")
     st.write("Contenido del pluviómetro...")
+
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ RADAR GRANIZO")
     st.write("Contenido del radar de granizo...")
+
 elif menu == "❄️ Análisis de Heladas":
     st.header("❄️ ANÁLISIS DE HELADAS")
     st.write("Contenido del análisis de heladas...")
+
 elif menu == "📝 Bitácora":
     st.header("📝 BITÁCORA")
     st.write("Contenido de la bitácora...")
-if menu == "📊 Monitoreo Total":
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("TEMPERATURA", f"{clima['temp']}°C")
-    c2.metric("PTO. ROCÍO", f"{t_dp}°C")
-    c3.metric("GDC (B10)", f"{gdc_hoy:.1f}")
-    c4.metric("HUMEDAD", f"{clima['hum']}%")
-    c5.metric("VIENTO", f"{clima['v_vel']} km/h", v_rumbo)
-    st.divider()
-    m = folium.Map(location=[LAT, LON], zoom_start=15)
-    folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
-    folium_static(m, width=700, height=400)
 
+# ✅ Aquí irían tus métricas y mapas si estás en Monitoreo Total
+# Ejemplo (debes definir clima, t_dp, gdc_hoy, LAT, LON, v_rumbo previamente):
+# c1, c2, c3, c4, c5 = st.columns(5)
+# c1.metric("TEMPERATURA", f"{clima['temp']}°C")
+# ...
+# m = folium.Map(location=[LAT, LON], zoom_start=15)
+# folium_static(m, width=700, height=400)
 elif menu == "❄️ Análisis de Heladas":
     dif = 3.5 if clima['v_vel'] < 5 else 1.2
     st.metric("Temp. Suelo (Est.)", f"{round(clima['temp'] - dif, 1)}°C")
