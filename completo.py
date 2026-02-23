@@ -3,122 +3,94 @@ from supabase import create_client
 from streamlit_folium import folium_static
 import folium
 import requests
-import json
 import math
-import os 
-import datetime
+import os
 
-# 1. CONFIGURACIÓN ÚNICA
+# 1️⃣ CONFIGURACIÓN BÁSICA
 st.set_page_config(
-    page_title="AgroGuardian Pro", 
-    layout="wide", 
-    initial_sidebar_state="expanded",
-    page_icon="🚜"
+    page_title="AgroGuardian Pro",
+    page_icon="🚜",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# 2. CSS "BOMBA ATÓMICA" (Limpia PC y Celular)
+# 2️⃣ ESTILOS
 st.markdown("""
-    <style>
-        header, [data-testid="stHeader"], footer {visibility: hidden; display: none !important;}
-        [data-testid="stStatusWidget"], .stDeployButton {display:none !important;}
-        .stApp { background-color: #0d1117; color: #c9d1d9; }
-        [data-testid="stSidebar"] { background-color: #010409; border-right: 1px solid #30363d; }
-        h1, h2, h3, p { color: #00ffc3 !important; font-family: 'Courier New', monospace; }
-        .block-container { padding-top: 0rem !important; padding-bottom: 1rem !important; }
-        .stButton>button {
-            background-color: #21262d;
-            color: #00ffc3;
-            border: 1px solid #30363d;
-            border-radius: 5px;
-            width: 100%;
-        }
-    </style>
+<style>
+header, [data-testid="stHeader"], footer {visibility: hidden; display: none !important;}
+.stApp { background-color: #0d1117; color: #c9d1d9; }
+[data-testid="stSidebar"] { background-color: #010409; border-right: 1px solid #30363d; }
+h1, h2, h3, p { color: #00ffc3 !important; font-family: 'Courier New', monospace; }
+.block-container { padding-top: 0rem !important; padding-bottom: 1rem !important; }
+.stButton>button {
+    background-color: #21262d;
+    color: #00ffc3;
+    border: 1px solid #30363d;
+    border-radius: 5px;
+    width: 100%;
+}
+</style>
 """, unsafe_allow_html=True)
 
-# 3. INICIALIZACIÓN Y BOTÓN DE RESCATE
+# 3️⃣ SESSION STATE PARA NAVEGACIÓN
 if "menu_principal" not in st.session_state:
-    st.session_state["menu_principal"] = "📊 Monitoreo Total"
+    st.session_state.menu_principal = "📊 Monitoreo Total"
+if "volver_menu" not in st.session_state:
+    st.session_state.volver_menu = False
 
-if st.button("🚜 VOLVER AL PANEL PRINCIPAL"):
-    # Forzamos el valor del radio button en la memoria
-    st.session_state["menu_principal"] = "📊 Monitoreo Total"
-    st.rerun()
-# 4. CONEXIÓN A DATOS
-url = st.secrets["supabase_url"]
-key = st.secrets["supabase_key"]
-supabase = create_client(url, key)
-API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-
-# 5. OBTENCIÓN DE UBICACIÓN
-def obtener_posicion_dinamica():
-    try:
-        res = supabase.table("registros_lluvia").select("lat, lon").order("id", desc=True).limit(1).execute()
-        if res.data and res.data[0].get('lat'):
-            return float(res.data[0]['lat']), float(res.data[0]['lon'])
-    except: pass
-    return -38.298, -58.208 
-
-LAT, LON = obtener_posicion_dinamica()
-BITACORA_JSON = "bitacora.json"
-
-# 6. FUNCIONES CIENTÍFICAS
-def obtener_direccion_viento(grados):
-    val = int((grados / 22.5) + 0.5)
-    direcciones = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
-    return direcciones[val % 16]
-
-def calcular_punto_rocio(T, HR):
-    a, b = 17.27, 237.7
-    alpha = ((a * T) / (b + T)) + math.log(HR/100.0)
-    return round((b * alpha) / (a - alpha), 1)
-
-def calcular_gdc_diario(t_max, t_min, t_base=10):
-    return max(0, ((max(t_max, t_base) + max(t_min, t_base)) / 2) - t_base)
-
-@st.cache_data(ttl=600)
-def traer_datos(lat, lon):
-    try:
-        return requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es").json()
-    except: return None
-
-# 7. PROCESAMIENTO DE CLIMA
-r_raw = traer_datos(LAT, LON)
-if not r_raw:
-    st.error("🚨 ERROR: No se detecta respuesta meteorológica.")
-    st.stop()
-
-clima = {
-    "temp": r_raw["main"]["temp"],
-    "t_max": r_raw["main"]["temp_max"],
-    "t_min": r_raw["main"]["temp_min"],
-    "hum": r_raw["main"]["humidity"],
-    "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1),
-    "v_dir": r_raw["wind"]["deg"],
-    "desc": r_raw["weather"][0]["description"].capitalize(),
-    "presion": r_raw["main"].get("pressure", 1013.2)
-}
-
-t_dp = calcular_punto_rocio(clima['temp'], clima['hum'])
-gdc_hoy = calcular_gdc_diario(clima['t_max'], clima['t_min'])
-v_rumbo = obtener_direccion_viento(clima['v_dir'])
-
-# 8. SIDEBAR
+# 4️⃣ SIDEBAR
 with st.sidebar:
     st.markdown("## AG-TERMINAL v2.6")
-    # EL CAMBIO CLAVE ESTÁ AQUÍ (key="menu_principal")
+
+    # Botón “volver al panel principal”
+    if st.button("⬅️ VOLVER AL PANEL", use_container_width=True):
+        st.session_state.menu_principal = "📊 Monitoreo Total"
+        st.rerun()
+
+    # Menú lateral con radio buttons reflejando la sección actual
     menu = st.radio(
         "SISTEMAS",
-        ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+        ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro",
+         "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+        index=["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro",
+               "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
+              .index(st.session_state.menu_principal),
         key="menu_principal"
     )
-    
+
+    # Botón de soporte
+    numero_soporte = "5491154074144"
+    texto_wa = "Hola! Necesito asistencia técnica con AgroGuardian."
+    url_wa = f"https://wa.me/{numero_soporte}?text={texto_wa.replace(' ', '%20')}"
+    st.markdown(f"""
+        <a href="{url_wa}" target="_blank">
+            <button style="background-color:black; color:#00ffc3; border:1px solid #30363d; width:100%; border-radius:5px;">🆘 SOPORTE TÉCNICO</button>
+        </a>
+    """, unsafe_allow_html=True)
+
     if st.button("🔄 RE-SCAN"):
         st.rerun()
 
-# 9. LÓGICA DE PÁGINAS (Aquí sigue tu código de 'if menu == ...' igual que antes)
-if st.sidebar.button("⬅️ VOLVER AL PANEL", use_container_width=True):
-    st.session_state["menu_principal"] = "📊 Monitoreo Total"
-    st.rerun()
+# 5️⃣ LÓGICA DE PÁGINAS
+if menu == "📊 Monitoreo Total":
+    st.header("📊 MONITOREO TOTAL")
+    # Aquí va tu código de métricas, mapas, etc.
+    st.write("Contenido del monitoreo...")
+elif menu == "💧 Balance Hídrico":
+    st.header("💧 BALANCE HÍDRICO")
+    st.write("Contenido del balance hídrico...")
+elif menu == "🌧️ Pluviómetro":
+    st.header("🌧️ PLUVIÓMETRO")
+    st.write("Contenido del pluviómetro...")
+elif menu == "⛈️ Radar Granizo":
+    st.header("⛈️ RADAR GRANIZO")
+    st.write("Contenido del radar de granizo...")
+elif menu == "❄️ Análisis de Heladas":
+    st.header("❄️ ANÁLISIS DE HELADAS")
+    st.write("Contenido del análisis de heladas...")
+elif menu == "📝 Bitácora":
+    st.header("📝 BITÁCORA")
+    st.write("Contenido de la bitácora...")
 if menu == "📊 Monitoreo Total":
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("TEMPERATURA", f"{clima['temp']}°C")
