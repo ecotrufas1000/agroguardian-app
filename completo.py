@@ -7,26 +7,36 @@ import json
 import math
 import os 
 import streamlit as st
-
-# CSS TOTAL - Oculta todo rastro de Streamlit
+# CSS para ocultar TODO lo que marcaste en amarillo
 st.markdown("""
     <style>
-        /* 1. Ocultar el menú de hamburguesa (arriba a la derecha) */
-        #MainMenu {visibility: hidden;}
-        .stAppToolbar {display: none !important;}
-        
-        /* 2. Ocultar el footer (Made with Streamlit) */
-        footer {visibility: hidden;}
-        .stAppFooter {display: none !important;}
-        
-        /* 3. Ocultar la barra de decoración superior (la línea de color) */
-        header {visibility: hidden;}
-        .stAppHeader {display: none !important;}
+        /* Oculta la barra superior completa (GitHub, Menú, etc.) */
+        header[data-testid="stHeader"] {
+            display: none !important;
+        }
 
-        /* 4. Ajustar el espacio para que no quede un hueco arriba */
-        .block-container {padding-top: 0rem !important;}
+        /* Oculta el botón de Deploy y el menú de hamburguesa específicamente */
+        .stAppDeployButton, #MainMenu {
+            display: none !important;
+        }
+
+        /* Oculta el botón de "Manage App" de abajo a la derecha */
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+        }
+
+        /* Elimina el espacio blanco que queda arriba al sacar el header */
+        .block-container {
+            padding-top: 0rem !important;
+        }
+        
+        /* Oculta el footer por si acaso */
+        footer {
+            visibility: hidden !important;
+        }
     </style>
-""", unsafe_allow_html=True)# ==========================================================
+""", unsafe_allow_html=True)
+# ==========================================================
 # 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
 # ==========================================================
 url = st.secrets["supabase_url"]
