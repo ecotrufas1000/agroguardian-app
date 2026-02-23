@@ -10,30 +10,19 @@ import streamlit as st
 # CSS para ocultar TODO lo que marcaste en amarillo
 st.markdown("""
     <style>
-        /* Oculta la barra superior completa (GitHub, Menú, etc.) */
-        header[data-testid="stHeader"] {
-            display: none !important;
-        }
-
-        /* Oculta el botón de Deploy y el menú de hamburguesa específicamente */
-        .stAppDeployButton, #MainMenu {
-            display: none !important;
-        }
-
-        /* Oculta el botón de "Manage App" de abajo a la derecha */
-        [data-testid="stStatusWidget"] {
-            display: none !important;
-        }
-
-        /* Elimina el espacio blanco que queda arriba al sacar el header */
-        .block-container {
-            padding-top: 0rem !important;
-        }
+        /* 1. Oculta el Header (GitHub y menú superior) */
+        [data-testid="stHeader"] {display: none !important;}
         
-        /* Oculta el footer por si acaso */
-        footer {
-            visibility: hidden !important;
-        }
+        /* 2. Oculta el Footer (Made with Streamlit) */
+        footer {visibility: hidden !important;}
+
+        /* 3. ELIMINA LO QUE MARCASTE ABAJO A LA DERECHA */
+        /* Esto quita el botón de 'Manage app' y el estado del servidor */
+        [data-testid="stStatusWidget"] {display: none !important;}
+        .stStatusWidget {display: none !important;}
+        
+        /* 4. Limpieza extra de márgenes */
+        .block-container {padding-top: 0rem !important; padding-bottom: 0rem !important;}
     </style>
 """, unsafe_allow_html=True)
 # ==========================================================
