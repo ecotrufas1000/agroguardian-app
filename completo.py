@@ -10,19 +10,31 @@ import streamlit as st
 # CSS para ocultar TODO lo que marcaste en amarillo
 st.markdown("""
     <style>
-        /* 1. Oculta el Header (GitHub y menú superior) */
-        [data-testid="stHeader"] {display: none !important;}
-        
-        /* 2. Oculta el Footer (Made with Streamlit) */
+        /* --- GENERAL --- */
+        header, [data-testid="stHeader"] {visibility: hidden; display: none !important;}
         footer {visibility: hidden !important;}
-
-        /* 3. ELIMINA LO QUE MARCASTE ABAJO A LA DERECHA */
-        /* Esto quita el botón de 'Manage app' y el estado del servidor */
-        [data-testid="stStatusWidget"] {display: none !important;}
-        .stStatusWidget {display: none !important;}
         
-        /* 4. Limpieza extra de márgenes */
-        .block-container {padding-top: 0rem !important; padding-bottom: 0rem !important;}
+        /* --- CELULARES (Mobile) --- */
+        /* Oculta el botón de menú que aparece en móviles arriba a la izquierda/derecha */
+        [data-testid="stSidebarCollapsedControl"], .st-emotion-cache-198z5lh, .st-emotion-cache-16782it {
+            display: none !important;
+        }
+        
+        /* Oculta el icono de "ajustes" o el rayito que sale en móviles */
+        [data-testid="stStatusWidget"], [data-testid="stConnectionStatus"] {
+            display: none !important;
+        }
+
+        /* --- LIMPIEZA DE ESPACIOS --- */
+        .block-container {
+            padding-top: 0rem !important;
+            padding-bottom: 0rem !important;
+        }
+        
+        /* Esto evita que en el celular se pueda hacer scroll infinito hacia arriba */
+        .stApp {
+            margin-top: -50px;
+        }
     </style>
 """, unsafe_allow_html=True)
 # ==========================================================
