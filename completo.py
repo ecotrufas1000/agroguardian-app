@@ -6,8 +6,7 @@ import requests
 import json
 import math
 import os 
-import streamlit as st
-import streamlit as st
+
 
 st.set_page_config(
     page_title="AgroGuardian",
@@ -30,6 +29,13 @@ st.markdown("""
 .block-container {
     padding-top: 1rem;
     padding-bottom: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
+st.markdown("""
+<style>
+.block-container {
+    padding: 0rem 1rem;  /* Top/Bottom y Left/Right */
 }
 </style>
 """, unsafe_allow_html=True)
