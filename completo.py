@@ -6,15 +6,22 @@ import requests
 import json
 import math
 import os 
-# Ocultar íconos y marca de Streamlit
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
+# CSS Reforzado para ocultar todo rastro de Streamlit
+st.markdown("""
+    <style>
+        /* Oculta el menú de hamburguesa (arriba a la derecha) */
+        .stAppToolbar {visibility: hidden !important;}
+        
+        /* Oculta el footer (Made with Streamlit) */
+        footer {visibility: hidden !important;}
+        
+        /* Oculta la barra de decoración superior */
+        .stAppHeader {background: none !important; border: none !important;}
+        
+        /* OPCIONAL: Elimina el espacio extra arriba para que el menú AG quede pegado al borde */
+        .block-container {padding-top: 0rem !important;}
+    </style>
+""", unsafe_allow_html=True)
 # ==========================================================
 # 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
 # ==========================================================
