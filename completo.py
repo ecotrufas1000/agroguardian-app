@@ -433,3 +433,42 @@ elif menu == "📝 Bitácora":
             for uid, eventos in data.items():
                 for e in reversed(eventos[-15:]):
                     st.write(f"{e['fecha']} - {e['lote']} → {e['detalle']}")
+                    import datetime
+
+# --- PIE DE PÁGINA PROFESIONAL EN SIDEBAR ---
+st.sidebar.markdown("---")
+
+# 1. Indicador de Pulso del Sistema (Estilo Terminal)
+st.sidebar.markdown(
+    """
+    <div style='display: flex; align-items: center; gap: 8px; font-family: monospace;'>
+        <span style='height: 10px; width: 10px; background-color: #4eff4e; border-radius: 50%; display: inline-block; box-shadow: 0 0 5px #4eff4e;'></span>
+        <span style='color: #4eff4e; font-size: 12px;'>SISTEMA ACTIVO</span>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
+
+# 2. Fecha y Hora (Útil para saber si la app está congelada)
+fecha_actual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+st.sidebar.caption(f"📅 Sincronización: {fecha_actual}")
+
+# 3. Botón de Soporte Técnico
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+# Reemplaza el número 5491100000000 con tu número real (código de país + área + número)
+numero_soporte = "5491100000000" 
+texto_whatsapp = "Hola! Necesito asistencia técnica con el Bot AgroGuardian."
+url_wa = f"https://wa.me/{numero_soporte}?text={texto_whatsapp.replace(' ', '%20')}"
+
+st.sidebar.link_button("🆘 SOPORTE TÉCNICO", url_wa, use_container_width=True)
+
+# 4. Derechos Reservados
+st.sidebar.markdown(
+    """
+    <div style='font-family: monospace; font-size: 9px; color: gray; text-align: center; margin-top: 15px;'>
+        © 2026 AGRO-GUARDIAN TERMINAL<br>
+        PROPRIETARY SOFTWARE - V 1.2.0
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
