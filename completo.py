@@ -35,7 +35,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. BOTÓN DE RESCATE PARA CELULAR
+# 3. INICIALIZACIÓN Y BOTÓN DE RESCATE
+if "menu_principal" not in st.session_state:
+    st.session_state["menu_principal"] = "📊 Monitoreo Total"
+
 if st.button("🚜 VOLVER AL PANEL PRINCIPAL"):
     # Forzamos el valor del radio button en la memoria
     st.session_state["menu_principal"] = "📊 Monitoreo Total"
@@ -113,6 +116,9 @@ with st.sidebar:
         st.rerun()
 
 # 9. LÓGICA DE PÁGINAS (Aquí sigue tu código de 'if menu == ...' igual que antes)
+if st.sidebar.button("⬅️ VOLVER AL PANEL", use_container_width=True):
+    st.session_state["menu_principal"] = "📊 Monitoreo Total"
+    st.rerun()
 if menu == "📊 Monitoreo Total":
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("TEMPERATURA", f"{clima['temp']}°C")
