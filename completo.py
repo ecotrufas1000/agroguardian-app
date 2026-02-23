@@ -7,6 +7,24 @@ import json
 import math
 import os 
 import streamlit as st
+import streamlit as st
+
+st.set_page_config(
+    page_title="AgroGuardian",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+hide_streamlit_style = """
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .stDeployButton {display:none;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # ==========================================================
 # 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
 # ==========================================================
