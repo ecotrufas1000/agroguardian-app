@@ -34,8 +34,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. BOTÓN DE RESCATE PARA CELULAR (Aparece arriba de todo)
-if st.button("🚜 VOLVER AL INICIO"):
+# 3. BOTÓN DE RESCATE PARA CELULAR (Con reseteo de memoria)
+if st.button("🚜 VOLVER AL PANEL PRINCIPAL"):
+    # Borramos la selección del menú en la memoria de la app
+    for key in st.session_state.keys():
+        del st.session_state[key]
+    # Forzamos el reinicio limpio
     st.rerun()
 
 # 4. CONEXIÓN A DATOS
