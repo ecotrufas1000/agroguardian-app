@@ -7,158 +7,58 @@ import json
 import math
 import os 
 
-
-st.set_page_config(
-    page_title="AgroGuardian",
-    page_icon="🌱",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
-
-hide_streamlit_style = """
-    <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        .stDeployButton {display:none;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-st.markdown("""
-<style>
-.block-container {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-}
-</style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
-.block-container {
-    padding: 0rem 1rem;  /* Top/Bottom y Left/Right */
-}
-</style>
-""", unsafe_allow_html=True)
-# ==========================================================
-# 1. CONEXIÓN A DATOS (MOTOR) - ESTO VA PRIMERO
-# ==========================================================
-url = st.secrets["supabase_url"]
-key = st.secrets["supabase_key"]
-supabase = create_client(url, key)
-
-# Conexión a Clima
-API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-BITACORA_JSON = "bitacora.json"
-
-# ==========================================================
-# 2. OBTENCIÓN DE UBICACIÓN (ARRANQUE)
-# ==========================================================
-def obtener_posicion_dinamica():
-    try:
-        # Buscamos el último registro que tenga coordenadas válidas
-        res = supabase.table("registros_lluvia").select("lat, lon").order("id", desc=True).limit(1).execute()
-        
-        if res.data and res.data[0].get('lat'):
-            return float(res.data[0]['lat']), float(res.data[0]['lon'])
-    except Exception as e:
-        # Si algo falla, no bloqueamos la app
-        pass
-    
-    # Ubicación fija por defecto (Respaldo)
-    return -38.298, -58.208 
-
-# Asignamos las variables que usará el mapa y el clima
-LAT, LON = obtener_posicion_dinamica()
-BITACORA_JSON = "bitacora.json" # Definimos la variable para que no de error al final
-
-# ==========================================================
-# 2. CONFIGURACIÓN DE PÁGINA (Debe ir antes de cualquier st.markdown)
-# ==========================================================
+# 1. CONFIGURACIÓN ÚNICA (Debe ser lo primero)
 st.set_page_config(
     page_title="AgroGuardian Pro", 
     layout="wide", 
     initial_sidebar_state="expanded",
-    page_icon="🛰️"
+    page_icon="🚜"
 )
 
-# 3. Inyección de CSS para estética "Dark Terminal"
+# 2. CSS "BOMBA ATÓMICA" (Limpia PC y Celular)
 st.markdown("""
     <style>
-    .stApp { background-color: #0d1117; color: #c9d1d9; }
-    [data-testid="stSidebar"] { background-color: #010409; border-right: 1px solid #30363d; }
-    h1, h2, h3, p { color: #00ffc3 !important; font-family: 'Courier New', monospace; }
-    .terminal-header {
-        background-color: #161b22;
-        padding: 15px;
-        border-radius: 5px;
-        border-left: 5px solid #00ffc3;
-        font-family: 'Courier New', monospace;
-        color: #00ffc3;
-        margin-bottom: 20px;
-    }
-    [data-testid="stMetricValue"] { color: #00ffc3 !important; font-family: 'Courier New', monospace; }
-    .stButton>button { background-color: #21262d; color: #00ffc3; border: 1px solid #30363d; }
-    .stButton>button:hover { border-color: #00ffc3; box-shadow: 0px 0px 10px #00ffc3; }
+        header, [data-testid="stHeader"], footer {visibility: hidden; display: none !important;}
+        [data-testid="stStatusWidget"], .stDeployButton {display:none !important;}
+        .stApp { background-color: #0d1117; color: #c9d1d9; }
+        [data-testid="stSidebar"] { background-color: #010409; border-right: 1px solid #30363d; }
+        h1, h2, h3, p { color: #00ffc3 !important; font-family: 'Courier New', monospace; }
+        .block-container { padding-top: 0rem !important; padding-bottom: 1rem !important; }
+        .stButton>button {
+            background-color: #21262d;
+            color: #00ffc3;
+            border: 1px solid #30363d;
+            border-radius: 5px;
+            width: 100%;
+        }
     </style>
-    """, unsafe_allow_html=True)
-# 2. Inyección de CSS para estética "Dark Terminal"
-st.markdown("""
-    <style>
-    /* Fondo principal y de barra lateral */
-    .stApp {
-        background-color: #0d1117;
-        color: #c9d1d9;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #010409;
-        border-right: 1px solid #30363d;
-    }
-    
-    /* Estética de títulos y cabeceras */
-    h1, h2, h3, p {
-        color: #00ffc3 !important;
-        font-family: 'Courier New', Courier, monospace;
-    }
+""", unsafe_allow_html=True)
 
-    /* Estilo para el encabezado tipo Terminal */
-    .terminal-header {
-        background-color: #161b22;
-        padding: 15px;
-        border-radius: 5px;
-        border-left: 5px solid #00ffc3;
-        font-family: 'Courier New', Courier, monospace;
-        color: #00ffc3;
-        margin-bottom: 20px;
-    }
+# 3. BOTÓN DE RESCATE PARA CELULAR (Aparece arriba de todo)
+if st.button("🚜 VOLVER AL INICIO"):
+    st.rerun()
 
-    /* Personalización de métricas */
-    [data-testid="stMetricValue"] {
-        color: #00ffc3 !important;
-        font-family: 'Courier New', monospace;
-    }
-    
-    /* Botones estilo neón */
-    .stButton>button {
-        background-color: #21262d;
-        color: #00ffc3;
-        border: 1px solid #30363d;
-        border-radius: 5px;
-        transition: 0.3s;
-    }
-    .stButton>button:hover {
-        border-color: #00ffc3;
-        box-shadow: 0px 0px 10px #00ffc3;
-        color: #00ffc3;
-    }
-    
-    /* Líneas separadoras */
-    hr {
-        border: 0;
-        height: 1px;
-        background: #30363d;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# 4. CONEXIÓN A DATOS
+url = st.secrets["supabase_url"]
+key = st.secrets["supabase_key"]
+supabase = create_client(url, key)
+API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+
+# 5. OBTENCIÓN DE UBICACIÓN
+def obtener_posicion_dinamica():
+    try:
+        res = supabase.table("registros_lluvia").select("lat, lon").order("id", desc=True).limit(1).execute()
+        if res.data and res.data[0].get('lat'):
+            return float(res.data[0]['lat']), float(res.data[0]['lon'])
+    except: pass
+    return -38.298, -58.208 
+
+LAT, LON = obtener_posicion_dinamica()
+BITACORA_JSON = "bitacora.json"
+
+# ==========================================================
+# AQUÍ EMPIEZAN TUS FUNCIONES (No borres lo que sigue abajo)
+# ==========================================================
 
 # ==========================================================
 # 3. FUNCIONES CIENTÍFICAS
