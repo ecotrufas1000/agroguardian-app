@@ -238,7 +238,10 @@ with st.sidebar:
     )
     if st.button("🔄 RE-SCAN"):
         st.rerun()
-
+# Si el usuario está viendo datos, le damos un botón para volver rápido
+if st.sidebar.button("⬅️ VOLVER AL PANEL", use_container_width=True):
+    # Esto fuerza a la app a recargarse y volver al estado inicial
+    st.rerun()
 # ==========================================================
 # 6. PÁGINAS
 # ==========================================================
