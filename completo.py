@@ -32,9 +32,27 @@ h1, h2, h3, p { color: #00ffc3 !important; font-family: 'Courier New', monospace
 </style>
 """, unsafe_allow_html=True)
 
-# 3️⃣ SESSION STATE PARA NAVEGACIÓN
-if "menu_principal" not in st.session_state:
-    st.session_state.menu_principal = "📊 Monitoreo Total"
+# ===============================
+# NAVEGACIÓN SIMPLE Y ESTABLE
+# ===============================
+
+if "menu" not in st.session_state:
+    st.session_state.menu = "📊 Monitoreo Total"
+
+with st.sidebar:
+    st.title("AG-TERMINAL")
+
+    st.session_state.menu = st.radio(
+        "SISTEMAS",
+        ["📊 Monitoreo Total",
+         "💧 Balance Hídrico",
+         "🌧️ Pluviómetro",
+         "⛈️ Radar Granizo",
+         "❄️ Análisis de Heladas",
+         "📝 Bitácora"]
+    )
+
+menu = st.session_state.menu
 
 # 4️⃣ SIDEBAR
 with st.sidebar:
