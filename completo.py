@@ -110,15 +110,21 @@ with st.sidebar:
 # 4. PÁGINAS (PLUVIÓMETRO RESTAURADO)
 # ==========================================================
 
-if menu == "📊 Monitoreo Total":
-    c1, c2, c3 = st.columns(3)
-    c1.metric("TEMPERATURA", f"{clima['temp']}°C")
-    c2.metric("HUMEDAD", f"{clima['hum']}%")
-    c3.metric("VIENTO", f"{clima['v_vel']} km/h")
-    st.divider()
-    m = folium.Map(location=[LAT, LON], zoom_start=15)
-    folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
-    folium_static(m, width=700, height=400) 
+elif menu == "📊 Monitoreo Total":
+    st.header("📊 Tablero de Control Integral")
+    
+    # NO vuelvas a llamar a OpenWeather aquí. 
+    # Usamos la variable 'clima' que definimos arriba.
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Temperatura", f"{clima['temp']} °C")
+    with col2:
+        st.metric("Humedad", f"{clima['hum']} %")
+    with col3:
+        st.metric("Viento", f"{clima['v_vel']} km/h")
+    
+    # ... resto de tus gráficos de monitoreo
 elif menu == "🌧️ Pluviómetro":
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
