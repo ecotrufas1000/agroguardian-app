@@ -66,13 +66,13 @@ st.markdown("""
 # 1.5 CONEXIÓN A BASE DE DATOS (CRUCIAL PARA EL GPS)
 # ==========================================================
 # Reemplazá con tus datos de Supabase o usá st.secrets
-if 'supabase' not in locals():
-    try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-        supabase = create_client(url, key)
-    except Exception as e:
-        st.error("❌ Error de configuración: Faltan credenciales de Supabase en Secrets.")
+#if 'supabase' not in locals():
+#    try:
+#        url = st.secrets["SUPABASE_URL"]
+#        key = st.secrets["SUPABASE_KEY"]
+#        supabase = create_client(url, key)
+#    except Exception as e:
+#        st.error("❌ Error de configuración: Faltan credenciales de Supabase en Secrets.")
 # ==========================================================
 # 2. MOTOR DE UBICACIÓN Y CLIMA CIENTÍFICO (AUTÓNOMO)
 # ==========================================================
