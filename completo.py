@@ -130,10 +130,11 @@ elif menu == "🌧️ Pluviómetro":
 
             # --- CONFIGURACIÓN DE ESTILO PARA AMBOS GRÁFICOS ---
             estilo_grafico = dict(
-                paper_bgcolor='rgba(0,0,0,0)', # Fondo exterior transparente
-                plot_bgcolor='rgba(0,0,0,0)',  # Fondo interior transparente
-                font=dict(color="#00ffc3"),     # Texto en verde neón
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)',  
+                font=dict(color="#00ffc3"),     
                 dragmode=False,
+                hovermode='x unified', # <--- MUESTRA EL CARTELITO AL PASAR EL DEDO
                 height=350,
                 margin=dict(l=10, r=10, t=10, b=20)
             )
@@ -141,25 +142,32 @@ elif menu == "🌧️ Pluviómetro":
             # --- GRÁFICO 1: DIARIO ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
-            fig1.update_traces(marker_color='#1f77b4') 
+            fig1.update_traces(
+                marker_color='#1f77b4',
+                hovertemplate="Día %{x}<br>%{y} mm<extra></extra>" # <--- FORMATO DEL CARTELITO
+            ) 
             fig1.update_layout(
                 **estilo_grafico,
+                hoverlabel=dict(bgcolor="#0d1117", font_size=12, font_family="Courier New", font_color="#00ffc3"),
                 xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, tickangle=0, tickfont=dict(size=9), title=None),
-                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d") # Líneas de guía sutiles
+                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d")
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
             # --- GRÁFICO 2: ANUAL ---
             st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
-            fig2.update_traces(marker_color='#1f77b4')
+            fig2.update_traces(
+                marker_color='#1f77b4',
+                hovertemplate="Mes %{x}<br>%{y} mm<extra></extra>" # <--- FORMATO DEL CARTELITO
+            )
             fig2.update_layout(
                 **estilo_grafico,
+                hoverlabel=dict(bgcolor="#0d1117", font_size=12, font_family="Courier New", font_color="#00ffc3"),
                 xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, tickangle=0, tickfont=dict(size=10), title=None),
                 yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d")
             )
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
-
             st.divider()
             with st.expander("📂 ACCEDER A REGISTROS CRUDOS (PLANILLA)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
