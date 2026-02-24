@@ -121,7 +121,20 @@ clima = {
     "hum":   r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
     "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
     "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
-}# ==========================================================
+}
+# DEBUG TEMPORAL - borrá esto una vez que confirmes
+st.sidebar.markdown("---")
+st.sidebar.markdown("**🔍 DEBUG UBICACIÓN**")
+st.sidebar.write(f"LAT: {LAT}")
+st.sidebar.write(f"LON: {LON}")
+
+if r_raw:
+    st.sidebar.markdown("**🌡️ DEBUG CLIMA**")
+    st.sidebar.write(f"Ciudad: {r_raw.get('name', 'N/A')}")
+    st.sidebar.write(f"País: {r_raw.get('sys', {}).get('country', 'N/A')}")
+    st.sidebar.write(f"Temp: {clima['temp']} °C")
+    st.sidebar.write(f"Humedad: {clima['hum']} %")
+#==========================================================
 # 3. SIDEBAR
 # ==========================================================
 with st.sidebar:
