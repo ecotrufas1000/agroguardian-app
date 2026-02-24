@@ -48,29 +48,49 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
+# ==========================================================
 # 2. CONEXIÓN Y DATOS
 # ==========================================================
 url = "https://ieodzygauglvdkendvmj.supabase.co"
 key = "sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"
 supabase = create_client(url, key)
 API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-LAT, LON = -38.298, -58.208
+
+# --- NUEVA LÓGICA: BUSCAR GPS EN SUPABASE ---
+try:
+    # Traemos el último registro de la tabla configuración
+    res_gps = supabase.table("configuracion").select("latitud", "longitud").order("id", desc=True).limit(1).execute()
+    
+    if res_gps.data:
+        LAT = res_gps.data[0]['latitud']
+        LON = res_gps.data[0]['longitud']
+    else:
+        # Coordenadas por defecto si la tabla está vacía
+        LAT, LON = -38.298, -58.208 
+except Exception:
+    LAT, LON = -38.298, -58.208
 
 @st.cache_data(ttl=600)
 def traer_datos(lat, lon):
     try:
-        return requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es").json()
-    except: return None
+        res = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es")
+        return res.json()
+    except: 
+        return None
 
+# Llamada a los datos
 r_raw = traer_datos(LAT, LON)
-clima = {
-    "temp": r_raw["main"]["temp"] if r_raw else 0,
-    "hum": r_raw["main"]["humidity"] if r_raw else 0,
-    "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw else 0,
-    "v_dir": r_raw["wind"]["deg"] if r_raw else 0
-}
 
-# ==========================================================
+# Guardamos en session_state para que el Balance Hídrico lo use después
+if r_raw:
+    st.session_state.clima_data = r_raw
+
+clima = {
+    "temp": r_raw["main"]["temp"] if r_raw and "main" in r_raw else 0,
+    "hum": r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
+    "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
+    "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
+}# ==========================================================
 # 3. SIDEBAR
 # ==========================================================
 with st.sidebar:
