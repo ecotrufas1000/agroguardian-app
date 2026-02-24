@@ -345,7 +345,7 @@ elif menu == "⛈️ Radar Granizo":
         
         vistas = {
             "Radar": "radar",
-            "Rayos": "thunder",
+            "Torm.Elect.": "thunder",
             "Nubes": "satellite"
         }
 
