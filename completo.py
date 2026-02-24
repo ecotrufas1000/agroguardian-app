@@ -95,7 +95,7 @@ if menu == "📊 Monitoreo Total":
     folium_static(m, width=700, height=400)
 
 elif menu == "🌧️ Pluviómetro":
-    st.markdown("### 🌧️ HYDRAULIC ANALYTICS")
+    st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
@@ -104,37 +104,60 @@ elif menu == "🌧️ Pluviómetro":
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'])
             
-            # Cálculos Temporales
-            df['año'] = df['fecha'].dt.year
-            df['mes'] = df['fecha'].dt.strftime('%b %Y')
+            # --- PROCESAMIENTO PARA GRÁFICOS ---
+            # 1. Gráfico Diario (Eventos individuales)
+            df_diario = df.copy()
             
+            # 2. Gráfico Mensual (Agrupado)
+            df_mensual = df.set_index('fecha').resample('M')['mm'].sum().reset_index()
+            df_mensual['mes_nombre'] = df_mensual['fecha'].dt.strftime('%b %Y')
+
+            # --- MÉTRICAS ---
             hoy = datetime.datetime.now()
             acum_mes = df[df['fecha'].dt.month == hoy.month]['mm'].sum()
             acum_año = df[df['fecha'].dt.year == hoy.year]['mm'].sum()
             
-            # Métricas Pro
-            col1, col2, col3 = st.columns(3)
-            col1.metric("MES ACTUAL", f"{acum_mes:.1f} mm")
-            col2.metric("ACUM. ANUAL", f"{acum_año:.1f} mm")
-            col3.metric("EVENTOS", f"{len(df)} registros")
-            
-            # Gráfico Histórico
-            st.subheader("📊 Distribución Temporal")
-            fig = px.bar(df, x='fecha', y='mm', template="plotly_dark", title="Registro de Eventos")
-            fig.update_traces(marker_color='#00ffc3')
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Tabla de Resumen Mensual
-            st.subheader("🗓️ Resumen Mensual")
-            resumen_mensual = df.groupby('mes')['mm'].sum().reset_index()
-            st.table(resumen_mensual)
-            
-            with st.expander("📝 Ver datos crudos"):
+            c1, c2, c3 = st.columns(3)
+            c1.metric("MES ACTUAL", f"{acum_mes:.1f} mm")
+            c2.metric("ACUM. ANUAL", f"{acum_año:.1f} mm")
+            c3.metric("MÁX. EVENTO", f"{df['mm'].max():.1f} mm")
+
+            st.divider()
+
+            # --- GRÁFICO 1: LLUVIA DIARIA (Barras Azules) ---
+            st.subheader("📅 Registro de Lluvias Diarias")
+            fig_diario = px.bar(
+                df_diario, 
+                x='fecha', 
+                y='mm', 
+                title="Milímetros por Evento",
+                template="plotly_dark",
+                labels={'mm': 'Milímetros', 'fecha': 'Día'}
+            )
+            fig_diario.update_traces(marker_color='#1f77b4') # Azul clásico
+            st.plotly_chart(fig_diario, use_container_width=True)
+
+            # --- GRÁFICO 2: LLUVIA MENSUAL ACUMULADA (Barras Azules) ---
+            st.subheader("📊 Acumulado por Mes")
+            fig_mensual = px.bar(
+                df_mensual, 
+                x='mes_nombre', 
+                y='mm', 
+                title="Suma Mensual de Precipitación",
+                template="plotly_dark",
+                labels={'mm': 'Total mm', 'mes_nombre': 'Mes'}
+            )
+            fig_mensual.update_traces(marker_color='#00d4ff') # Azul más brillante para el mensual
+            st.plotly_chart(fig_mensual, use_container_width=True)
+
+            # --- TABLA DE DATOS ---
+            with st.expander("📝 Listado Detallado de Registros"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
+                
         else:
-            st.info("No se encontraron datos en Supabase.")
+            st.info("No hay datos cargados para generar los gráficos.")
     except Exception as e:
-        st.error(f"Error cargando analíticas: {e}")
+        st.error(f"Error al generar analítica: {e}")
 
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Balance Hídrico")
