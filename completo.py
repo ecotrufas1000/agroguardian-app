@@ -130,7 +130,7 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # --- GRÁFICO 1: DIARIO (Estirado al Máximo) ---
+           # --- GRÁFICO 1: DIARIO (Ajuste de Margen Izquierdo) ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4') 
@@ -142,13 +142,20 @@ elif menu == "🌧️ Pluviómetro":
                     range=[0.5, 31.5], 
                     fixedrange=True,
                     tickangle=0,
-                    tickfont=dict(size=9) # Subimos a 9 para probar si el estiramiento ayudó
+                    tickfont=dict(size=9),
+                    title=None # Quitamos la palabra "dia" de abajo para ganar aire
                 ),
-                yaxis=dict(fixedrange=True, title="mm"),
+                yaxis=dict(
+                    fixedrange=True, 
+                    title=None, # Quitamos la palabra "mm" del costado
+                    ticksuffix=" ", # Un pequeño espacio después del número
+                    tickfont=dict(size=10)
+                ),
                 height=350,
                 dragmode=False,
-                bargap=0.15,  # Reducimos el espacio entre barras para dar aire a los números
-                margin=dict(l=5, r=5, t=10, b=10) # Márgenes mínimos para ganar ancho
+                bargap=0.1,  # Barras un poquito más anchas para que se alineen mejor con el número
+                margin=dict(l=10, r=5, t=10, b=20), # Bajamos el margen izquierdo (l) al mínimo
+                autosize=True
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
