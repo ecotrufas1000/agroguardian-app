@@ -10,6 +10,21 @@ import datetime
 import pandas as pd
 import plotly.express as px
 # ==========================================================
+# FUNCIONES DE CONVERSIÓN (DEBEN IR ARRIBA)
+# ==========================================================
+def grados_a_direccion(grados):
+    try:
+        val = int((grados / 22.5) + 0.5)
+        direcciones = [
+            "N", "NNE", "NE", "ENE", 
+            "E", "ESE", "SE", "SSE", 
+            "S", "SSO", "SO", "OSO", 
+            "O", "ONO", "NO", "NNO"
+        ]
+        return direcciones[(val % 16)]
+    except:
+        return "N/A"
+# ==========================================================
 # 1.5 CONEXIÓN A BASE DE DATOS
 # ==========================================================
 
