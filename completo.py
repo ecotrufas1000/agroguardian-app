@@ -118,11 +118,7 @@ elif menu == "🌧️ Pluviómetro":
             mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
             df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
-
-            # --- MÉTRICAS ---
-            acum_mes = mensual_sum[hoy.month]
-            acum_año = mensual_sum.sum()
-            
+            # --- MÉTRICAS DE CABECERA ---
             c1, c2, c3 = st.columns(3)
             c1.metric("ESTE MES", f"{acum_mes:.1f} mm")
             c2.metric("ANUAL", f"{acum_año:.1f} mm")
@@ -130,7 +126,7 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-           # --- GRÁFICO 1: DIARIO (Ajuste de Margen Izquierdo) ---
+            # --- GRÁFICO 1: DIARIO (1 al 31) ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4') 
@@ -143,33 +139,43 @@ elif menu == "🌧️ Pluviómetro":
                     fixedrange=True,
                     tickangle=0,
                     tickfont=dict(size=9),
-                    title=None # Quitamos la palabra "dia" de abajo para ganar aire
+                    title=None  # Quitamos etiqueta "dia"
                 ),
                 yaxis=dict(
                     fixedrange=True, 
-                    title=None, # Quitamos la palabra "mm" del costado
-                    ticksuffix=" ", # Un pequeño espacio después del número
+                    title=None, # Quitamos etiqueta "mm"
                     tickfont=dict(size=10)
                 ),
                 height=350,
                 dragmode=False,
-                bargap=0.1,  # Barras un poquito más anchas para que se alineen mejor con el número
-                margin=dict(l=10, r=5, t=10, b=20), # Bajamos el margen izquierdo (l) al mínimo
-                autosize=True
+                bargap=0.1,
+                margin=dict(l=10, r=10, t=10, b=20) # Margen izquierdo mínimo
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
-            # --- GRÁFICO 2: ANUAL ---
+            # --- GRÁFICO 2: ANUAL (E, F, M...) ---
+            # Aplicamos exactamente la misma estética que el gráfico 1
             st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
             fig2.update_traces(marker_color='#1f77b4')
             fig2.update_layout(
-                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, tickangle=0),
-                yaxis=dict(fixedrange=True, title="mm"),
+                xaxis=dict(
+                    fixedrange=True, 
+                    categoryorder='array', 
+                    categoryarray=meses_letras, 
+                    tickangle=0,
+                    tickfont=dict(size=10),
+                    title=None  # Quitamos etiqueta "Mes"
+                ),
+                yaxis=dict(
+                    fixedrange=True, 
+                    title=None, # Quitamos etiqueta "mm"
+                    tickfont=dict(size=10)
+                ),
                 height=350,
                 dragmode=False,
-                bargap=0.3, # Aquí podemos permitirnos más espacio porque son solo 12
-                margin=dict(l=5, r=5, t=10, b=10)
+                bargap=0.2, # Un poco más de aire entre meses (son solo 12)
+                margin=dict(l=10, r=10, t=10, b=20) # Margen igual al Gráfico 1
             )
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
