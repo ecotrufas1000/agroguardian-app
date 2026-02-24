@@ -155,7 +155,15 @@ if menu == "📊 Monitoreo Total":
         with col2: st.metric("Humedad Rel.", f"{clima['hum']} %")
         with col3: st.metric("Pto. de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
-
+def grados_a_direccion(grados):
+    val = int((grados / 22.5) + 0.5)
+    direcciones = [
+        "N", "NNE", "NE", "ENE", 
+        "E", "ESE", "SE", "SSE", 
+        "S", "SSO", "SO", "OSO", 
+        "O", "ONO", "NO", "NNO"
+    ]
+    return direcciones[(val % 16)]
         st.divider()
         c_a1, c_a2 = st.columns(2)
         with c_a1:
