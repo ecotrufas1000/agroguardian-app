@@ -316,10 +316,57 @@ elif menu == "💧 Balance Hídrico":
         st.error(f"Error en cálculo: {e}")
 
 elif menu == "⛈️ Radar Granizo":
+    st.header("⛈️ Monitor de Tormentas y Granizo")
+    
     if LAT and LON:
-        st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
-    else: st.warning("Requiere GPS")
+        # --- FILA DE INDICADORES DE RIESGO ---
+        c1, c2, c3 = st.columns(3)
+        
+        with c1:
+            # Lógica agronómica: Alta humedad + Alta temperatura = Energía para tormentas
+            riesgo = "ALTO" if clima['hum'] > 80 and clima['temp'] > 25 else "MEDIO" if clima['hum'] > 60 else "BAJO"
+            st.metric("Riesgo de Inestabilidad", riesgo, delta="Basado en Hum/Temp")
+        
+        with c2:
+            # La presión baja suele indicar la llegada de un frente de tormenta
+            st.metric("Presión Atmosférica", f"{clima['presion']} hPa")
+        
+        with c3:
+            st.metric("Punto de Rocío", f"{clima['rocio']} °C", help="A mayor punto de rocío, más combustible para la tormenta")
 
+        st.divider()
+
+        # --- SELECTOR DE CAPAS PARA EL RADAR ---
+        capa = st.segmented_control(
+            "Seleccionar Capa del Sensor:", 
+            options=["Radar", "Rayos", "Nubes"], 
+            default="Radar"
+        )
+        
+        vistas = {
+            "Radar": "radar",
+            "Rayos": "thunder",
+            "Nubes": "satellite"
+        }
+
+        # --- MAPA INTERACTIVO DINÁMICO ---
+        st.markdown(f"### 🛰️ Sensor Activo: {capa}")
+        
+        # Generamos la URL dinámica según la capa elegida
+        url_windy = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay={vistas[capa]}&product=radar&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
+        
+        st.components.v1.iframe(url_windy, height=600)
+        
+        # --- LEYENDA TÉCNICA ---
+        with st.expander("ℹ️ ¿Cómo leer el radar?"):
+            st.write("""
+            - **Colores Verdes/Azules:** Lluvia ligera o moderada.
+            - **Colores Rojos/Amarillos:** Tormentas fuertes, posible granizo pequeño.
+            - **Colores Púrpura/Blanco:** Celdas de granizo pesado o tormentas severas.
+            - **Capa de Rayos:** Las cruces brillantes indican actividad eléctrica en tiempo real.
+            """)
+    else:
+        st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
 elif menu == "❄️ Análisis de Heladas":
     if clima:
         st.metric("Riesgo Térmico", f"{clima['temp']}°C")
