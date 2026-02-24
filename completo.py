@@ -388,67 +388,68 @@ elif menu == "❄️ Análisis de Heladas":
 elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
     
-    # 1. FORMULARIO DE ENTRADA
-    with st.form("nueva_nota"):
-        st.subheader("Registrar Nueva Tarea")
-        col_t1, col_t2 = st.columns(2)
+    with st.form("nueva_nota", clear_on_submit=False):
+        st.subheader("Registrar Evento o Tarea")
+        c1, c2 = st.columns(2)
         
-        with col_t1:
-            tarea = st.selectbox("Tarea Realizada", ["Fumigación", "Siembra", "Cosecha", "Fertilización", "Monitoreo de Plagas", "Otro"])
-            lote = st.text_input("Identificación del Lote", placeholder="Ej: Lote Norte / Cuadro 4")
+        with c1:
+            # Agregamos Helada y Granizo al listado
+            tarea = st.selectbox("Evento/Tarea", [
+                "Fumigación", "Siembra", "Cosecha", 
+                "Fertilización", "Monitoreo", 
+                "❄️ Helada", "☄️ Granizo", "Otro"
+            ])
+            lote = st.text_input("Lote", placeholder="Ej: Lote Norte")
         
-        with col_t2:
-            st.info("ℹ️ El sistema registrará automáticamente el clima actual para el respaldo legal.")
-        
-        nota = st.text_area("Notas adicionales / Observaciones")
-        btn_guardar = st.form_submit_button("💾 GUARDAR EN BITÁCORA")
+        with c2:
+            # Si es Helada o Granizo, sugerimos poner la intensidad en la nota
+            if tarea == "❄️ Helada":
+                detalle_extra = st.selectbox("Intensidad de Helada", ["Leve (0° a -2°)", "Moderada (-2° a -4°)", "Fuerte (<-4°)"])
+            elif tarea == "☄️ Granizo":
+                detalle_extra = st.selectbox("Tamaño del Granizo", ["Pequeno (Arroz)", "Mediano (Uva)", "Grande (Huevo)"])
+            else:
+                detalle_extra = ""
+                
+            nota_adicional = st.text_area("Observaciones del evento", placeholder="Describa daños visibles o detalles...")
+
+        btn_guardar = st.form_submit_button("💾 GUARDAR Y GENERAR REPORTE")
         
         if btn_guardar:
             if lote and tarea:
                 try:
-                    # Preparamos los datos
-                    t_actual = clima['temp'] if clima else 0
-                    v_actual = clima['v_vel'] if clima else 0
+                    t_act = clima['temp'] if clima else 0
+                    v_act = clima['v_vel'] if clima else 0
                     
-                    nueva_entrada = {
-                        "tarea": tarea,
-                        "lote": lote,
-                        "nota": nota,
-                        "clima_temp": t_actual,
-                        "clima_viento": v_actual
+                    # Combinamos la nota con el detalle de intensidad si existe
+                    nota_final = f"[{detalle_extra}] {nota_adicional}" if detalle_extra else nota_adicional
+                    
+                    datos = {
+                        "tarea": tarea, 
+                        "lote": lote, 
+                        "nota": nota_final, 
+                        "clima_temp": t_act, 
+                        "clima_viento": v_act
                     }
                     
-                    # GUARDADO ÚNICO EN SUPABASE
-                    supabase.table("bitacora").insert(nueva_entrada).execute()
-                    st.success("✅ Registro guardado en la nube.")
+                    supabase.table("bitacora").insert(datos).execute()
+                    st.success(f"✅ ¡{tarea} registrada con éxito!")
                     
-                    # --- BOTÓN DE COMPARTIR POR WHATSAPP ---
-                    link_wa = generar_link_whatsapp(tarea, lote, t_actual, v_actual, nota)
+                    # Generar reporte para WhatsApp
+                    link_wa = generar_link_whatsapp(tarea, lote, t_act, v_act, nota_final)
                     
                     st.markdown(f"""
                         <a href="{link_wa}" target="_blank" style="text-decoration: none;">
-                            <div style="
-                                background-color: #25D366;
-                                color: white;
-                                padding: 12px;
-                                text-align: center;
-                                border-radius: 8px;
-                                font-weight: bold;
-                                margin-top: 15px;
-                                cursor: pointer;
-                            ">
-                                📲 ENVIAR REPORTE POR WHATSAPP
+                            <div style="background-color: #25D366; color: white; padding: 15px; text-align: center; border-radius: 10px; font-weight: bold; font-size: 18px; margin-top: 20px;">
+                                📲 INFORMAR SINIESTRO/EVENTO POR WA
                             </div>
                         </a>
                     """, unsafe_allow_html=True)
-                    
                 except Exception as e:
-                    st.error(f"Error técnico al guardar: {e}")
+                    st.error(f"Error: {e}")
             else:
-                st.warning("⚠️ Por favor, completá la tarea y el lote antes de guardar.")
+                st.warning("⚠️ Completá Lote y Evento.")
 
-    st.divider()
-    # 2. VISUALIZACIÓN DE REGISTROS
+    st.divider()    # 2. VISUALIZACIÓN DE REGISTROS
     st.subheader("📋 Historial de Actividades")
     try:
         res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
