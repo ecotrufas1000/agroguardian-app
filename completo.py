@@ -69,9 +69,7 @@ st.markdown("""
         /* Ocultar decoraciones innecesarias de Streamlit */
         header, footer, .stDeployButton {visibility: hidden !important; display: none !important;}
         
-        /* Línea divisora */
-        hr { border: 0.5px solid #30363d !important; }
-    </style>
+       
 """, unsafe_allow_html=True)
 
 # ==========================================================
