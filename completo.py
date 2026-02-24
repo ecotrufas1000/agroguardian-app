@@ -374,9 +374,62 @@ elif menu == "❄️ Análisis de Heladas":
         else: st.success("Sin riesgo")
 
 elif menu == "📝 Bitácora":
-    st.write("Módulo de bitácora activo.")
+    st.header("📝 Cuaderno de Campo Digital")
+    
+    # 1. FORMULARIO DE ENTRADA
+    with st.form("nueva_nota"):
+        st.subheader("Registrar Nueva Tarea")
+        col_t1, col_t2 = st.columns(2)
+        
+        with col_t1:
+            tarea = st.selectbox("Tarea Realizada", ["Fumigación", "Siembra", "Cosecha", "Fertilización", "Monitoreo de Plagas", "Otro"])
+            lote = st.text_input("Identificación del Lote", placeholder="Ej: Lote Norte / Cuadro 4")
+        
+        with col_t2:
+            st.info("ℹ️ El sistema registrará automáticamente el clima actual para el respaldo legal de la aplicación.")
+        
+        nota = st.text_area("Notas adicionales / Observaciones")
+        
+        btn_guardar = st.form_submit_button("💾 GUARDAR EN BITÁCORA")
+        
+        if btn_guardar:
+            if lote and tarea:
+                try:
+                    nueva_entrada = {
+                        "tarea": tarea,
+                        "lote": lote,
+                        "nota": nota,
+                        "clima_temp": clima['temp'] if clima else 0,
+                        "clima_viento": clima['v_vel'] if clima else 0
+                    }
+                    supabase.table("bitacora").insert(nueva_entrada).execute()
+                    st.success("✅ Registro guardado con éxito.")
+                except Exception as e:
+                    st.error(f"Error al guardar: {e}")
+            else:
+                st.warning("⚠️ Completá la tarea y el nombre del lote.")
 
-# --- FOOTER ---
-st.sidebar.divider()
-ahora_arg = datetime.datetime.now() - datetime.timedelta(hours=3)
-st.sidebar.markdown(f"<div style='text-align:center; color:#00ffc3; font-family:monospace;'>🛰️ ONLINE (GMT-3)<br>{ahora_arg.strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
+    st.divider()
+
+    # 2. VISUALIZACIÓN DE REGISTROS
+    st.subheader("📋 Historial de Actividades")
+    try:
+        res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
+        if res.data:
+            df_bit = pd.DataFrame(res.data)
+            df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+            
+            # Formateamos la tabla para que sea legible
+            st.dataframe(
+                df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']],
+                use_container_width=True,
+                column_config={
+                    "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
+                    "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f"),
+                    "nota": "Observaciones"
+                }
+            )
+        else:
+            st.info("No hay registros en la bitácora todavía.")
+    except:
+        st.error("No se pudo conectar con la tabla de bitácora.")
