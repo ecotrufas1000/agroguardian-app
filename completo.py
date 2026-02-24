@@ -123,17 +123,7 @@ if menu == "📊 Monitoreo Total":
     with col3:
         st.metric("Viento", f"{clima['v_vel']} km/h")
     
-    # Aquí podés seguir agregando tus gráficos...
-
-elif menu == "💧 Balance Hídrico":
-    # Aquí va el código de Blaney-Criddle que armamos antes
-    st.subheader("💧 Balance Hídrico")
-    # ... resto del código
-
-elif menu == "🌧️ Pluviómetro":
-    st.subheader("🌧️ Pluviómetro")
-    # ... resto del código
-elif menu == "🌧️ Pluviómetro":
+   
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
         import datetime
