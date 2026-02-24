@@ -9,7 +9,7 @@ import math
 import datetime
 
 # ==========================================================
-# 1. CONFIGURACIÓN BASE Y ESTILO TERMINAL (LIMPIO)
+# 1. CONFIGURACIÓN BASE Y ESTILO TERMINAL (FLECHA VERDE)
 # ==========================================================
 st.set_page_config(
     page_title="AgroGuardian Pro | Lab Terminal",
@@ -17,7 +17,7 @@ st.set_page_config(
     page_icon="🛰️"
 )
 
-# CSS que respeta iconos pero mantiene el modo negro/verde
+# CSS para forzar la visibilidad de la flecha en verde neón
 st.markdown("""
     <style>
         /* Fondo Principal */
@@ -32,14 +32,19 @@ st.markdown("""
             border-right: 1px solid #30363d;
         }
 
-        /* Color de los Iconos (Flecha) */
-        [data-testid="stHeader"] {
-            background-color: rgba(0,0,0,0) !important;
+        /* --- BOTÓN DE LA FLECHA EN VERDE NEÓN --- */
+        /* Forzamos el color de todos los botones del header (incluida la flecha) */
+        header [data-testid="stHeaderActionElements"] button, 
+        [data-testid="stSidebarCollapseIcon"],
+        .st-emotion-cache-6qob1r { 
+            color: #00ffc3 !important; 
+            fill: #00ffc3 !important;
         }
-        
-        /* Aseguramos que la flecha sea verde neón */
-        button[kind="header"] {
-            color: #00ffc3 !important;
+
+        /* Efecto de brillo para la flecha al pasar el mouse */
+        header button:hover {
+            border-color: #00ffc3 !important;
+            box-shadow: 0px 0px 10px #00ffc3 !important;
         }
 
         /* Textos y Títulos */
@@ -59,7 +64,7 @@ st.markdown("""
             background-color: #0d1117 !important;
         }
 
-        /* Eliminar pie de página de Streamlit */
+        /* Ocultar elementos innecesarios */
         footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
