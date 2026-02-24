@@ -97,6 +97,7 @@ clima = {
     "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
     "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
 }
+# ==========================================================
 # 3. SIDEBAR
 # ==========================================================
 with st.sidebar:
@@ -107,9 +108,11 @@ with st.sidebar:
     )
 
 # ==========================================================
-# 4. PÁGINAS (PLUVIÓMETRO RESTAURADO)
+# 4. PÁGINAS (ESTRUCTURA CORREGIDA)
 # ==========================================================
-elif menu == "📊 Monitoreo Total":  # <--- REVISÁ QUE TENGA LOS : AL FINAL
+
+# IMPORTANTE: El primer menú DEBE ser "if", no "elif"
+if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control Integral")
     
     col1, col2, col3 = st.columns(3)
@@ -118,9 +121,18 @@ elif menu == "📊 Monitoreo Total":  # <--- REVISÁ QUE TENGA LOS : AL FINAL
     with col2:
         st.metric("Humedad", f"{clima['hum']} %")
     with col3:
-        st.metric("Viento", f"{clima['v_vel']} km/h")    
-    # ... resto de tus gráficos de 
+        st.metric("Viento", f"{clima['v_vel']} km/h")
+    
+    # Aquí podés seguir agregando tus gráficos...
 
+elif menu == "💧 Balance Hídrico":
+    # Aquí va el código de Blaney-Criddle que armamos antes
+    st.subheader("💧 Balance Hídrico")
+    # ... resto del código
+
+elif menu == "🌧️ Pluviómetro":
+    st.subheader("🌧️ Pluviómetro")
+    # ... resto del código
 elif menu == "🌧️ Pluviómetro":
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
