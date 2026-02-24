@@ -49,39 +49,45 @@ st.markdown("""
 
 # ==========================================================
 # ==========================================================
-# 2. CONEXIÓN Y DATOS
+# 2. CONEXIÓN Y DATOS DINÁMICOS
 # ==========================================================
 url = "https://ieodzygauglvdkendvmj.supabase.co"
 key = "sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"
 supabase = create_client(url, key)
 API_KEY = st.secrets["OPENWEATHER_API_KEY"]
 
-# --- NUEVA LÓGICA: BUSCAR GPS EN SUPABASE ---
+# 1. Intentar leer GPS desde Supabase
 try:
-    # Traemos el último registro de la tabla configuración
-    res_gps = supabase.table("configuracion").select("latitud", "longitud").order("id", desc=True).limit(1).execute()
+    # Traemos el registro más reciente de la tabla configuracion
+    res_gps = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
     
-    if res_gps.data:
-        LAT = res_gps.data[0]['latitud']
-        LON = res_gps.data[0]['longitud']
+    if res_gps.data and len(res_gps.data) > 0:
+        LAT = float(res_gps.data[0]['latitud'])
+        LON = float(res_gps.data[0]['longitud'])
+        # st.sidebar.success(f"📍 GPS Activo: {LAT}, {LON}") # Debug para confirmar lectura
     else:
-        # Coordenadas por defecto si la tabla está vacía
+        # Valores de respaldo si la tabla está vacía
         LAT, LON = -38.298, -58.208 
-except Exception:
+        st.sidebar.warning("⚠️ Usando GPS por defecto")
+except Exception as e:
     LAT, LON = -38.298, -58.208
+    st.sidebar.error(f"Error base de datos: {e}")
 
-@st.cache_data(ttl=600)
+# 2. Función de clima (Quitamos el cache temporalmente para probar)
 def traer_datos(lat, lon):
     try:
-        res = requests.get(f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es")
-        return res.json()
-    except: 
+        query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
+        r = requests.get(query)
+        if r.status_code == 200:
+            return r.json()
+        return None
+    except:
         return None
 
-# Llamada a los datos
+# 3. Ejecución de llamada
 r_raw = traer_datos(LAT, LON)
 
-# Guardamos en session_state para que el Balance Hídrico lo use después
+# Guardamos en sesión para el Balance Hídrico
 if r_raw:
     st.session_state.clima_data = r_raw
 
@@ -90,7 +96,7 @@ clima = {
     "hum": r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
     "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
     "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
-}# ==========================================================
+}
 # 3. SIDEBAR
 # ==========================================================
 with st.sidebar:
