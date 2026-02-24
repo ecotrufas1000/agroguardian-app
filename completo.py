@@ -134,8 +134,13 @@ if menu == "📊 Monitoreo Total":
         import plotly.express as px
 
         # Llamada a Supabase
-        res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
-        
+        #res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
+        res = supabase.table("registros_lluvia").select("*").execute()
+
+        st.write("DEBUG RESULTADO SUPABASE:")
+        st.write(res)
+        st.write("DEBUG DATA:")
+        st.write(res.data)
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
             
