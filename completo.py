@@ -135,12 +135,12 @@ elif menu == "🌧️ Pluviómetro":
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
-            hoy = datetime.datetime.now()
+            hoy = datetime.datetime.now(datetime.timezone.utc)
 
             # ── MÉTRICAS RÁPIDAS ──────────────────────────────────────
             df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_año = df[df['fecha'].dt.year == hoy.year].copy()
-            df_7d  = df[df['fecha'] >= (hoy - datetime.timedelta(days=7))].copy()
+            df_7d = df[df['fecha'] >= (hoy - datetime.timedelta(days=7))].copy()
 
             acum_mes  = df_mes['mm'].sum()
             acum_año  = df_año['mm'].sum()
