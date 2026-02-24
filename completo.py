@@ -50,61 +50,70 @@ st.markdown("""
 # ==========================================================
 # ==========================================================
 # ==========================================================
-# 2. GEOLOCALIZACIÓN + CLIMA
 # ==========================================================
-# 2. GEOLOCALIZACIÓN + CLIMA
+# 2. GEOLOCALIZACIÓN + CLIMA (SIN VALORES FIJOS)
 # ==========================================================
 import streamlit.components.v1 as components
 
-# Leer coordenadas de la URL si ya fueron confirmadas
+# 1. Obtener parámetros de la URL (lo que viene del GPS)
 params = st.query_params
 
-try:
-    LAT = float(params["lat"])
-    LON = float(params["lon"])
-    st.sidebar.success(f"📍 {round(LAT,4)}, {round(LON,4)}")
-except:
-    LAT, LON = -38.298, -58.208
-    st.sidebar.warning("⚠️ Presioná el botón y luego CONFIRMAR")
+# Determinamos LAT y LON iniciales basándonos SOLO en la URL
+if "lat" in params and "lon" in params:
+    lat_url = float(params["lat"])
+    lon_url = float(params["lon"])
+    st.sidebar.success(f"📍 GPS Detectado: {round(lat_url,4)}")
+else:
+    lat_url = None
+    lon_url = None
+    st.sidebar.info("🛰️ Esperando detección de ubicación...")
 
-# Botón GPS
-components.html("""
-    <div style="font-family: monospace; color: #00ffc3; background: #0d1117; padding: 10px;">
+# 2. Inputs de Coordenadas (Se llenan si existe lat_url)
+col1, col2 = st.columns(2)
+with col1:
+    LAT = st.number_input("Latitud", value=lat_url, format="%.6f", placeholder="Esperando GPS...", key="lat_input")
+with col2:
+    LON = st.number_input("Longitud", value=lon_url, format="%.6f", placeholder="Esperando GPS...", key="lon_input")
+
+# 3. BOTÓN GPS (HTML/JS)
+components.html(f"""
+    <div style="font-family: monospace; color: #00ffc3; background: #0d1117; padding: 10px; border: 1px solid #30363d; border-radius: 8px;">
         <button onclick="getLocation()" style="
             background: #00ffc3; color: #0d1117; border: none; 
-            padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px;">
-            📍 DETECTAR MI UBICACIÓN
+            padding: 12px; cursor: pointer; font-weight: bold; border-radius: 4px; width: 100%; font-size: 14px;">
+            📍 OBTENER COORDENADAS DEL CAMPO
         </button>
-        <p id="status" style="color: #888; margin-top: 8px;">Presioná el botón para obtener tu ubicación</p>
-        <p id="coords" style="color: #00ffc3; font-size: 13px;"></p>
+        <p id="status" style="color: #888; margin-top: 8px; font-size: 12px; text-align: center;">Sensor: Inactivo</p>
+        <div id="coords"></div>
     </div>
 
     <script>
-        function getLocation() {
-            document.getElementById('status').innerText = '⏳ Buscando ubicación...';
+        function getLocation() {{
+            document.getElementById('status').innerText = '⏳ Conectando con satélites...';
             navigator.geolocation.getCurrentPosition(
-                function(pos) {
+                function(pos) {{
                     const lat = pos.coords.latitude.toFixed(6);
                     const lon = pos.coords.longitude.toFixed(6);
-                    document.getElementById('status').innerText = '✅ Ubicación detectada:';
+                    document.getElementById('status').innerText = '✅ SEÑAL ENCONTRADA';
                     document.getElementById('coords').innerHTML = 
-                        'LAT: ' + lat + '  |  LON: ' + lon + '<br><br>' +
-                        '<a href="?lat=' + lat + '&lon=' + lon + '" ' +
-                        'style="background:#00ffc3; color:#0d1117; padding:6px 14px; ' +
-                        'text-decoration:none; font-weight:bold; border-radius:4px;">' +
-                        '✅ CONFIRMAR Y CARGAR CLIMA</a>';
-                },
-                function(err) {
+                        '<a href="?lat=' + lat + '&lon=' + lon + '" target="_self" ' +
+                        'style="display:block; margin-top:10px; background:#ffffff; color:#0d1117; ' +
+                        'padding:10px; text-decoration:none; font-weight:bold; border-radius:4px; text-align:center; border: 2px solid #00ffc3;">' +
+                        'CONFIRMAR UBICACIÓN: ' + lat + '</a>';
+                }},
+                function(err) {{
                     document.getElementById('status').innerText = '❌ Error: ' + err.message;
-                },
-                {enableHighAccuracy: true, timeout: 10000}
+                }},
+                {{enableHighAccuracy: true, timeout: 10000}}
             );
-        }
+        }}
     </script>
-""", height=150)
+""", height=170)
 
-# Función clima
+# 4. Función de obtención de datos (SOLO si hay coordenadas)
 def traer_datos(lat, lon):
+    if lat is None or lon is None:
+        return None
     try:
         query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
         r = requests.get(query)
@@ -112,54 +121,24 @@ def traer_datos(lat, lon):
     except:
         return None
 
+# Ejecución
 r_raw = traer_datos(LAT, LON)
 
 if r_raw:
     st.session_state.clima_data = r_raw
-    st.sidebar.write(f"🌍 {r_raw.get('name','')}, {r_raw.get('sys',{}).get('country','')}")
-
-clima = {
-    "temp":  r_raw["main"]["temp"] if r_raw and "main" in r_raw else 0,
-    "hum":   r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
-    "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
-    "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
-}
-# Inputs de coordenadas (se rellenan solos con el botón o manualmente)
-col1, col2 = st.columns(2)
-with col1:
-    lat_input = st.text_input("Latitud", value="-38.298", key="lat_input")
-with col2:
-    lon_input = st.text_input("Longitud", value="-58.208", key="lon_input")
-
-try:
-    LAT = float(lat_input)
-    LON = float(lon_input)
-    st.sidebar.success(f"📍 {round(LAT,4)}, {round(LON,4)}")
-except:
-    LAT, LON = -38.298, -58.208
-    st.sidebar.warning("⚠️ Coordenadas inválidas, usando default")
-
-# Función clima
-def traer_datos(lat, lon):
-    try:
-        query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
-        r = requests.get(query)
-        return r.json() if r.status_code == 200 else None
-    except:
-        return None
-
-r_raw = traer_datos(LAT, LON)
-
-if r_raw:
-    st.session_state.clima_data = r_raw
-    st.sidebar.write(f"🌍 {r_raw.get('name','')}, {r_raw.get('sys',{}).get('country','')}")
-
-clima = {
-    "temp":  r_raw["main"]["temp"] if r_raw and "main" in r_raw else 0,
-    "hum":   r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
-    "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
-    "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
-}
+    clima = {
+        "temp":  r_raw["main"].get("temp", 0),
+        "hum":   r_raw["main"].get("humidity", 0),
+        "v_vel": round(r_raw["wind"].get("speed", 0) * 3.6, 1),
+        "v_dir": r_raw["wind"].get("deg", 0)
+    }
+    st.sidebar.write(f"🌍 **{r_raw.get('name','Zona Rural')}**")
+else:
+    clima = {"temp": 0, "hum": 0, "v_vel": 0, "v_dir": 0}
+    if LAT and LON:
+        st.warning("⚠️ Coordenadas recibidas pero sin respuesta del servidor de clima.")
+    else:
+        st.info("👆 Por favor, detectá tu ubicación para cargar los datos del lote.")
 #==========================================================
 # 3. SIDEBAR
 # ==========================================================
