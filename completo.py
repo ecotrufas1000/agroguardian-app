@@ -399,42 +399,44 @@ elif menu == "📝 Bitácora":
             lote = st.text_input("Identificación del Lote", placeholder="Ej: Lote Norte / Cuadro 4")
         
         with col_t2:
-            st.info("ℹ️ El sistema registrará automáticamente el clima actual para el respaldo legal de la aplicación.")
+            st.info("ℹ️ El sistema registrará automáticamente el clima actual para el respaldo legal.")
         
         nota = st.text_area("Notas adicionales / Observaciones")
-        
         btn_guardar = st.form_submit_button("💾 GUARDAR EN BITÁCORA")
         
         if btn_guardar:
             if lote and tarea:
                 try:
+                    # Preparamos los datos
+                    t_actual = clima['temp'] if clima else 0
+                    v_actual = clima['v_vel'] if clima else 0
+                    
                     nueva_entrada = {
                         "tarea": tarea,
                         "lote": lote,
                         "nota": nota,
-                        "clima_temp": clima['temp'] if clima else 0,
-                        "clima_viento": clima['v_vel'] if clima else 0
+                        "clima_temp": t_actual,
+                        "clima_viento": v_actual
                     }
-                    supabase.table("bitacora").insert(nueva_entrada).execute()
-                    st.success("✅ Registro guardado con éxito.")
-                    try:
-                    # ... (tu código de inserción en supabase)
-                    supabase.table("bitacora").insert(nueva_entrada).execute()
-                    st.success("✅ Registro guardado en base de datos.")
                     
-                    # --- NUEVO: BOTÓN DE COMPARTIR ---
-                    link_wa = generar_link_whatsapp(tarea, lote, clima['temp'], clima['v_vel'], nota)
+                    # GUARDADO ÚNICO EN SUPABASE
+                    supabase.table("bitacora").insert(nueva_entrada).execute()
+                    st.success("✅ Registro guardado en la nube.")
+                    
+                    # --- BOTÓN DE COMPARTIR POR WHATSAPP ---
+                    link_wa = generar_link_whatsapp(tarea, lote, t_actual, v_actual, nota)
                     
                     st.markdown(f"""
                         <a href="{link_wa}" target="_blank" style="text-decoration: none;">
                             <div style="
                                 background-color: #25D366;
                                 color: white;
-                                padding: 10px;
+                                padding: 12px;
                                 text-align: center;
-                                border-radius: 5px;
+                                border-radius: 8px;
                                 font-weight: bold;
-                                margin-top: 10px;
+                                margin-top: 15px;
+                                cursor: pointer;
                             ">
                                 📲 ENVIAR REPORTE POR WHATSAPP
                             </div>
@@ -442,14 +444,11 @@ elif menu == "📝 Bitácora":
                     """, unsafe_allow_html=True)
                     
                 except Exception as e:
-                    st.error(f"Error al guardar: {e}")
-                except Exception as e:
-                    st.error(f"Error al guardar: {e}")
+                    st.error(f"Error técnico al guardar: {e}")
             else:
-                st.warning("⚠️ Completá la tarea y el nombre del lote.")
+                st.warning("⚠️ Por favor, completá la tarea y el lote antes de guardar.")
 
     st.divider()
-
     # 2. VISUALIZACIÓN DE REGISTROS
     st.subheader("📋 Historial de Actividades")
     try:
