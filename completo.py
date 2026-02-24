@@ -100,6 +100,7 @@ elif menu == "🌧️ Pluviómetro":
         import pandas as pd
         import plotly.express as px
 
+        # 1. Recuperar datos
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
         if res.data:
@@ -108,16 +109,24 @@ elif menu == "🌧️ Pluviómetro":
             df['mm'] = pd.to_numeric(df['mm'])
             hoy = datetime.datetime.now()
 
+            # --- CÁLCULOS QUE FALTABAN (Definición de variables) ---
+            # Para el gráfico anual y acumulados
+            df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
+            mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
+            
+            # Variables de métricas
+            acum_mes = mensual_sum[hoy.month]
+            acum_año = mensual_sum.sum()
+
             # --- PROCESAMIENTO GRÁFICO 1: DIARIO (1 al 31) ---
             df_mes_actual = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_mes_actual['dia'] = df_mes_actual['fecha'].dt.day
             df_dia_fijo = df_mes_actual.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
 
             # --- PROCESAMIENTO GRÁFICO 2: ANUAL (E, F, M...) ---
-            df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
-            mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
             df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
+
             # --- MÉTRICAS DE CABECERA ---
             c1, c2, c3 = st.columns(3)
             c1.metric("ESTE MES", f"{acum_mes:.1f} mm")
@@ -126,60 +135,43 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # --- GRÁFICO 1: DIARIO (1 al 31) ---
+            # --- GRÁFICO 1: DIARIO (Estética Pulida) ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4') 
             fig1.update_layout(
-                xaxis=dict(
-                    tickmode='linear', 
-                    tick0=1, 
-                    dtick=1, 
-                    range=[0.5, 31.5], 
-                    fixedrange=True,
-                    tickangle=0,
-                    tickfont=dict(size=9),
-                    title=None  # Quitamos etiqueta "dia"
-                ),
-                yaxis=dict(
-                    fixedrange=True, 
-                    title=None, # Quitamos etiqueta "mm"
-                    tickfont=dict(size=10)
-                ),
+                xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, tickangle=0, tickfont=dict(size=9), title=None),
+                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10)),
                 height=350,
                 dragmode=False,
                 bargap=0.1,
-                margin=dict(l=10, r=10, t=10, b=20) # Margen izquierdo mínimo
+                margin=dict(l=10, r=10, t=10, b=20)
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
-            # --- GRÁFICO 2: ANUAL (E, F, M...) ---
-            # Aplicamos exactamente la misma estética que el gráfico 1
+            # --- GRÁFICO 2: ANUAL (Simétrico al Gráfico 1) ---
             st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
             fig2.update_traces(marker_color='#1f77b4')
             fig2.update_layout(
-                xaxis=dict(
-                    fixedrange=True, 
-                    categoryorder='array', 
-                    categoryarray=meses_letras, 
-                    tickangle=0,
-                    tickfont=dict(size=10),
-                    title=None  # Quitamos etiqueta "Mes"
-                ),
-                yaxis=dict(
-                    fixedrange=True, 
-                    title=None, # Quitamos etiqueta "mm"
-                    tickfont=dict(size=10)
-                ),
+                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, tickangle=0, tickfont=dict(size=10), title=None),
+                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10)),
                 height=350,
                 dragmode=False,
-                bargap=0.2, # Un poco más de aire entre meses (son solo 12)
-                margin=dict(l=10, r=10, t=10, b=20) # Margen igual al Gráfico 1
+                bargap=0.2,
+                margin=dict(l=10, r=10, t=10, b=20)
             )
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
             st.divider()
+            with st.expander("📂 ACCEDER A REGISTROS CRUDOS"):
+                st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
+
+        else:
+            st.info("🛰️ No se detectan registros en Supabase.")
+            
+    except Exception as e:
+        st.error(f"Error técnico detectado: {e}")            st.divider()
             with st.expander("📂 ACCEDER A REGISTROS CRUDA (PLANILLA)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
 
