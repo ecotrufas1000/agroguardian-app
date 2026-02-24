@@ -196,28 +196,39 @@ if menu == "📊 Monitoreo Total":
         st.info("📍 Vinculá el GPS para activar el monitoreo en tiempo real.")
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
+
     try:
         res = supabase.table("registros_lluvia").select("*").execute()
+
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
             hoy = datetime.datetime.now(datetime.timezone.utc)
 
+            # --- MÉTRICAS RÁPIDAS ---
             df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_año = df[df['fecha'].dt.year == hoy.year].copy()
-            df_7d = df[df['fecha'] >= (hoy - datetime.timedelta(days=7))].copy()
-
+            
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("💧 Este Mes", f"{df_mes['mm'].sum():.1f} mm")
-            c2.metric("📅 Últimos 7 días", f"{df_7d['mm'].sum():.1f} mm")
-            c3.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
-            c4.metric("⚡ Máx. en un día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
+            c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
+            c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
+            c4.metric("📊 Registros", f"{len(df)} eventos")
 
             st.divider()
-            estilo_grafico = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#00ffc3"), height=350)
             
-            st.subheader(f"📅 Registro Diario — {hoy.strftime('%B %Y')}")
+            # Estilo común para gráficos
+            estilo_grafico = dict(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#00ffc3"),
+                height=350,
+                margin=dict(l=10, r=10, t=30, b=20)
+            )
+
+            # --- GRÁFICO 1: DIARIO (Ya lo tenías, lo mantenemos) ---
+            st.subheader(f"📅 Detalle Diario — {hoy.strftime('%B %Y')}")
             df_mes['dia'] = df_mes['fecha'].dt.day
             df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
             fig1 = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
@@ -225,12 +236,56 @@ elif menu == "🌧️ Pluviómetro":
             fig1.update_layout(**estilo_grafico)
             st.plotly_chart(fig1, use_container_width=True)
 
-            # (Resto de tus gráficos de lluvia...)
-        else:
-            st.info("🛰️ No hay registros de lluvia cargados todavía.")
-    except Exception as e:
-        st.error(f"Error en Pluviómetro: {e}")
+            # --- GRÁFICO 2: MENSUAL ACUMULADO (AÑADIDO) ---
+            st.subheader(f"📊 Acumulado Mensual — Año {hoy.year}")
+            meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+            # Agrupar por mes (1-12)
+            mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
+            df_anual = pd.DataFrame({'Mes': meses_nombres, 'Prec_mm': mensual.values})
 
+            fig2 = px.bar(df_anual, x='Mes', y='Prec_mm', template="plotly_dark", 
+                          text_auto='.1f', title="Distribución de Lluvias por Mes")
+            fig2.update_traces(marker_color='#00ffc3', textposition="outside")
+            fig2.update_layout(**estilo_grafico)
+            st.plotly_chart(fig2, use_container_width=True)
+
+            
+
+            st.divider()
+
+            # --- BOTÓN PARA PLANILLA DE DATOS (AÑADIDO) ---
+            st.subheader("📂 Base de Datos Histórica")
+            with st.expander("VER PLANILLA DE REGISTROS COMPLETOS"):
+                # Limpiamos el DataFrame para mostrarlo lindo
+                df_display = df.copy()
+                df_display['fecha'] = df_display['fecha'].dt.strftime('%d/%m/%Y %H:%M')
+                df_display = df_display.sort_values('fecha', ascending=False)
+                
+                # Botón de descarga CSV
+                csv = df_display.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Descargar datos en Excel/CSV",
+                    data=csv,
+                    file_name=f'lluvias_agroguardian_{hoy.year}.csv',
+                    mime='text/csv',
+                )
+                
+                # Tabla interactiva
+                st.dataframe(
+                    df_display[['fecha', 'lote', 'mm']], 
+                    use_container_width=True,
+                    column_config={
+                        "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm"),
+                        "fecha": "Fecha de Registro",
+                        "lote": "Identificación Lote"
+                    }
+                )
+
+        else:
+            st.info("🛰️ No hay registros de lluvia cargados todavía en Supabase.")
+
+    except Exception as e:
+        st.error(f"Error al procesar los datos de lluvia: {e}")
 elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 CÁLCULO DE PRECISIÓN (Blaney-Criddle)")
     try:
