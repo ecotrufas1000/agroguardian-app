@@ -108,13 +108,8 @@ with st.sidebar:
     )
 
 # ==========================================================
-# 4. PÁGINAS (ESTRUCTURA CORREGIDA)
-# ==========================================================
-
-# ==========================================================
 # 4. PÁGINAS (ESTRUCTURA CORREGIDA Y BLINDADA)
 # ==========================================================
-
 if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control Integral")
     
@@ -214,8 +209,6 @@ if menu == "📊 Monitoreo Total":
         st.error(f"Error en analítica de lluvia: {e}")
 
 # Aquí seguirían los otros ELIF alineados con el IF de arriba
-elif menu == "💧 Balance Hídrico":
-    st.write("Sección de Balance...")
 
 elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 CÁLCULO DE PRECISIÓN (Blaney-Criddle)")
