@@ -109,20 +109,23 @@ with st.sidebar:
 # ==========================================================
 # 4. PÁGINAS (PLUVIÓMETRO RESTAURADO)
 # ==========================================================
-
 elif menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control Integral")
     
-    # NO vuelvas a llamar a OpenWeather aquí. 
-    # Usamos la variable 'clima' que definimos arriba.
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Temperatura", f"{clima['temp']} °C")
-    with col2:
-        st.metric("Humedad", f"{clima['hum']} %")
-    with col3:
-        st.metric("Viento", f"{clima['v_vel']} km/h")
+    # Usamos el diccionario 'clima' que ya definimos al inicio del código
+    if clima:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Temperatura", f"{clima['temp']} °C")
+        with col2:
+            st.metric("Humedad", f"{clima['hum']} %")
+        with col3:
+            st.metric("Viento", f"{clima['v_vel']} km/h")
+            
+        st.divider()
+        st.caption(f"📍 Datos obtenidos para la ubicación: {LAT}, {LON}")
+    else:
+        st.error("No se pudieron cargar los datos del clima. Verifique la conexión.")
     
     # ... resto de tus gráficos de monitoreo
 elif menu == "🌧️ Pluviómetro":
