@@ -50,67 +50,51 @@ st.markdown("""
 # ==========================================================
 # ==========================================================
 # ==========================================================
-# 2. CONEXIÓN Y DATOS DINÁMICOS
 # ==========================================================
-url = "https://ieodzygauglvdkendvmj.supabase.co"
-key = "sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"
-supabase = create_client(url, key)
-API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-
-# 1. JS que pide ubicación al navegador y redirige con ?lat=&lon=
+# 2. GEOLOCALIZACIÓN + CLIMA
+# ==========================================================
 import streamlit.components.v1 as components
+
+# JS que captura GPS y recarga con coordenadas en la URL
 components.html("""
     <script>
-        if (!window.parent.location.search.includes('lat=')) {
+        const params = new URLSearchParams(window.parent.location.search);
+        if (!params.has('lat')) {
             navigator.geolocation.getCurrentPosition(
                 function(pos) {
-                    const lat = pos.coords.latitude.toFixed(6);
-                    const lon = pos.coords.longitude.toFixed(6);
-                    const base = window.parent.location.href.split('?')[0];
-                    window.parent.location.href = base + '?lat=' + lat + '&lon=' + lon;
+                    params.set('lat', pos.coords.latitude.toFixed(6));
+                    params.set('lon', pos.coords.longitude.toFixed(6));
+                    window.parent.location.search = params.toString();
                 },
-                function(err) { console.log('GPS denegado:', err.message); }
+                function(err) {
+                    console.warn('GPS denegado');
+                },
+                {enableHighAccuracy: true, timeout: 8000}
             );
         }
     </script>
-""", height=0)
+""", height=1)
 
-# 2. Leer coordenadas: primero GPS del dispositivo, luego Supabase, luego default
+# Leer coordenadas de la URL
 params = st.query_params
 
 if "lat" in params and "lon" in params:
-    try:
-        LAT = float(params["lat"])
-        LON = float(params["lon"])
-        st.sidebar.success(f"📍 GPS Dispositivo: {round(LAT,4)}, {round(LON,4)}")
-    except:
-        LAT, LON = -38.298, -58.208
+    LAT = float(params["lat"])
+    LON = float(params["lon"])
+    st.sidebar.success(f"📍 {round(LAT,4)}, {round(LON,4)}")
 else:
-    try:
-        res_gps = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
-        if res_gps.data and len(res_gps.data) > 0:
-            LAT = float(res_gps.data[0]['latitud'])
-            LON = float(res_gps.data[0]['longitud'])
-            st.sidebar.info(f"📍 GPS Base de Datos: {LAT}, {LON}")
-        else:
-            LAT, LON = -38.298, -58.208
-            st.sidebar.warning("⚠️ Usando coordenadas por defecto")
-    except Exception as e:
-        LAT, LON = -38.298, -58.208
-        st.sidebar.error(f"Error base de datos: {e}")
+    st.sidebar.warning("⚠️ Esperando permiso de ubicación...")
+    LAT, LON = -38.298, -58.208
 
-# 3. Función de clima
+# Clima
 def traer_datos(lat, lon):
     try:
         query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
         r = requests.get(query)
-        if r.status_code == 200:
-            return r.json()
-        return None
+        return r.json() if r.status_code == 200 else None
     except:
         return None
 
-# 4. Ejecución
 r_raw = traer_datos(LAT, LON)
 
 if r_raw:
@@ -121,20 +105,7 @@ clima = {
     "hum":   r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
     "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
     "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
-}
-# DEBUG TEMPORAL - borrá esto una vez que confirmes
-st.sidebar.markdown("---")
-st.sidebar.markdown("**🔍 DEBUG UBICACIÓN**")
-st.sidebar.write(f"LAT: {LAT}")
-st.sidebar.write(f"LON: {LON}")
-
-if r_raw:
-    st.sidebar.markdown("**🌡️ DEBUG CLIMA**")
-    st.sidebar.write(f"Ciudad: {r_raw.get('name', 'N/A')}")
-    st.sidebar.write(f"País: {r_raw.get('sys', {}).get('country', 'N/A')}")
-    st.sidebar.write(f"Temp: {clima['temp']} °C")
-    st.sidebar.write(f"Humedad: {clima['hum']} %")
-#==========================================================
+}#==========================================================
 # 3. SIDEBAR
 # ==========================================================
 with st.sidebar:
