@@ -172,16 +172,23 @@ elif menu == "🌧️ Pluviómetro":
             
     except Exception as e:
         st.error(f"Error técnico detectado: {e}")         
-        st.divider()
+# --- CIERRE DE GRÁFICOS ---
+            st.divider()
+            
+            # El expander debe estar alineado con los st.plotly_chart anteriores
             with st.expander("📂 ACCEDER A REGISTROS CRUDA (PLANILLA)"):
-                st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
+                st.dataframe(
+                    df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), 
+                    use_container_width=True
+                )
 
         else:
+            # Este else pertenece al "if res.data:"
             st.info("🛰️ Esperando sincronización de datos...")
             
     except Exception as e:
-        st.error(f"Error en el sistema de analítica: {e}")
-
+        # Este except pertenece al "try:" inicial del módulo
+        st.error(f"Error en el sistema de analítica: {e}")        
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Balance Hídrico")
     kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
