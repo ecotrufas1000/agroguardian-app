@@ -171,7 +171,8 @@ elif menu == "🌧️ Pluviómetro":
             st.info("🛰️ No se detectan registros en Supabase.")
             
     except Exception as e:
-        st.error(f"Error técnico detectado: {e}")            st.divider()
+        st.error(f"Error técnico detectado: {e}")         
+        st.divider()
             with st.expander("📂 ACCEDER A REGISTROS CRUDA (PLANILLA)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
 
@@ -180,6 +181,7 @@ elif menu == "🌧️ Pluviómetro":
             
     except Exception as e:
         st.error(f"Error en el sistema de analítica: {e}")
+
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Balance Hídrico")
     kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
