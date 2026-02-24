@@ -52,33 +52,77 @@ st.markdown("""
 # ==========================================================
 # 2. GEOLOCALIZACIÓN + CLIMA
 # ==========================================================
+# 2. GEOLOCALIZACIÓN + CLIMA
+# ==========================================================
 import streamlit.components.v1 as components
 
-st.markdown("### 📍 Ubicación")
+# Leer coordenadas de la URL si ya fueron confirmadas
+params = st.query_params
 
-# Botón GPS + display de coordenadas
+try:
+    LAT = float(params["lat"])
+    LON = float(params["lon"])
+    st.sidebar.success(f"📍 {round(LAT,4)}, {round(LON,4)}")
+except:
+    LAT, LON = -38.298, -58.208
+    st.sidebar.warning("⚠️ Presioná el botón y luego CONFIRMAR")
+
+# Botón GPS
+components.html("""
+    <div style="font-family: monospace; color: #00ffc3; background: #0d1117; padding: 10px;">
+        <button onclick="getLocation()" style="
+            background: #00ffc3; color: #0d1117; border: none; 
+            padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px;">
+            📍 DETECTAR MI UBICACIÓN
+        </button>
+        <p id="status" style="color: #888; margin-top: 8px;">Presioná el botón para obtener tu ubicación</p>
+        <p id="coords" style="color: #00ffc3; font-size: 13px;"></p>
+    </div>
+
+    <script>
+        function getLocation() {
+            document.getElementById('status').innerText = '⏳ Buscando ubicación...';
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lon = pos.coords.longitude.toFixed(6);
+                    document.getElementById('status').innerText = '✅ Ubicación detectada:';
+                    document.getElementById('coords').innerHTML = 
+                        'LAT: ' + lat + '  |  LON: ' + lon + '<br><br>' +
+                        '<a href="?lat=' + lat + '&lon=' + lon + '" ' +
+                        'style="background:#00ffc3; color:#0d1117; padding:6px 14px; ' +
+                        'text-decoration:none; font-weight:bold; border-radius:4px;">' +
+                        '✅ CONFIRMAR Y CARGAR CLIMA</a>';
+                },
+                function(err) {
+                    document.getElementById('status').innerText = '❌ Error: ' + err.message;
+                },
+                {enableHighAccuracy: true, timeout: 10000}
+            );
+        }
     </script>
-""", height=120)
-// Reemplazá el bloque de script dentro del components.html por este:
-function getLocation() {
-    document.getElementById('status').innerText = '⏳ Buscando ubicación...';
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            const lat = pos.coords.latitude.toFixed(6);
-            const lon = pos.coords.longitude.toFixed(6);
-            document.getElementById('status').innerText = '✅ Ubicación detectada:';
-            document.getElementById('coords').innerHTML = 
-                'LAT: ' + lat + '  |  LON: ' + lon + '<br><br>' +
-                '<a href="?lat=' + lat + '&lon=' + lon + '" ' +
-                'style="background:#00ffc3; color:#0d1117; padding:6px 14px; ' +
-                'text-decoration:none; font-weight:bold; border-radius:4px;">'+
-                '✅ CONFIRMAR Y CARGAR CLIMA</a>';
-        },
-        function(err) {
-            document.getElementById('status').innerText = '❌ Error: ' + err.message;
-        },
-        {enableHighAccuracy: true, timeout: 10000}
-    );
+""", height=150)
+
+# Función clima
+def traer_datos(lat, lon):
+    try:
+        query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
+        r = requests.get(query)
+        return r.json() if r.status_code == 200 else None
+    except:
+        return None
+
+r_raw = traer_datos(LAT, LON)
+
+if r_raw:
+    st.session_state.clima_data = r_raw
+    st.sidebar.write(f"🌍 {r_raw.get('name','')}, {r_raw.get('sys',{}).get('country','')}")
+
+clima = {
+    "temp":  r_raw["main"]["temp"] if r_raw and "main" in r_raw else 0,
+    "hum":   r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
+    "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
+    "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
 }
 # Inputs de coordenadas (se rellenan solos con el botón o manualmente)
 col1, col2 = st.columns(2)
