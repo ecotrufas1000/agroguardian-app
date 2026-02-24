@@ -241,7 +241,9 @@ elif menu == "💧 Balance Hídrico":
             st.info(f"✅ **Consumo moderado:** La demanda hídrica hoy es de {etc:.2f} mm.")
 
     except Exception as e:
-        st.error(f"Error en el motor de cálculo: {e}")elif menu == "⛈️ Radar Granizo":
+        st.error(f"Error en el motor de cálculo: {e}")
+
+elif menu == "⛈️ Radar Granizo":
     st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
 
 elif menu == "❄️ Análisis de Heladas":
