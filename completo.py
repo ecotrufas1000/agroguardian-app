@@ -9,6 +9,10 @@ import math
 import datetime
 import pandas as pd
 import plotly.express as px
+import streamlit as st
+import requests
+from streamlit_js_eval import get_geolocation
+
 
 # ==========================================================
 # 1. CONFIGURACIÓN BASE Y ESTILO TERMINAL
@@ -47,13 +51,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ==========================================================
-# ==========================================================
-# ==========================================================
-# ==========================================================
-import streamlit as st
-import requests
-from streamlit_js_eval import get_geolocation
+# ===========================================
 
 # ==========================================================
 # 2. GEOLOCALIZACIÓN DIRECTA (SIN VENTANAS NUEVAS)
