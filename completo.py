@@ -155,28 +155,30 @@ if menu == "📊 Monitoreo Total":
         with col2: st.metric("Humedad Rel.", f"{clima['hum']} %")
         with col3: st.metric("Pto. de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
-def grados_a_direccion(grados):
-    val = int((grados / 22.5) + 0.5)
-    direcciones = [
-        "N", "NNE", "NE", "ENE", 
-        "E", "ESE", "SE", "SSE", 
-        "S", "SSO", "SO", "OSO", 
-        "O", "ONO", "NO", "NNO"
-    ]
-    return direcciones[(val % 16)]
-        st.divider()
+
+        st.divider() # <--- Estaba mal indentado antes
         c_a1, c_a2 = st.columns(2)
+        
         with c_a1:
             delta_t = round(clima['temp'] - clima['rocio'], 1)
             st.markdown(f"**Delta T (Pulverización):** `{delta_t}`")
-            if 2 <= delta_t <= 8: st.success("✅ CONDICIONES ÓPTIMAS")
-            else: st.warning("⚠️ PRECAUCIÓN: Delta T fuera de rango")
+            if 2 <= delta_t <= 8: 
+                st.success("✅ CONDICIONES ÓPTIMAS")
+            else: 
+                st.warning("⚠️ PRECAUCIÓN: Delta T fuera de rango")
+        
         with c_a2:
-            st.markdown(f"**Dirección:** `{clima['v_dir']}°` — " + 
-                       ("Norte ⬆️" if 315 <= clima['v_dir'] or clima['v_dir'] <= 45 else "Sur ⬇️" if 135 <= clima['v_dir'] <= 225 else "Lateral ➡️"))
+            # Ahora usamos la función que definimos arriba
+            dir_texto = grados_a_direccion(clima['v_dir'])
+            st.markdown(f"**Dirección:** `{dir_texto}` ({clima['v_dir']}°)")
+            
+            # Mantenemos tus flechas visuales
+            if 315 <= clima['v_dir'] or clima['v_dir'] <= 45: st.info("⬆️ Viento Norte")
+            elif 135 <= clima['v_dir'] <= 225: st.info("⬇️ Viento Sur")
+            else: st.info("➡️ Viento Lateral")
+            
     else:
         st.info("📍 Vinculá el GPS para activar el monitoreo en tiempo real.")
-
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
     try:
