@@ -417,6 +417,32 @@ elif menu == "📝 Bitácora":
                     }
                     supabase.table("bitacora").insert(nueva_entrada).execute()
                     st.success("✅ Registro guardado con éxito.")
+                    try:
+                    # ... (tu código de inserción en supabase)
+                    supabase.table("bitacora").insert(nueva_entrada).execute()
+                    st.success("✅ Registro guardado en base de datos.")
+                    
+                    # --- NUEVO: BOTÓN DE COMPARTIR ---
+                    link_wa = generar_link_whatsapp(tarea, lote, clima['temp'], clima['v_vel'], nota)
+                    
+                    st.markdown(f"""
+                        <a href="{link_wa}" target="_blank" style="text-decoration: none;">
+                            <div style="
+                                background-color: #25D366;
+                                color: white;
+                                padding: 10px;
+                                text-align: center;
+                                border-radius: 5px;
+                                font-weight: bold;
+                                margin-top: 10px;
+                            ">
+                                📲 ENVIAR REPORTE POR WHATSAPP
+                            </div>
+                        </a>
+                    """, unsafe_allow_html=True)
+                    
+                except Exception as e:
+                    st.error(f"Error al guardar: {e}")
                 except Exception as e:
                     st.error(f"Error al guardar: {e}")
             else:
