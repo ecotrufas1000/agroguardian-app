@@ -111,39 +111,55 @@ with st.sidebar:
 # 4. PÁGINAS (ESTRUCTURA CORREGIDA)
 # ==========================================================
 
-# IMPORTANTE: El primer menú DEBE ser "if", no "elif"
+# ==========================================================
+# 4. PÁGINAS (ESTRUCTURA CORREGIDA Y BLINDADA)
+# ==========================================================
+
 if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control Integral")
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Temperatura", f"{clima['temp']} °C")
-    with col2:
-        st.metric("Humedad", f"{clima['hum']} %")
-    with col3:
-        st.metric("Viento", f"{clima['v_vel']} km/h")
+    # 1. MÉTRICAS DE CLIMA (Aseguramos que 'clima' exista)
+    if 'clima' in locals() or 'clima' in globals():
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Temperatura", f"{clima.get('temp', 0)} °C")
+        with col2:
+            st.metric("Humedad", f"{clima.get('hum', 0)} %")
+        with col3:
+            st.metric("Viento", f"{clima.get('v_vel', 0)} km/h")
     
-   
+    st.divider()
+    
+    # 2. ANALÍTICA DE PRECIPITACIONES
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
+    
     try:
         import datetime
         import pandas as pd
         import plotly.express as px
 
+        # Llamada a Supabase
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
-        if res.data:
+        if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
+            
+            # Limpieza de datos (Clave para que no falle)
             df['fecha'] = pd.to_datetime(df['fecha'])
-            df['mm'] = pd.to_numeric(df['mm'])
+            df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
             hoy = datetime.datetime.now()
 
+            # Filtrado año actual
             df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
+            
+            # Agrupación mensual
             mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             
-            acum_mes = mensual_sum[hoy.month]
+            # Métricas rápidas
+            acum_mes = mensual_sum.get(hoy.month, 0)
             acum_año = mensual_sum.sum()
 
+            # Datos para gráficos
             df_mes_actual = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_mes_actual['dia'] = df_mes_actual['fecha'].dt.day
             df_dia_fijo = df_mes_actual.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
@@ -151,20 +167,21 @@ if menu == "📊 Monitoreo Total":
             meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
             df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
 
-            c1, c2, c3 = st.columns(3)
-            c1.metric("ESTE MES", f"{acum_mes:.1f} mm")
-            c2.metric("ANUAL", f"{acum_año:.1f} mm")
-            c3.metric("MÁX. DÍA", f"{df_mes_actual['mm'].max() if not df_mes_actual.empty else 0:.1f} mm")
+            # Mostrar Métricas
+            m1, m2, m3 = st.columns(3)
+            m1.metric("ESTE MES", f"{acum_mes:.1f} mm")
+            m2.metric("ANUAL", f"{acum_año:.1f} mm")
+            m3.metric("MÁX. DÍA", f"{df_mes_actual['mm'].max() if not df_mes_actual.empty else 0:.1f} mm")
 
             st.divider()
 
-           # --- CONFIGURACIÓN DE ESTILO PARA AMBOS GRÁFICOS ---
+            # Estilo de gráficos
             estilo_grafico = dict(
                 paper_bgcolor='rgba(0,0,0,0)', 
                 plot_bgcolor='rgba(0,0,0,0)',  
                 font=dict(color="#00ffc3"),     
                 dragmode=False,
-                hovermode='x', # <--- CAMBIAMOS 'x unified' por solo 'x' para que no dibuje la barra blanca
+                hovermode='x',
                 height=350,
                 margin=dict(l=10, r=10, t=10, b=20)
             )
@@ -172,51 +189,33 @@ if menu == "📊 Monitoreo Total":
             # --- GRÁFICO 1: DIARIO ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
-            
-            # Quitamos las líneas blancas (spikes) de raíz
+            fig1.update_traces(marker_color='#1f77b4', hovertemplate="<b>Día %{x}</b><br>%{y} mm<extra></extra>")
+            fig1.update_layout(**estilo_grafico, xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, title=None))
             fig1.update_xaxes(showspikes=False)
             fig1.update_yaxes(showspikes=False)
-
-            fig1.update_traces(
-                marker_color='#1f77b4',
-                hovertemplate="<b>Día %{x}</b><br>%{y} mm<extra></extra>" 
-            ) 
-            fig1.update_layout(
-                **estilo_grafico,
-                hoverlabel=dict(bgcolor="#161b22", font_size=13, font_family="Courier New", font_color="#00ffc3"),
-                xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, tickangle=0, tickfont=dict(size=9), title=None),
-                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d")
-            )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
             # --- GRÁFICO 2: ANUAL ---
             st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
-            
-            # Quitamos las líneas blancas aquí también
+            fig2.update_traces(marker_color='#1f77b4', hovertemplate="<b>Mes %{x}</b><br>%{y} mm<extra></extra>")
+            fig2.update_layout(**estilo_grafico, xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, title=None))
             fig2.update_xaxes(showspikes=False)
             fig2.update_yaxes(showspikes=False)
-
-            fig2.update_traces(
-                marker_color='#1f77b4',
-                hovertemplate="<b>Mes %{x}</b><br>%{y} mm<extra></extra>"
-            )
-            fig2.update_layout(
-                **estilo_grafico,
-                hoverlabel=dict(bgcolor="#161b22", font_size=13, font_family="Courier New", font_color="#00ffc3"),
-                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, tickangle=0, tickfont=dict(size=10), title=None),
-                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d")
-            )
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
-            st.divider()
-            with st.expander("📂 ACCEDER A REGISTROS CRUDOS (PLANILLA)"):
+
+            with st.expander("📂 Ver Planilla de Registros"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
 
         else:
-            st.info("🛰️ Esperando sincronización de datos o sin registros...")
-            
+            st.info("🛰️ No hay registros de lluvia para mostrar.")
+
     except Exception as e:
-        st.error(f"Error en el sistema de analítica: {e}")
+        st.error(f"Error en analítica de lluvia: {e}")
+
+# Aquí seguirían los otros ELIF alineados con el IF de arriba
+elif menu == "💧 Balance Hídrico":
+    st.write("Sección de Balance...")
 
 elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 CÁLCULO DE PRECISIÓN (Blaney-Criddle)")
