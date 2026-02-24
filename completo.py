@@ -49,6 +49,7 @@ st.markdown("""
 
 # ==========================================================
 # ==========================================================
+# ==========================================================
 # 2. CONEXIÓN Y DATOS DINÁMICOS
 # ==========================================================
 url = "https://ieodzygauglvdkendvmj.supabase.co"
@@ -56,24 +57,49 @@ key = "sb_publishable_YS3LTJInGQZgxw0cZmTCZw_4rFz1Oaq"
 supabase = create_client(url, key)
 API_KEY = st.secrets["OPENWEATHER_API_KEY"]
 
-# 1. Intentar leer GPS desde Supabase
-try:
-    # Traemos el registro más reciente de la tabla configuracion
-    res_gps = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
-    
-    if res_gps.data and len(res_gps.data) > 0:
-        LAT = float(res_gps.data[0]['latitud'])
-        LON = float(res_gps.data[0]['longitud'])
-        # st.sidebar.success(f"📍 GPS Activo: {LAT}, {LON}") # Debug para confirmar lectura
-    else:
-        # Valores de respaldo si la tabla está vacía
-        LAT, LON = -38.298, -58.208 
-        st.sidebar.warning("⚠️ Usando GPS por defecto")
-except Exception as e:
-    LAT, LON = -38.298, -58.208
-    st.sidebar.error(f"Error base de datos: {e}")
+# 1. JS que pide ubicación al navegador y redirige con ?lat=&lon=
+import streamlit.components.v1 as components
+components.html("""
+    <script>
+        if (!window.parent.location.search.includes('lat=')) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lon = pos.coords.longitude.toFixed(6);
+                    const base = window.parent.location.href.split('?')[0];
+                    window.parent.location.href = base + '?lat=' + lat + '&lon=' + lon;
+                },
+                function(err) { console.log('GPS denegado:', err.message); }
+            );
+        }
+    </script>
+""", height=0)
 
-# 2. Función de clima (Quitamos el cache temporalmente para probar)
+# 2. Leer coordenadas: primero GPS del dispositivo, luego Supabase, luego default
+params = st.query_params
+
+if "lat" in params and "lon" in params:
+    try:
+        LAT = float(params["lat"])
+        LON = float(params["lon"])
+        st.sidebar.success(f"📍 GPS Dispositivo: {round(LAT,4)}, {round(LON,4)}")
+    except:
+        LAT, LON = -38.298, -58.208
+else:
+    try:
+        res_gps = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
+        if res_gps.data and len(res_gps.data) > 0:
+            LAT = float(res_gps.data[0]['latitud'])
+            LON = float(res_gps.data[0]['longitud'])
+            st.sidebar.info(f"📍 GPS Base de Datos: {LAT}, {LON}")
+        else:
+            LAT, LON = -38.298, -58.208
+            st.sidebar.warning("⚠️ Usando coordenadas por defecto")
+    except Exception as e:
+        LAT, LON = -38.298, -58.208
+        st.sidebar.error(f"Error base de datos: {e}")
+
+# 3. Función de clima
 def traer_datos(lat, lon):
     try:
         query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
@@ -84,20 +110,18 @@ def traer_datos(lat, lon):
     except:
         return None
 
-# 3. Ejecución de llamada
+# 4. Ejecución
 r_raw = traer_datos(LAT, LON)
 
-# Guardamos en sesión para el Balance Hídrico
 if r_raw:
     st.session_state.clima_data = r_raw
 
 clima = {
-    "temp": r_raw["main"]["temp"] if r_raw and "main" in r_raw else 0,
-    "hum": r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
+    "temp":  r_raw["main"]["temp"] if r_raw and "main" in r_raw else 0,
+    "hum":   r_raw["main"]["humidity"] if r_raw and "main" in r_raw else 0,
     "v_vel": round(r_raw["wind"]["speed"] * 3.6, 1) if r_raw and "wind" in r_raw else 0,
     "v_dir": r_raw["wind"]["deg"] if r_raw and "wind" in r_raw else 0
-}
-# ==========================================================
+}# ==========================================================
 # 3. SIDEBAR
 # ==========================================================
 with st.sidebar:
