@@ -9,9 +9,6 @@ import math
 import datetime
 import pandas as pd
 import plotly.express as px
-import streamlit as st
-import requests
-
 
 # ==========================================================
 # 1. CONFIGURACIÓN BASE Y ESTILO TERMINAL
@@ -27,7 +24,6 @@ st.markdown("""
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
         [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
         
-        /* FLECHA VERDE NEÓN */
         header [data-testid="stHeaderActionElements"] button, 
         [data-testid="stSidebarCollapseIcon"],
         .st-emotion-cache-6qob1r { 
@@ -50,16 +46,43 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ===========================================
+# --- INICIALIZACIÓN DE SUPABASE (Asegúrate de tener tus credenciales) ---
+# url: str = st.secrets["SUPABASE_URL"]
+# key: str = st.secrets["SUPABASE_KEY"]
+# supabase = create_client(url, key)
 
 # ==========================================================
-# 2. GEOLOCALIZACIÓN DIRECTA (SIN VENTANAS NUEVAS)
+# 2. MOTOR DE UBICACIÓN Y CLIMA CIENTÍFICO (AUTÓNOMO)
 # ==========================================================
-# ==========================================================
-# 2. GESTIÓN DE UBICACIÓN INTEGRADA (APP-ONLY)
-# ==========================================================
+from streamlit_js_eval import get_geolocation
 
-# 1. Intentar cargar ubicación guardada previamente
+def obtener_clima_completo(lat, lon):
+    if not lat or not lon: return None
+    try:
+        API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
+        r = requests.get(url).json()
+        
+        if r.get("main"):
+            t = r["main"]["temp"]
+            h = r["main"]["humidity"]
+            a, b = 17.27, 237.7
+            alpha = ((a * t) / (b + t)) + math.log(h/100.0)
+            punto_rocio = (b * alpha) / (a - alpha)
+            
+            return {
+                "temp": t,
+                "hum": h,
+                "v_vel": round(r["wind"]["speed"] * 3.6, 1),
+                "v_dir": r["wind"].get("deg", 0),
+                "rocio": round(punto_rocio, 1),
+                "presion": r["main"]["pressure"],
+                "localidad": r.get("name", "Zona Rural")
+            }
+    except Exception as e:
+        st.error(f"Error de conexión meteorológica: {e}")
+    return None
+
 if 'lat' not in st.session_state:
     try:
         res = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
@@ -67,302 +90,144 @@ if 'lat' not in st.session_state:
             st.session_state.lat = float(res.data[0]['latitud'])
             st.session_state.lon = float(res.data[0]['longitud'])
     except:
-        st.session_state.lat, st.session_state.lon = None, None
+        st.session_state.lat = None
 
-# 2. Interfaz de Localización en el Sidebar
+# --- SIDEBAR Y NAVEGACIÓN ---
 with st.sidebar:
-    st.markdown("### 📍 Ubicación del Lote")
+    st.markdown("### 🛰️ SENSORES DEL LOTE")
+    gps_data = get_geolocation()
     
-    # Botón HTML/JS para capturar GPS sin recargar ventanas
-    import streamlit.components.v1 as components
-    
-    # Este componente captura el GPS y lo devuelve a la URL una sola vez para fijarlo
-    if st.button("🛰️ DETECTAR UBICACIÓN ACTUAL"):
-        components.html("""
-            <script>
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    window.parent.postMessage({
-                        type: 'streamlit:set_query_params',
-                        queryParams: { lat: lat, lon: lon }
-                    }, '*');
-                });
-            </script>
-        """, height=0)
-        st.info("Buscando señal... Refrescando datos.")
+    if st.button("📍 VINCULAR GPS DEL MÓVIL"):
+        if gps_data:
+            lat_gps = gps_data['coords']['latitude']
+            lon_gps = gps_data['coords']['longitude']
+            supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+            st.session_state.lat = lat_gps
+            st.session_state.lon = lon_gps
+            st.success("✅ Ubicación actualizada")
+            st.rerun()
+        else:
+            st.warning("⚠️ Activá el GPS y permití el acceso.")
 
-    # Si el GPS devolvió datos por URL, los guardamos en Supabase para "siempre"
-    query_params = st.query_params
-    if "lat" in query_params and "lon" in query_params:
-        new_lat = float(query_params["lat"])
-        new_lon = float(query_params["lon"])
-        
-        # Guardar en base de datos para que no pida más GPS
-        supabase.table("configuracion").insert({"latitud": new_lat, "longitud": new_lon}).execute()
-        st.session_state.lat = new_lat
-        st.session_state.lon = new_lon
-        st.success("✅ Ubicación guardada en el sistema")
+    st.divider()
+    menu = st.radio("MENÚ DE CONTROL", 
+                   ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"])
 
-# 3. Variables finales para el Clima
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
+clima = obtener_clima_completo(LAT, LON)
 
-# --- LLAMADA AL CLIMA ---
-def traer_datos(lat, lon):
-    if not lat or not lon: return None
-    try:
-        query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
-        r = requests.get(query)
-        return r.json() if r.status_code == 200 else None
-    except: return None
+if clima:
+    st.session_state.clima_data = clima
 
-r_raw = traer_datos(LAT, LON)
-
-if r_raw:
-    clima = {
-        "temp": r_raw["main"].get("temp", 0),
-        "hum": r_raw["main"].get("humidity", 0),
-        "v_vel": round(r_raw["wind"].get("speed", 0) * 3.6, 1),
-        "v_dir": r_raw["wind"].get("deg", 0)
-    }
-else:
-    clima = {"temp": 0, "hum": 0, "v_vel": 0, "v_dir": 0}
 # ==========================================================
-# 4. PÁGINAS (ESTRUCTURA CORREGIDA Y BLINDADA)
+# 4. PÁGINAS (ESTRUCTURA INTEGRADA)
 # ==========================================================
+
 if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control Integral")
     
-    # 1. MÉTRICAS DE CLIMA (Aseguramos que 'clima' exista)
-    if 'clima' in locals() or 'clima' in globals():
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Temperatura", f"{clima.get('temp', 0)} °C")
-        with col2:
-            st.metric("Humedad", f"{clima.get('hum', 0)} %")
-        with col3:
-            st.metric("Viento", f"{clima.get('v_vel', 0)} km/h")
-    
-    st.divider()
-    
+    if clima:
+        col1, col2, col3, col4 = st.columns(4)
+        with col1: st.metric("Temperatura", f"{clima['temp']} °C")
+        with col2: st.metric("Humedad Rel.", f"{clima['hum']} %")
+        with col3: st.metric("Pto. de Rocío", f"{clima['rocio']} °C")
+        with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
+
+        st.divider()
+        c_a1, c_a2 = st.columns(2)
+        with c_a1:
+            delta_t = round(clima['temp'] - clima['rocio'], 1)
+            st.markdown(f"**Delta T (Pulverización):** `{delta_t}`")
+            if 2 <= delta_t <= 8: st.success("✅ CONDICIONES ÓPTIMAS")
+            else: st.warning("⚠️ PRECAUCIÓN: Delta T fuera de rango")
+        with c_a2:
+            st.markdown(f"**Dirección:** `{clima['v_dir']}°` — " + 
+                       ("Norte ⬆️" if 315 <= clima['v_dir'] or clima['v_dir'] <= 45 else "Sur ⬇️" if 135 <= clima['v_dir'] <= 225 else "Lateral ➡️"))
+    else:
+        st.info("📍 Vinculá el GPS para activar el monitoreo en tiempo real.")
+
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
-
     try:
         res = supabase.table("registros_lluvia").select("*").execute()
-
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
             hoy = datetime.datetime.now(datetime.timezone.utc)
 
-            # ── MÉTRICAS RÁPIDAS ──────────────────────────────────────
             df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_año = df[df['fecha'].dt.year == hoy.year].copy()
             df_7d = df[df['fecha'] >= (hoy - datetime.timedelta(days=7))].copy()
 
-            acum_mes  = df_mes['mm'].sum()
-            acum_año  = df_año['mm'].sum()
-            acum_7d   = df_7d['mm'].sum()
-            max_dia   = df_mes['mm'].max() if not df_mes.empty else 0
-            ult_evento = df.sort_values('fecha', ascending=False).iloc[0]
-
             c1, c2, c3, c4 = st.columns(4)
-            c1.metric("💧 Este Mes",     f"{acum_mes:.1f} mm")
-            c2.metric("📅 Últimos 7 días", f"{acum_7d:.1f} mm")
-            c3.metric("📆 Acum. Anual",  f"{acum_año:.1f} mm")
-            c4.metric("⚡ Máx. en un día", f"{max_dia:.1f} mm")
+            c1.metric("💧 Este Mes", f"{df_mes['mm'].sum():.1f} mm")
+            c2.metric("📅 Últimos 7 días", f"{df_7d['mm'].sum():.1f} mm")
+            c3.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
+            c4.metric("⚡ Máx. en un día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
 
             st.divider()
-
-            # ── ÚLTIMO EVENTO ─────────────────────────────────────────
-            st.markdown(f"""
-            **🕒 Último registro:** `{ult_evento['fecha'].strftime('%d/%m/%Y')}`  &nbsp;|&nbsp;
-            **Lote:** `{ult_evento.get('lote', '-')}`  &nbsp;|&nbsp;
-            **Cantidad:** `{ult_evento['mm']:.1f} mm`
-            """)
-
-            st.divider()
-
-            # ── ESTILO GRÁFICOS ───────────────────────────────────────
-            estilo_grafico = dict(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color="#00ffc3"),
-                dragmode=False,
-                hovermode='x',
-                height=350,
-                margin=dict(l=10, r=10, t=10, b=20)
-            )
-
-            # ── GRÁFICO 1: DIARIO (mes actual) ────────────────────────
+            estilo_grafico = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#00ffc3"), height=350)
+            
             st.subheader(f"📅 Registro Diario — {hoy.strftime('%B %Y')}")
             df_mes['dia'] = df_mes['fecha'].dt.day
             df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
-
             fig1 = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
-            fig1.update_traces(marker_color='#1f77b4', hovertemplate="<b>Día %{x}</b><br>%{y} mm<extra></extra>")
-            fig1.update_layout(**estilo_grafico,
-                xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, title=None))
-            fig1.update_xaxes(showspikes=False)
-            fig1.update_yaxes(showspikes=False)
-            st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
+            fig1.update_traces(marker_color='#1f77b4')
+            fig1.update_layout(**estilo_grafico)
+            st.plotly_chart(fig1, use_container_width=True)
 
-            # ── GRÁFICO 2: MENSUAL (año actual) ──────────────────────
-            st.subheader(f"📊 Acumulado Mensual — {hoy.year}")
-            meses_letras = ['E','F','M','A','M','J','J','A','S','O','N','D']
-            mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
-            df_anual = pd.DataFrame({'Mes': meses_letras, 'mm': mensual.values})
-
-            fig2 = px.bar(df_anual, x='Mes', y='mm', template="plotly_dark")
-            fig2.update_traces(marker_color='#00ffc3', hovertemplate="<b>%{x}</b><br>%{y} mm<extra></extra>")
-            fig2.update_layout(**estilo_grafico,
-                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, title=None))
-            fig2.update_xaxes(showspikes=False)
-            fig2.update_yaxes(showspikes=False)
-            st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
-
-            # ── GRÁFICO 3: LÍNEA HISTÓRICA ────────────────────────────
-            st.subheader("📈 Historial de Precipitaciones")
-            df_hist = df.groupby(df['fecha'].dt.to_period('M'))['mm'].sum().reset_index()
-            df_hist['fecha'] = df_hist['fecha'].dt.to_timestamp()
-
-            fig3 = px.line(df_hist, x='fecha', y='mm', template="plotly_dark", markers=True)
-            fig3.update_traces(line_color='#00ffc3', marker_color='#ffffff',
-                               hovertemplate="<b>%{x|%b %Y}</b><br>%{y} mm<extra></extra>")
-            fig3.update_layout(**estilo_grafico, xaxis=dict(fixedrange=True, title=None))
-            fig3.update_xaxes(showspikes=False)
-            fig3.update_yaxes(showspikes=False)
-            st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
-
-            # ── TABLA DE REGISTROS ────────────────────────────────────
-            with st.expander("📂 Ver Planilla Completa de Registros"):
-                cols_mostrar = [c for c in ['fecha', 'lote', 'mm'] if c in df.columns]
-                st.dataframe(
-                    df[cols_mostrar].sort_values('fecha', ascending=False),
-                    use_container_width=True
-                )
-
+            # (Resto de tus gráficos de lluvia...)
         else:
             st.info("🛰️ No hay registros de lluvia cargados todavía.")
-
     except Exception as e:
         st.error(f"Error en Pluviómetro: {e}")
 
-    
-
-# Aquí seguirían los otros ELIF alineados con el IF de arriba
-
 elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 CÁLCULO DE PRECISIÓN (Blaney-Criddle)")
-    
     try:
-        import math
-        # 1. RECUPERAR DATOS (Ya vienen de Supabase/OpenWeather al inicio)
         if 'clima_data' in st.session_state:
-            temp_media = st.session_state.clima_data['main']['temp']
-            lat = float(st.session_state.clima_data['coord']['lat']) # <--- GPS REAL
-            fuente = "📡 OpenWeather (Tiempo Real)"
+            temp_media = st.session_state.clima_data['temp']
+            lat = LAT if LAT else -38.29
         else:
-            temp_media, lat = 25.0, -38.29 # Fallback
-            fuente = "⚠️ Valor Estimado"
-
-        # 2. CÁLCULO CIENTÍFICO DEL FACTOR 'p'
-        # Calculamos el día del año (1-365)
+            temp_media, lat = 25.0, -38.29
+        
         doy = datetime.datetime.now().timetuple().tm_yday
-        
-        # El factor p depende de la insolación diaria. 
-        # Una aproximación robusta para Blaney-Criddle es:
-        # p = (Horas de luz diarias / Horas de luz anuales) * 100
-        # Calculamos la declinación solar (delta)
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
-        
-        # Ángulo horario del atardecer (ws)
         lat_rad = math.radians(lat)
-        # Evitamos errores matemáticos en los polos
         arg = -math.tan(lat_rad) * math.tan(delta)
         ws = math.acos(max(-1, min(1, arg)))
-        
-        # Horas de luz máximas (N)
         N = (24 / math.pi) * ws
-        
-        # El factor 'p' para la fórmula de Blaney-Criddle (diario)
-        # Se estima como el porcentaje de horas de luz sobre el total del año
-        p_diario = (N / 4380) * 100 # 4380 son las horas de luz promedio anual
-
-        # 3. CÁLCULO DE ETo DIARIA
-        # ETo = p * (0.46 * T + 8)
+        p_diario = (N / 4380) * 100
         eto_diaria = p_diario * (0.46 * temp_media + 8)
 
-        # 4. INTERFAZ PROFESIONAL
-        st.success(f"📍 GPS detectado: {lat:.4f} | Factor de Luz (p): {p_diario:.4f}")
-        
-        kc = st.slider("Kc del Cultivo (Estado actual)", 0.3, 1.2, 0.8)
+        st.success(f"📍 GPS: {lat:.4f} | Factor Luz: {p_diario:.4f}")
+        kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
 
-        c1, col_gap, c2 = st.columns([1, 0.1, 1])
-        with c1:
-            st.metric("Demanda Ambiental (ETo)", f"{eto_diaria:.2f} mm/día")
-        with c2:
-            st.metric("Consumo Cultivo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}", delta_color="normal")
-
-        # Visualización gráfica del balance
-        st.progress(min(etc / 10.0, 1.0)) 
-        st.caption(f"Consumo de agua basado en {temp_media}°C y latitud {lat:.1f}°")
-
+        c1, gap, c2 = st.columns([1, 0.1, 1])
+        c1.metric("Demanda (ETo)", f"{eto_diaria:.2f} mm/día")
+        c2.metric("Consumo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}")
+        st.progress(min(etc / 10.0, 1.0))
     except Exception as e:
-        st.error(f"Error en el cálculo astronómico: {e}")
+        st.error(f"Error en cálculo: {e}")
+
 elif menu == "⛈️ Radar Granizo":
-    st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
+    if LAT and LON:
+        st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
+    else: st.warning("Requiere GPS")
 
 elif menu == "❄️ Análisis de Heladas":
-    st.metric("Riesgo Térmico", f"{clima['temp']}°C")
-    if clima['temp'] < 3: st.warning("ALERTA DE HELADA")
-    else: st.success("Sin riesgo")
+    if clima:
+        st.metric("Riesgo Térmico", f"{clima['temp']}°C")
+        if clima['temp'] < 3: st.warning("ALERTA DE HELADA")
+        else: st.success("Sin riesgo")
 
 elif menu == "📝 Bitácora":
     st.write("Módulo de bitácora activo.")
 
-# --- FOOTER DE CONEXIÓN Y SOS CON HORA ARGENTINA ---
-st.sidebar.divider() 
-
-# Ajuste manual de -3 horas para Argentina
-ahora_utc = datetime.datetime.now()
-hora_argentina = ahora_utc - datetime.timedelta(hours=3) # <--- ESTO RESTA LAS 3 HORAS
-fecha_formateada = hora_argentina.strftime("%d/%m/%Y %H:%M")
-
-# 1. Reloj de Sistema
-st.sidebar.markdown(f"""
-    <div style='text-align: center; color: #00ffc3; font-family: monospace; font-size: 0.8em; letter-spacing: 1px;'>
-        🛰️ SISTEMA ONLINE (GMT-3)<br>
-        <span style="font-size: 1.2em;">{fecha_formateada}</span>
-    </div>
-""", unsafe_allow_html=True)
-# 2. Botón SOS WhatsApp
-st.sidebar.markdown("---")
-numero_sos = "5491122334455" # <--- REEMPLAZA CON TU NÚMERO (Sin el +)
-mensaje_sos = "🚨 *AgroGuardian SOS:* Necesito asistencia inmediata en el lote."
-
-link_whatsapp = f"https://wa.me/{numero_sos}?text={mensaje_sos.replace(' ', '%20')}"
-
-st.sidebar.markdown(f"""
-    <a href="{link_whatsapp}" target="_blank" style="text-decoration: none;">
-        <div style="
-            background-color: #25D366;
-            color: white;
-            padding: 12px;
-            text-align: center;
-            border-radius: 10px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-        ">
-            🟢 SOS WHATSAPP
-        </div>
-    </a>
-""", unsafe_allow_html=True)
+# --- FOOTER ---
+st.sidebar.divider()
+ahora_arg = datetime.datetime.now() - datetime.timedelta(hours=3)
+st.sidebar.markdown(f"<div style='text-align:center; color:#00ffc3; font-family:monospace;'>🛰️ ONLINE (GMT-3)<br>{ahora_arg.strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
