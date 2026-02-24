@@ -100,7 +100,6 @@ elif menu == "🌧️ Pluviómetro":
         import pandas as pd
         import plotly.express as px
 
-        # 1. Recuperar datos
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
         if res.data:
@@ -109,23 +108,19 @@ elif menu == "🌧️ Pluviómetro":
             df['mm'] = pd.to_numeric(df['mm'])
             hoy = datetime.datetime.now()
 
-            # --- CÁLCULOS ---
             df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
             mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             
             acum_mes = mensual_sum[hoy.month]
             acum_año = mensual_sum.sum()
 
-            # --- PROCESAMIENTO GRÁFICO 1: DIARIO (1 al 31) ---
             df_mes_actual = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_mes_actual['dia'] = df_mes_actual['fecha'].dt.day
             df_dia_fijo = df_mes_actual.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
 
-            # --- PROCESAMIENTO GRÁFICO 2: ANUAL (E, F, M...) ---
             meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
             df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
 
-            # --- MÉTRICAS DE CABECERA ---
             c1, c2, c3 = st.columns(3)
             c1.metric("ESTE MES", f"{acum_mes:.1f} mm")
             c2.metric("ANUAL", f"{acum_año:.1f} mm")
@@ -133,17 +128,24 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
+            # --- CONFIGURACIÓN DE ESTILO PARA AMBOS GRÁFICOS ---
+            estilo_grafico = dict(
+                paper_bgcolor='rgba(0,0,0,0)', # Fondo exterior transparente
+                plot_bgcolor='rgba(0,0,0,0)',  # Fondo interior transparente
+                font=dict(color="#00ffc3"),     # Texto en verde neón
+                dragmode=False,
+                height=350,
+                margin=dict(l=10, r=10, t=10, b=20)
+            )
+
             # --- GRÁFICO 1: DIARIO ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4') 
             fig1.update_layout(
+                **estilo_grafico,
                 xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, tickangle=0, tickfont=dict(size=9), title=None),
-                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10)),
-                height=350,
-                dragmode=False,
-                bargap=0.1,
-                margin=dict(l=10, r=10, t=10, b=20)
+                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d") # Líneas de guía sutiles
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
@@ -152,17 +154,14 @@ elif menu == "🌧️ Pluviómetro":
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
             fig2.update_traces(marker_color='#1f77b4')
             fig2.update_layout(
+                **estilo_grafico,
                 xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, tickangle=0, tickfont=dict(size=10), title=None),
-                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10)),
-                height=350,
-                dragmode=False,
-                bargap=0.2,
-                margin=dict(l=10, r=10, t=10, b=20)
+                yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d")
             )
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
             st.divider()
-            with st.expander("📂 ACCEDER A REGISTROS (PLANILLA)"):
+            with st.expander("📂 ACCEDER A REGISTROS CRUDOS (PLANILLA)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
 
         else:
