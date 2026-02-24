@@ -57,44 +57,29 @@ import streamlit.components.v1 as components
 st.markdown("### 📍 Ubicación")
 
 # Botón GPS + display de coordenadas
-components.html("""
-    <div style="font-family: monospace; color: #00ffc3; background: #0d1117; padding: 10px;">
-        <button onclick="getLocation()" style="
-            background: #00ffc3; color: #0d1117; border: none; 
-            padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px;">
-            📍 DETECTAR MI UBICACIÓN
-        </button>
-        <p id="status" style="color: #888; margin-top: 8px;">Presioná el botón para obtener tu ubicación</p>
-        <p id="coords" style="color: #00ffc3; font-size: 13px;"></p>
-    </div>
-
-    <script>
-        function getLocation() {
-            document.getElementById('status').innerText = '⏳ Buscando ubicación...';
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    const lat = pos.coords.latitude.toFixed(6);
-                    const lon = pos.coords.longitude.toFixed(6);
-                    document.getElementById('status').innerText = '✅ Ubicación detectada:';
-                    document.getElementById('coords').innerText = 'LAT: ' + lat + '  |  LON: ' + lon;
-                    // Actualiza los inputs de Streamlit
-                    const inputs = window.parent.document.querySelectorAll('input[type=text]');
-                    if (inputs.length >= 2) {
-                        inputs[0].value = lat;
-                        inputs[1].value = lon;
-                        inputs[0].dispatchEvent(new Event('input', {bubbles: true}));
-                        inputs[1].dispatchEvent(new Event('input', {bubbles: true}));
-                    }
-                },
-                function(err) {
-                    document.getElementById('status').innerText = '❌ Error: ' + err.message;
-                },
-                {enableHighAccuracy: true, timeout: 10000}
-            );
-        }
     </script>
 """, height=120)
-
+// Reemplazá el bloque de script dentro del components.html por este:
+function getLocation() {
+    document.getElementById('status').innerText = '⏳ Buscando ubicación...';
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            const lat = pos.coords.latitude.toFixed(6);
+            const lon = pos.coords.longitude.toFixed(6);
+            document.getElementById('status').innerText = '✅ Ubicación detectada:';
+            document.getElementById('coords').innerHTML = 
+                'LAT: ' + lat + '  |  LON: ' + lon + '<br><br>' +
+                '<a href="?lat=' + lat + '&lon=' + lon + '" ' +
+                'style="background:#00ffc3; color:#0d1117; padding:6px 14px; ' +
+                'text-decoration:none; font-weight:bold; border-radius:4px;">'+
+                '✅ CONFIRMAR Y CARGAR CLIMA</a>';
+        },
+        function(err) {
+            document.getElementById('status').innerText = '❌ Error: ' + err.message;
+        },
+        {enableHighAccuracy: true, timeout: 10000}
+    );
+}
 # Inputs de coordenadas (se rellenan solos con el botón o manualmente)
 col1, col2 = st.columns(2)
 with col1:
