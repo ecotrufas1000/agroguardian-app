@@ -93,7 +93,7 @@ if menu == "📊 Monitoreo Total":
     m = folium.Map(location=[LAT, LON], zoom_start=15)
     folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
     folium_static(m, width=700, height=400)
-    elif menu == "🌧️ Pluviómetro":
+elif menu == "🌧️ Pluviómetro":
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
         import datetime
