@@ -24,6 +24,19 @@ def grados_a_direccion(grados):
         return direcciones[(val % 16)]
     except:
         return "N/A"
+        import urllib.parse
+
+def generar_link_whatsapp(tarea, lote, temp, viento, nota):
+    texto = f"📝 *Reporte AgroGuardian Pro*\n\n"
+    texto += f"✅ *Tarea:* {tarea}\n"
+    texto += f"📍 *Lote:* {lote}\n"
+    texto += f"🌡️ *Condiciones:* {temp}°C | 💨 {viento} km/h\n"
+    if nota:
+        texto += f"📋 *Notas:* {nota}\n"
+    
+    # Codificar para URL
+    msg_encoded = urllib.parse.quote(texto)
+    return f"https://wa.me/?text={msg_encoded}"
 # ==========================================================
 # 1.5 CONEXIÓN A BASE DE DATOS
 # ==========================================================
