@@ -125,93 +125,112 @@ if menu == "📊 Monitoreo Total":
     
     st.divider()
     
-    # 2. ANALÍTICA DE PRECIPITACIONES
-    st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
-    
-    try:
-        import datetime
-        import pandas as pd
-        import plotly.express as px
+   elif menu == "🌧️ Pluviómetro":
+    st.header("🌧️ Pluviómetro Digital")
 
-        # Llamada a Supabase
-        #res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
+    try:
         res = supabase.table("registros_lluvia").select("*").execute()
 
-        st.write("DEBUG RESULTADO SUPABASE:")
-        st.write(res)
-        st.write("DEBUG DATA:")
-        st.write(res.data)
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
-            
-            # Limpieza de datos (Clave para que no falle)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
             hoy = datetime.datetime.now()
 
-            # Filtrado año actual
-            df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
-            
-            # Agrupación mensual
-            mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
-            
-            # Métricas rápidas
-            acum_mes = mensual_sum.get(hoy.month, 0)
-            acum_año = mensual_sum.sum()
+            # ── MÉTRICAS RÁPIDAS ──────────────────────────────────────
+            df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
+            df_año = df[df['fecha'].dt.year == hoy.year].copy()
+            df_7d  = df[df['fecha'] >= (hoy - datetime.timedelta(days=7))].copy()
 
-            # Datos para gráficos
-            df_mes_actual = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
-            df_mes_actual['dia'] = df_mes_actual['fecha'].dt.day
-            df_dia_fijo = df_mes_actual.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
+            acum_mes  = df_mes['mm'].sum()
+            acum_año  = df_año['mm'].sum()
+            acum_7d   = df_7d['mm'].sum()
+            max_dia   = df_mes['mm'].max() if not df_mes.empty else 0
+            ult_evento = df.sort_values('fecha', ascending=False).iloc[0]
 
-            meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
-            df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
-
-            # Mostrar Métricas
-            m1, m2, m3 = st.columns(3)
-            m1.metric("ESTE MES", f"{acum_mes:.1f} mm")
-            m2.metric("ANUAL", f"{acum_año:.1f} mm")
-            m3.metric("MÁX. DÍA", f"{df_mes_actual['mm'].max() if not df_mes_actual.empty else 0:.1f} mm")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("💧 Este Mes",     f"{acum_mes:.1f} mm")
+            c2.metric("📅 Últimos 7 días", f"{acum_7d:.1f} mm")
+            c3.metric("📆 Acum. Anual",  f"{acum_año:.1f} mm")
+            c4.metric("⚡ Máx. en un día", f"{max_dia:.1f} mm")
 
             st.divider()
 
-            # Estilo de gráficos
+            # ── ÚLTIMO EVENTO ─────────────────────────────────────────
+            st.markdown(f"""
+            **🕒 Último registro:** `{ult_evento['fecha'].strftime('%d/%m/%Y')}`  &nbsp;|&nbsp;
+            **Lote:** `{ult_evento.get('lote', '-')}`  &nbsp;|&nbsp;
+            **Cantidad:** `{ult_evento['mm']:.1f} mm`
+            """)
+
+            st.divider()
+
+            # ── ESTILO GRÁFICOS ───────────────────────────────────────
             estilo_grafico = dict(
-                paper_bgcolor='rgba(0,0,0,0)', 
-                plot_bgcolor='rgba(0,0,0,0)',  
-                font=dict(color="#00ffc3"),     
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#00ffc3"),
                 dragmode=False,
                 hovermode='x',
                 height=350,
                 margin=dict(l=10, r=10, t=10, b=20)
             )
 
-            # --- GRÁFICO 1: DIARIO ---
-            st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
-            fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
+            # ── GRÁFICO 1: DIARIO (mes actual) ────────────────────────
+            st.subheader(f"📅 Registro Diario — {hoy.strftime('%B %Y')}")
+            df_mes['dia'] = df_mes['fecha'].dt.day
+            df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
+
+            fig1 = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4', hovertemplate="<b>Día %{x}</b><br>%{y} mm<extra></extra>")
-            fig1.update_layout(**estilo_grafico, xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, title=None))
+            fig1.update_layout(**estilo_grafico,
+                xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, title=None))
             fig1.update_xaxes(showspikes=False)
             fig1.update_yaxes(showspikes=False)
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
-            # --- GRÁFICO 2: ANUAL ---
-            st.subheader(f"📊 Acumulado Mensual {hoy.year}")
-            fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
-            fig2.update_traces(marker_color='#1f77b4', hovertemplate="<b>Mes %{x}</b><br>%{y} mm<extra></extra>")
-            fig2.update_layout(**estilo_grafico, xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, title=None))
+            # ── GRÁFICO 2: MENSUAL (año actual) ──────────────────────
+            st.subheader(f"📊 Acumulado Mensual — {hoy.year}")
+            meses_letras = ['E','F','M','A','M','J','J','A','S','O','N','D']
+            mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
+            df_anual = pd.DataFrame({'Mes': meses_letras, 'mm': mensual.values})
+
+            fig2 = px.bar(df_anual, x='Mes', y='mm', template="plotly_dark")
+            fig2.update_traces(marker_color='#00ffc3', hovertemplate="<b>%{x}</b><br>%{y} mm<extra></extra>")
+            fig2.update_layout(**estilo_grafico,
+                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, title=None))
             fig2.update_xaxes(showspikes=False)
             fig2.update_yaxes(showspikes=False)
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
-            with st.expander("📂 Ver Planilla de Registros"):
-                st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
+            # ── GRÁFICO 3: LÍNEA HISTÓRICA ────────────────────────────
+            st.subheader("📈 Historial de Precipitaciones")
+            df_hist = df.groupby(df['fecha'].dt.to_period('M'))['mm'].sum().reset_index()
+            df_hist['fecha'] = df_hist['fecha'].dt.to_timestamp()
+
+            fig3 = px.line(df_hist, x='fecha', y='mm', template="plotly_dark", markers=True)
+            fig3.update_traces(line_color='#00ffc3', marker_color='#ffffff',
+                               hovertemplate="<b>%{x|%b %Y}</b><br>%{y} mm<extra></extra>")
+            fig3.update_layout(**estilo_grafico, xaxis=dict(fixedrange=True, title=None))
+            fig3.update_xaxes(showspikes=False)
+            fig3.update_yaxes(showspikes=False)
+            st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
+
+            # ── TABLA DE REGISTROS ────────────────────────────────────
+            with st.expander("📂 Ver Planilla Completa de Registros"):
+                cols_mostrar = [c for c in ['fecha', 'lote', 'mm'] if c in df.columns]
+                st.dataframe(
+                    df[cols_mostrar].sort_values('fecha', ascending=False),
+                    use_container_width=True
+                )
 
         else:
-            st.info("🛰️ No hay registros de lluvia para mostrar.")
+            st.info("🛰️ No hay registros de lluvia cargados todavía.")
 
     except Exception as e:
-        st.error(f"Error en analítica de lluvia: {e}")
+        st.error(f"Error en Pluviómetro: {e}")
+
+    
 
 # Aquí seguirían los otros ELIF alineados con el IF de arriba
 
