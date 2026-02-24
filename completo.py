@@ -55,56 +55,79 @@ st.markdown("""
 # ==========================================================
 # 2. GEOLOCALIZACIÓN DIRECTA (SIN VENTANAS NUEVAS)
 # ==========================================================
+# ==========================================================
+# 2. GESTIÓN DE UBICACIÓN INTEGRADA (APP-ONLY)
+# ==========================================================
 
-st.markdown("### 📍 UBICACIÓN DEL LOTE")
+# 1. Intentar cargar ubicación guardada previamente
+if 'lat' not in st.session_state:
+    try:
+        res = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
+        if res.data:
+            st.session_state.lat = float(res.data[0]['latitud'])
+            st.session_state.lon = float(res.data[0]['longitud'])
+    except:
+        st.session_state.lat, st.session_state.lon = None, None
 
-# Botón nativo de alta precisión
-loc = get_geolocation()
+# 2. Interfaz de Localización en el Sidebar
+with st.sidebar:
+    st.markdown("### 📍 Ubicación del Lote")
+    
+    # Botón HTML/JS para capturar GPS sin recargar ventanas
+    import streamlit.components.v1 as components
+    
+    # Este componente captura el GPS y lo devuelve a la URL una sola vez para fijarlo
+    if st.button("🛰️ DETECTAR UBICACIÓN ACTUAL"):
+        components.html("""
+            <script>
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    window.parent.postMessage({
+                        type: 'streamlit:set_query_params',
+                        queryParams: { lat: lat, lon: lon }
+                    }, '*');
+                });
+            </script>
+        """, height=0)
+        st.info("Buscando señal... Refrescando datos.")
 
-if loc:
-    LAT = loc['coords']['latitude']
-    LON = loc['coords']['longitude']
-    st.success(f"✅ Ubicación vinculada: {round(LAT,4)}, {round(LON,4)}")
-else:
-    # Si no hay GPS aún, dejamos que el usuario lo vea pero no bloqueamos
-    LAT, LON = None, None
-    st.info("Esperando señal de GPS... (Asegurate de dar permiso de ubicación)")
+    # Si el GPS devolvió datos por URL, los guardamos en Supabase para "siempre"
+    query_params = st.query_params
+    if "lat" in query_params and "lon" in query_params:
+        new_lat = float(query_params["lat"])
+        new_lon = float(query_params["lon"])
+        
+        # Guardar en base de datos para que no pida más GPS
+        supabase.table("configuracion").insert({"latitud": new_lat, "longitud": new_lon}).execute()
+        st.session_state.lat = new_lat
+        st.session_state.lon = new_lon
+        st.success("✅ Ubicación guardada en el sistema")
+
+# 3. Variables finales para el Clima
+LAT = st.session_state.get('lat')
+LON = st.session_state.get('lon')
 
 # --- LLAMADA AL CLIMA ---
 def traer_datos(lat, lon):
     if not lat or not lon: return None
     try:
-        API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         query = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
         r = requests.get(query)
         return r.json() if r.status_code == 200 else None
-    except:
-        return None
+    except: return None
 
 r_raw = traer_datos(LAT, LON)
 
-# --- DICCIONARIO DE DATOS ---
 if r_raw:
-    st.session_state.clima_data = r_raw
     clima = {
         "temp": r_raw["main"].get("temp", 0),
         "hum": r_raw["main"].get("humidity", 0),
         "v_vel": round(r_raw["wind"].get("speed", 0) * 3.6, 1),
         "v_dir": r_raw["wind"].get("deg", 0)
     }
-    st.sidebar.write(f"🌍 **{r_raw.get('name','Zona Rural')}**")
 else:
     clima = {"temp": 0, "hum": 0, "v_vel": 0, "v_dir": 0}
-#==========================================================
-# 3. SIDEBAR
-# ==========================================================
-with st.sidebar:
-    st.markdown("## AG-TERMINAL v2.6")
-    menu = st.radio(
-        "SISTEMAS",
-        ["📊 Monitoreo Total", "💧 Balance Hídrico", "🌧️ Pluviómetro", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
-    )
-
 # ==========================================================
 # 4. PÁGINAS (ESTRUCTURA CORREGIDA Y BLINDADA)
 # ==========================================================
