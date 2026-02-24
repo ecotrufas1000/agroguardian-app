@@ -24,8 +24,7 @@ def grados_a_direccion(grados):
         return direcciones[(val % 16)]
     except:
         return "N/A"
-        import urllib.parse
-
+import urllib.parse
 def generar_link_whatsapp(tarea, lote, temp, viento, nota):
     texto = f"📝 *Reporte AgroGuardian Pro*\n\n"
     texto += f"✅ *Tarea:* {tarea}\n"
