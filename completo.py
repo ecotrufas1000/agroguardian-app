@@ -162,7 +162,7 @@ elif menu == "🌧️ Pluviómetro":
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
             st.divider()
-            with st.expander("📂 ACCEDER A REGISTROS CRUDOS (PLANILLA)"):
+            with st.expander("📂 ACCEDER A REGISTROS (PLANILLA)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
 
         else:
