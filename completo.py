@@ -9,6 +9,11 @@ import math
 import datetime
 import pandas as pd
 import plotly.express as px
+st.set_page_config(
+    page_title="AGROGUARDIAN LAB v2.6",
+    page_icon="🚜",
+    layout="wide"
+)
 # ==========================================================
 # FUNCIONES DE CONVERSIÓN (DEBEN IR ARRIBA)
 # ==========================================================
@@ -157,7 +162,26 @@ with st.sidebar:
             st.rerun()
         else:
             st.warning("⚠️ Activá el GPS y permití el acceso.")
+# ==========================================================
+# IDENTIDAD VISUAL EN SIDEBAR
+# ==========================================================
+st.sidebar.markdown("""
+    <div style="
+        background-color: #1e1e1e; 
+        padding: 20px; 
+        border-radius: 10px; 
+        border: 1px solid #00ffc3; 
+        text-align: center; 
+        margin-bottom: 20px;
+        box-shadow: 0px 4px 15px rgba(0, 255, 195, 0.2);
+    ">
+        <h1 style="color: #00ffc3; margin: 0; font-size: 22px; letter-spacing: 2px;">AGROGUARDIAN</h1>
+        <p style="color: #ffffff; margin: 0; font-size: 12px; opacity: 0.8;">PRECISION LAB v2.6</p>
+    </div>
+""", unsafe_allow_html=True)
 
+# Aquí debajo debería ir tu selector actual:
+# menu = st.sidebar.selectbox("Seleccione Sección:", ["📊 Monitoreo Total", ...])
     st.divider()
     menu = st.radio("MENÚ DE CONTROL", 
                    ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"])
