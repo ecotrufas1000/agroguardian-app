@@ -9,6 +9,18 @@ import math
 import datetime
 import pandas as pd
 import plotly.express as px
+# ==========================================================
+# 1.5 CONEXIÓN A BASE DE DATOS
+# ==========================================================
+
+# Accedemos a las credenciales guardadas en Streamlit Cloud
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    st.error("🚨 Error: No se encontraron las credenciales 'SUPABASE_URL' y 'SUPABASE_KEY' en los Secrets de Streamlit.")
+    st.stop() # Detiene la app si no hay conexión, para evitar errores en cadena
 
 # ==========================================================
 # 1. CONFIGURACIÓN BASE Y ESTILO TERMINAL
