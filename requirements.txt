@@ -10,3 +10,4 @@ pyTelegramBotAPI
 google-generativeai
 flask
 python-dotenv
+streamlit-js-eval
