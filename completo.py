@@ -304,7 +304,7 @@ elif menu == "💧 Balance Hídrico":
         p_diario = (N / 4380) * 100
         eto_diaria = p_diario * (0.46 * temp_media + 8)
 
-        st.success(f"📍 GPS: {lat:.4f} | Factor Luz: {p_diario:.4f}")
+        st.success(f"📍 GPS: {lat:.4f} | Valor P : {p_diario:.4f}")
         kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
 
