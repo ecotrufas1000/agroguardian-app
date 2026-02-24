@@ -97,68 +97,74 @@ if menu == "📊 Monitoreo Total":
 elif menu == "🌧️ Pluviómetro":
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
+        import datetime
+        import pandas as pd
+        import plotly.express as px
+
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
         if res.data:
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'])
-            
-            # --- PROCESAMIENTO PARA GRÁFICOS ---
-            # 1. Gráfico Diario (Eventos individuales)
-            df_diario = df.copy()
-            
-            # 2. Gráfico Mensual (Agrupado)
-            df_mensual = df.set_index('fecha').resample('M')['mm'].sum().reset_index()
-            df_mensual['mes_nombre'] = df_mensual['fecha'].dt.strftime('%b %Y')
+            hoy = datetime.datetime.now()
+
+            # --- PROCESAMIENTO GRÁFICO 1: DIARIO (Mes Actual) ---
+            # Filtramos solo el mes y año actual
+            df_mes_actual = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
+            df_mes_actual['dia'] = df_mes_actual['fecha'].dt.day
+            # Agrupamos por día por si hay dos registros el mismo día
+            df_dia_fijo = df_mes_actual.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
+
+            # --- PROCESAMIENTO GRÁFICO 2: ANUAL ---
+            df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
+            # Sumamos por mes
+            mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
+            # Iniciales de los meses
+            meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+            df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
 
             # --- MÉTRICAS ---
-            hoy = datetime.datetime.now()
-            acum_mes = df[df['fecha'].dt.month == hoy.month]['mm'].sum()
-            acum_año = df[df['fecha'].dt.year == hoy.year]['mm'].sum()
+            acum_mes = mensual_sum[hoy.month]
+            acum_año = mensual_sum.sum()
             
             c1, c2, c3 = st.columns(3)
-            c1.metric("MES ACTUAL", f"{acum_mes:.1f} mm")
-            c2.metric("ACUM. ANUAL", f"{acum_año:.1f} mm")
-            c3.metric("MÁX. EVENTO", f"{df['mm'].max():.1f} mm")
+            c1.metric("ESTE MES", f"{acum_mes:.1f} mm")
+            c2.metric("ANUAL", f"{acum_año:.1f} mm")
+            c3.metric("REGISTROS", f"{len(df_mes_actual)}")
 
             st.divider()
 
-            # --- GRÁFICO 1: LLUVIA DIARIA (Barras Azules) ---
-            st.subheader("📅 Registro de Lluvias Diarias")
-            fig_diario = px.bar(
-                df_diario, 
-                x='fecha', 
-                y='mm', 
-                title="Milímetros por Evento",
-                template="plotly_dark",
-                labels={'mm': 'Milímetros', 'fecha': 'Día'}
+            # --- GRÁFICO 1: DIARIO (1 al 31) ---
+            st.subheader(f"📅 Lluvias de {hoy.strftime('%B')}")
+            fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
+            fig1.update_traces(marker_color='#1f77b4') # Azul
+            fig1.update_layout(
+                xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True),
+                yaxis=dict(fixedrange=True, title="mm"),
+                margin=dict(l=20, r=20, t=20, b=20),
+                height=300,
+                dragmode=False # Desactiva el zoom con el dedo
             )
-            fig_diario.update_traces(marker_color='#1f77b4') # Azul clásico
-            st.plotly_chart(fig_diario, use_container_width=True)
+            st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
-            # --- GRÁFICO 2: LLUVIA MENSUAL ACUMULADA (Barras Azules) ---
-            st.subheader("📊 Acumulado por Mes")
-            fig_mensual = px.bar(
-                df_mensual, 
-                x='mes_nombre', 
-                y='mm', 
-                title="Suma Mensual de Precipitación",
-                template="plotly_dark",
-                labels={'mm': 'Total mm', 'mes_nombre': 'Mes'}
+            # --- GRÁFICO 2: ANUAL (E F M...) ---
+            st.subheader(f"📊 Acumulado Anual {hoy.year}")
+            fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
+            fig2.update_traces(marker_color='#1f77b4') # Azul
+            fig2.update_layout(
+                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras),
+                yaxis=dict(fixedrange=True, title="mm"),
+                margin=dict(l=20, r=20, t=20, b=20),
+                height=300,
+                dragmode=False # Desactiva el zoom con el dedo
             )
-            fig_mensual.update_traces(marker_color='#00d4ff') # Azul más brillante para el mensual
-            st.plotly_chart(fig_mensual, use_container_width=True)
+            st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
-            # --- TABLA DE DATOS ---
-            with st.expander("📝 Listado Detallado de Registros"):
-                st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
-                
         else:
-            st.info("No hay datos cargados para generar los gráficos.")
+            st.info("Sin datos para mostrar analíticas.")
     except Exception as e:
-        st.error(f"Error al generar analítica: {e}")
-
+        st.error(f"Error en gráficos: {e}")
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Balance Hídrico")
     kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
