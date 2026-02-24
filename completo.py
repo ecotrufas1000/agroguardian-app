@@ -202,3 +202,42 @@ elif menu == "❄️ Análisis de Heladas":
 
 elif menu == "📝 Bitácora":
     st.write("Módulo de bitácora activo.")
+
+# --- FOOTER DE CONEXIÓN Y SOS (Fuera del flujo de menús para que se vea siempre o en el Home) ---
+st.sidebar.divider() # Esto lo pone al final del menú lateral
+
+# 1. Reloj de Sistema
+fecha_actual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+st.sidebar.markdown(f"""
+    <div style='text-align: center; color: #00ffc3; font-family: monospace; font-size: 0.8em;'>
+        🛰️ SISTEMA ONLINE<br>
+        {fecha_actual}
+    </div>
+""", unsafe_allow_html=True)
+
+# 2. Botón SOS WhatsApp
+st.sidebar.markdown("---")
+numero_sos = "5491122334455" # <--- REEMPLAZA CON TU NÚMERO (Sin el +)
+mensaje_sos = "🚨 *AgroGuardian SOS:* Necesito asistencia inmediata en el lote."
+
+link_whatsapp = f"https://wa.me/{numero_sos}?text={mensaje_sos.replace(' ', '%20')}"
+
+st.sidebar.markdown(f"""
+    <a href="{link_whatsapp}" target="_blank" style="text-decoration: none;">
+        <div style="
+            background-color: #25D366;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        ">
+            🟢 SOS WHATSAPP
+        </div>
+    </a>
+""", unsafe_allow_html=True)
