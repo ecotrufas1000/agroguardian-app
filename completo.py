@@ -144,7 +144,7 @@ elif menu == "🌧️ Pluviómetro":
                     range=[0.5, 31.5], 
                     fixedrange=True,
                     tickangle=0,      # <--- ESTO ENDEREZA LOS NÚMEROS
-                    tickfont=dict(size=10) # Un poco más chico para que no se toquen
+                    tickfont=dict(size=8) # Un poco más chico para que no se toquen
                 ),
                 yaxis=dict(fixedrange=True, title="mm"),
                 height=350,
@@ -168,8 +168,8 @@ elif menu == "🌧️ Pluviómetro":
 
             # --- BOTÓN DE DATOS CRUDOS (Expander) ---
             st.divider()
-            with st.expander("📂 ACCEDER A REGISTROS CRUDA (PLANILLA)"):
-                st.markdown("### Listado Completo de Supabase")
+            with st.expander("📂 ACCEDER A REGISTROS"):
+                st.markdown("### Listado Completo Base de Datos")
                 # Mostramos la tabla ordenada por la lluvia más reciente
                 st.dataframe(
                     df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), 
