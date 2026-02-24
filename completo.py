@@ -128,13 +128,13 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # --- CONFIGURACIÓN DE ESTILO PARA AMBOS GRÁFICOS ---
+           # --- CONFIGURACIÓN DE ESTILO PARA AMBOS GRÁFICOS ---
             estilo_grafico = dict(
                 paper_bgcolor='rgba(0,0,0,0)', 
                 plot_bgcolor='rgba(0,0,0,0)',  
                 font=dict(color="#00ffc3"),     
                 dragmode=False,
-                hovermode='x unified', # <--- MUESTRA EL CARTELITO AL PASAR EL DEDO
+                hovermode='x', # <--- CAMBIAMOS 'x unified' por solo 'x' para que no dibuje la barra blanca
                 height=350,
                 margin=dict(l=10, r=10, t=10, b=20)
             )
@@ -142,13 +142,18 @@ elif menu == "🌧️ Pluviómetro":
             # --- GRÁFICO 1: DIARIO ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
+            
+            # Quitamos las líneas blancas (spikes) de raíz
+            fig1.update_xaxes(showspikes=False)
+            fig1.update_yaxes(showspikes=False)
+
             fig1.update_traces(
                 marker_color='#1f77b4',
-                hovertemplate="Día %{x}<br>%{y} mm<extra></extra>" # <--- FORMATO DEL CARTELITO
+                hovertemplate="<b>Día %{x}</b><br>%{y} mm<extra></extra>" 
             ) 
             fig1.update_layout(
                 **estilo_grafico,
-                hoverlabel=dict(bgcolor="#0d1117", font_size=12, font_family="Courier New", font_color="#00ffc3"),
+                hoverlabel=dict(bgcolor="#161b22", font_size=13, font_family="Courier New", font_color="#00ffc3"),
                 xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True, tickangle=0, tickfont=dict(size=9), title=None),
                 yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d")
             )
@@ -157,13 +162,18 @@ elif menu == "🌧️ Pluviómetro":
             # --- GRÁFICO 2: ANUAL ---
             st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
+            
+            # Quitamos las líneas blancas aquí también
+            fig2.update_xaxes(showspikes=False)
+            fig2.update_yaxes(showspikes=False)
+
             fig2.update_traces(
                 marker_color='#1f77b4',
-                hovertemplate="Mes %{x}<br>%{y} mm<extra></extra>" # <--- FORMATO DEL CARTELITO
+                hovertemplate="<b>Mes %{x}</b><br>%{y} mm<extra></extra>"
             )
             fig2.update_layout(
                 **estilo_grafico,
-                hoverlabel=dict(bgcolor="#0d1117", font_size=12, font_family="Courier New", font_color="#00ffc3"),
+                hoverlabel=dict(bgcolor="#161b22", font_size=13, font_family="Courier New", font_color="#00ffc3"),
                 xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, tickangle=0, tickfont=dict(size=10), title=None),
                 yaxis=dict(fixedrange=True, title=None, tickfont=dict(size=10), gridcolor="#30363d")
             )
