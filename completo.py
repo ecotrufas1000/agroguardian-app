@@ -192,59 +192,56 @@ elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 CÁLCULO DE PRECISIÓN (Blaney-Criddle)")
     
     try:
-        # 1. OBTENER UBICACIÓN DESDE CONFIGURACIÓN
-        res_gps = supabase.table("configuracion").select("latitud", "longitud").single().execute()
-        if res_gps.data:
-            lat = float(res_gps.data['latitud'])
-            lon = float(res_gps.data['longitud'])
+        import math
+        # 1. RECUPERAR DATOS DE OPENWEATHER (Usando las variables que ya tenés al inicio)
+        # Asumimos que al inicio de tu app guardaste los datos en st.session_state o variables locales
+        # Si ya hiciste el pedido a OpenWeather, usamos esos valores:
+        
+        if 'clima_data' in st.session_state:
+            temp_media = st.session_state.clima_data['main']['temp']
+            lat = st.session_state.clima_data['coord']['lat']
+            fuente = "📡 OpenWeather (Tiempo Real)"
         else:
-            lat, lon = -34.6, -58.4 # Coordenadas por defecto (Bs As) si no hay GPS
+            # Opción de respaldo si no hay datos en sesión
+            temp_media = 25.0
+            lat = -34.6
+            fuente = "⚠️ Valor Estimado (Sin conexión)"
 
-        # 2. OBTENER TEMPERATURA (Simulado o vía API)
-        # Aquí consultamos tu última lectura de monitoreo
-        res_clima = supabase.table("monitoreo_clima").select("temp").order("created_at", desc=True).limit(1).execute()
+        # 2. CÁLCULO MATEMÁTICO DEL FACTOR 'p' (Horas de luz según Latitud)
+        # El factor p diario depende del día del año y la latitud
+        doy = datetime.datetime.now().timetuple().tm_yday
+        # Fórmula simplificada para el porcentaje de horas de luz diaria
+        p_diario = (0.27 * (1 - (lat / 90) * math.cos(2 * math.pi * doy / 365))) / 30
+
+        # 3. CÁLCULO DE ETo (Blaney-Criddle)
+        # ETo diaria = p * (0.46 * T + 8)
+        # Nota: Multiplicamos por la constante para ajustar a mm/día
+        eto_diaria = p_diario * (0.46 * temp_media + 8) * 30 / 3.2 # Ajuste de calibración para la zona
+
+        # 4. INTERFAZ DE USUARIO
+        st.success(f"📍 Ubicación: {lat:.4f} | 🌡️ Temp ({fuente}): {temp_media}°C")
         
-        if res_clima.data:
-            temp_media = float(res_clima.data[0]['temp'])
-            fuente_temp = "Sensores Propios"
-        else:
-            # Si no hay sensores, podrías conectar una API. Por ahora usamos un valor base.
-            temp_media = 25.0 
-            fuente_temp = "Estimación Local"
-
-        # 3. CÁLCULO MATEMÁTICO DEL FACTOR 'p' (Horas de luz)
-        # Calculamos la declinación solar para saber cuánto influye la latitud hoy
-        doy = datetime.datetime.now().timetuple().tm_yday # Día del año (1-365)
-        # Simplificación de Blaney-Criddle para el cálculo de p diario
-        # p depende de la latitud (lat) y el momento del año
-        p = (0.27 * (1 - (lat / 90) * math.cos(2 * math.pi * doy / 365))) / 30 # Valor aproximado diario
+        kc = st.slider("Kc del Cultivo (Estado Fenológico)", 0.3, 1.2, 0.8, 
+                       help="0.3: Emergencia | 0.8: Crecimiento | 1.15: Floración/Llenado")
         
-        # Ajuste fino: En el hemisferio sur, invertimos el ciclo estacional
-        if lat < 0:
-            p = 0.27 # Valor base para verano/otoño en Argentina
-
-        # 4. CÁLCULO DE ETo (Blaney-Criddle)
-        # Fórmula: ETo = p * (0.46 * T + 8)
-        eto = p * (0.46 * temp_media + 8) * 30 # Multiplicamos por 30 para llevarlo a escala mensual/diaria corregida
-        eto_diaria = eto / 30 # Volvemos a valor diario real
-
-        # 5. INTERFAZ
-        st.success(f"📍 GPS: {lat:.4f}, {lon:.4f} | 🌡️ Temp ({fuente_temp}): {temp_media}°C")
-        
-        kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("ETo Diaria", f"{eto_diaria:.2f} mm")
-        c2.metric("Kc", f"{kc:.2f}")
-        c3.metric("ETc (Gasto)", f"{etc:.2f} mm")
+        # Muestra de resultados
+        col1, col2, col3 = st.columns(3)
+        col1.metric("ETo (Ambiente)", f"{eto_diaria:.2f} mm")
+        col2.metric("Kc (Cultivo)", f"{kc:.2f}")
+        col3.metric("ETc (Gasto)", f"{etc:.2f} mm", delta=f"-{etc:.1f}", delta_color="inverse")
 
         st.divider()
-        st.write(f"ℹ️ **Interpretación:** Tu lote está perdiendo aproximadamente **{etc:.2f} litros por metro cuadrado** cada 24 horas.")
+        
+        # Recomendación técnica
+        if etc > 5:
+            st.warning(f"🚩 **Alerta de Estrés:** El consumo es alto ({etc:.2f} mm). Verificá humedad en el perfil.")
+        else:
+            st.info(f"✅ **Consumo moderado:** La demanda hídrica hoy es de {etc:.2f} mm.")
 
     except Exception as e:
-        st.error(f"Error en el motor de cálculo: {e}")
-elif menu == "⛈️ Radar Granizo":
+        st.error(f"Error en el motor de cálculo: {e}")elif menu == "⛈️ Radar Granizo":
     st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
 
 elif menu == "❄️ Análisis de Heladas":
