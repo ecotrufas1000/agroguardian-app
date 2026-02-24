@@ -219,56 +219,60 @@ elif menu == "💧 Balance Hídrico":
     
     try:
         import math
-        # 1. RECUPERAR DATOS DE OPENWEATHER (Usando las variables que ya tenés al inicio)
-        # Asumimos que al inicio de tu app guardaste los datos en st.session_state o variables locales
-        # Si ya hiciste el pedido a OpenWeather, usamos esos valores:
-        
+        # 1. RECUPERAR DATOS (Ya vienen de Supabase/OpenWeather al inicio)
         if 'clima_data' in st.session_state:
             temp_media = st.session_state.clima_data['main']['temp']
-            lat = st.session_state.clima_data['coord']['lat']
+            lat = float(st.session_state.clima_data['coord']['lat']) # <--- GPS REAL
             fuente = "📡 OpenWeather (Tiempo Real)"
         else:
-            # Opción de respaldo si no hay datos en sesión
-            temp_media = 25.0
-            lat = -34.6
-            fuente = "⚠️ Valor Estimado (Sin conexión)"
+            temp_media, lat = 25.0, -38.29 # Fallback
+            fuente = "⚠️ Valor Estimado"
 
-        # 2. CÁLCULO MATEMÁTICO DEL FACTOR 'p' (Horas de luz según Latitud)
-        # El factor p diario depende del día del año y la latitud
+        # 2. CÁLCULO CIENTÍFICO DEL FACTOR 'p'
+        # Calculamos el día del año (1-365)
         doy = datetime.datetime.now().timetuple().tm_yday
-        # Fórmula simplificada para el porcentaje de horas de luz diaria
-        p_diario = (0.27 * (1 - (lat / 90) * math.cos(2 * math.pi * doy / 365))) / 30
-
-        # 3. CÁLCULO DE ETo (Blaney-Criddle)
-        # ETo diaria = p * (0.46 * T + 8)
-        # Nota: Multiplicamos por la constante para ajustar a mm/día
-        eto_diaria = p_diario * (0.46 * temp_media + 8) * 30 / 3.2 # Ajuste de calibración para la zona
-
-        # 4. INTERFAZ DE USUARIO
-        st.success(f"📍 Ubicación: {lat:.4f} | 🌡️ Temp ({fuente}): {temp_media}°C")
         
-        kc = st.slider("Kc del Cultivo (Estado Fenológico)", 0.3, 1.2, 0.8, 
-                       help="0.3: Emergencia | 0.8: Crecimiento | 1.15: Floración/Llenado")
+        # El factor p depende de la insolación diaria. 
+        # Una aproximación robusta para Blaney-Criddle es:
+        # p = (Horas de luz diarias / Horas de luz anuales) * 100
+        # Calculamos la declinación solar (delta)
+        delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
         
+        # Ángulo horario del atardecer (ws)
+        lat_rad = math.radians(lat)
+        # Evitamos errores matemáticos en los polos
+        arg = -math.tan(lat_rad) * math.tan(delta)
+        ws = math.acos(max(-1, min(1, arg)))
+        
+        # Horas de luz máximas (N)
+        N = (24 / math.pi) * ws
+        
+        # El factor 'p' para la fórmula de Blaney-Criddle (diario)
+        # Se estima como el porcentaje de horas de luz sobre el total del año
+        p_diario = (N / 4380) * 100 # 4380 son las horas de luz promedio anual
+
+        # 3. CÁLCULO DE ETo DIARIA
+        # ETo = p * (0.46 * T + 8)
+        eto_diaria = p_diario * (0.46 * temp_media + 8)
+
+        # 4. INTERFAZ PROFESIONAL
+        st.success(f"📍 GPS detectado: {lat:.4f} | Factor de Luz (p): {p_diario:.4f}")
+        
+        kc = st.slider("Kc del Cultivo (Estado actual)", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
 
-        # Muestra de resultados
-        col1, col2, col3 = st.columns(3)
-        col1.metric("ETo (Ambiente)", f"{eto_diaria:.2f} mm")
-        col2.metric("Kc (Cultivo)", f"{kc:.2f}")
-        col3.metric("ETc (Gasto)", f"{etc:.2f} mm", delta=f"-{etc:.1f}", delta_color="inverse")
+        c1, col_gap, c2 = st.columns([1, 0.1, 1])
+        with c1:
+            st.metric("Demanda Ambiental (ETo)", f"{eto_diaria:.2f} mm/día")
+        with c2:
+            st.metric("Consumo Cultivo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}", delta_color="normal")
 
-        st.divider()
-        
-        # Recomendación técnica
-        if etc > 5:
-            st.warning(f"🚩 **Alerta de Estrés:** El consumo es alto ({etc:.2f} mm). Verificá humedad en el perfil.")
-        else:
-            st.info(f"✅ **Consumo moderado:** La demanda hídrica hoy es de {etc:.2f} mm.")
+        # Visualización gráfica del balance
+        st.progress(min(etc / 10.0, 1.0)) 
+        st.caption(f"Consumo de agua basado en {temp_media}°C y latitud {lat:.1f}°")
 
     except Exception as e:
-        st.error(f"Error en el motor de cálculo: {e}")
-
+        st.error(f"Error en el cálculo astronómico: {e}")
 elif menu == "⛈️ Radar Granizo":
     st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
 
