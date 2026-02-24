@@ -93,14 +93,13 @@ if menu == "📊 Monitoreo Total":
     m = folium.Map(location=[LAT, LON], zoom_start=15)
     folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
     folium_static(m, width=700, height=400)
-elif menu == "🌧️ Pluviómetro":
+    elif menu == "🌧️ Pluviómetro":
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
         import datetime
         import pandas as pd
         import plotly.express as px
 
-        # 1. Traer datos de Supabase
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
         if res.data:
@@ -112,7 +111,6 @@ elif menu == "🌧️ Pluviómetro":
             # --- PROCESAMIENTO GRÁFICO 1: DIARIO (1 al 31) ---
             df_mes_actual = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_mes_actual['dia'] = df_mes_actual['fecha'].dt.day
-            # Forzamos que aparezcan los 31 días
             df_dia_fijo = df_mes_actual.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
 
             # --- PROCESAMIENTO GRÁFICO 2: ANUAL (E, F, M...) ---
@@ -121,7 +119,7 @@ elif menu == "🌧️ Pluviómetro":
             meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
             df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
 
-            # --- MÉTRICAS DE CABECERA ---
+            # --- MÉTRICAS ---
             acum_mes = mensual_sum[hoy.month]
             acum_año = mensual_sum.sum()
             
@@ -132,7 +130,7 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # --- GRÁFICO 1: DIARIO (Días derechos y estático) ---
+            # --- GRÁFICO 1: DIARIO (Estirado al Máximo) ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4') 
@@ -143,17 +141,18 @@ elif menu == "🌧️ Pluviómetro":
                     dtick=1, 
                     range=[0.5, 31.5], 
                     fixedrange=True,
-                    tickangle=0,      # <--- ESTO ENDEREZA LOS NÚMEROS
-                    tickfont=dict(size=8) # Un poco más chico para que no se toquen
+                    tickangle=0,
+                    tickfont=dict(size=9) # Subimos a 9 para probar si el estiramiento ayudó
                 ),
                 yaxis=dict(fixedrange=True, title="mm"),
                 height=350,
                 dragmode=False,
-                margin=dict(l=10, r=10, t=20, b=20)
+                bargap=0.15,  # Reducimos el espacio entre barras para dar aire a los números
+                margin=dict(l=5, r=5, t=10, b=10) # Márgenes mínimos para ganar ancho
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
-            # --- GRÁFICO 2: ANUAL (Iniciales y estático) ---
+            # --- GRÁFICO 2: ANUAL ---
             st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
             fig2.update_traces(marker_color='#1f77b4')
@@ -162,22 +161,17 @@ elif menu == "🌧️ Pluviómetro":
                 yaxis=dict(fixedrange=True, title="mm"),
                 height=350,
                 dragmode=False,
-                margin=dict(l=10, r=10, t=20, b=20)
+                bargap=0.3, # Aquí podemos permitirnos más espacio porque son solo 12
+                margin=dict(l=5, r=5, t=10, b=10)
             )
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
-            # --- BOTÓN DE DATOS CRUDOS (Expander) ---
             st.divider()
-            with st.expander("📂 ACCEDER A REGISTROS"):
-                st.markdown("### Listado Completo Base de Datos")
-                # Mostramos la tabla ordenada por la lluvia más reciente
-                st.dataframe(
-                    df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), 
-                    use_container_width=True
-                )
+            with st.expander("📂 ACCEDER A REGISTROS CRUDA (PLANILLA)"):
+                st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
 
         else:
-            st.info("🛰️ Esperando sincronización de datos desde Supabase...")
+            st.info("🛰️ Esperando sincronización de datos...")
             
     except Exception as e:
         st.error(f"Error en el sistema de analítica: {e}")
