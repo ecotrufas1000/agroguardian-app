@@ -93,7 +93,6 @@ if menu == "📊 Monitoreo Total":
     m = folium.Map(location=[LAT, LON], zoom_start=15)
     folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
     folium_static(m, width=700, height=400)
-
 elif menu == "🌧️ Pluviómetro":
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
@@ -101,6 +100,7 @@ elif menu == "🌧️ Pluviómetro":
         import pandas as pd
         import plotly.express as px
 
+        # 1. Traer datos de Supabase
         res = supabase.table("registros_lluvia").select("*").order("fecha", desc=False).execute()
         
         if res.data:
@@ -109,62 +109,78 @@ elif menu == "🌧️ Pluviómetro":
             df['mm'] = pd.to_numeric(df['mm'])
             hoy = datetime.datetime.now()
 
-            # --- PROCESAMIENTO GRÁFICO 1: DIARIO (Mes Actual) ---
-            # Filtramos solo el mes y año actual
+            # --- PROCESAMIENTO GRÁFICO 1: DIARIO (1 al 31) ---
             df_mes_actual = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_mes_actual['dia'] = df_mes_actual['fecha'].dt.day
-            # Agrupamos por día por si hay dos registros el mismo día
+            # Forzamos que aparezcan los 31 días
             df_dia_fijo = df_mes_actual.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
 
-            # --- PROCESAMIENTO GRÁFICO 2: ANUAL ---
+            # --- PROCESAMIENTO GRÁFICO 2: ANUAL (E, F, M...) ---
             df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
-            # Sumamos por mes
             mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
-            # Iniciales de los meses
             meses_letras = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
             df_anual_fijo = pd.DataFrame({'Mes': meses_letras, 'mm': mensual_sum.values})
 
-            # --- MÉTRICAS ---
+            # --- MÉTRICAS DE CABECERA ---
             acum_mes = mensual_sum[hoy.month]
             acum_año = mensual_sum.sum()
             
             c1, c2, c3 = st.columns(3)
             c1.metric("ESTE MES", f"{acum_mes:.1f} mm")
             c2.metric("ANUAL", f"{acum_año:.1f} mm")
-            c3.metric("REGISTROS", f"{len(df_mes_actual)}")
+            c3.metric("MÁX. DÍA", f"{df_mes_actual['mm'].max() if not df_mes_actual.empty else 0:.1f} mm")
 
             st.divider()
 
-            # --- GRÁFICO 1: DIARIO (1 al 31) ---
-            st.subheader(f"📅 Lluvias de {hoy.strftime('%B')}")
+            # --- GRÁFICO 1: DIARIO (Días derechos y estático) ---
+            st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
-            fig1.update_traces(marker_color='#1f77b4') # Azul
+            fig1.update_traces(marker_color='#1f77b4') 
             fig1.update_layout(
-                xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, 31.5], fixedrange=True),
+                xaxis=dict(
+                    tickmode='linear', 
+                    tick0=1, 
+                    dtick=1, 
+                    range=[0.5, 31.5], 
+                    fixedrange=True,
+                    tickangle=0,      # <--- ESTO ENDEREZA LOS NÚMEROS
+                    tickfont=dict(size=10) # Un poco más chico para que no se toquen
+                ),
                 yaxis=dict(fixedrange=True, title="mm"),
-                margin=dict(l=20, r=20, t=20, b=20),
-                height=300,
-                dragmode=False # Desactiva el zoom con el dedo
+                height=350,
+                dragmode=False,
+                margin=dict(l=10, r=10, t=20, b=20)
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
-            # --- GRÁFICO 2: ANUAL (E F M...) ---
-            st.subheader(f"📊 Acumulado Anual {hoy.year}")
+            # --- GRÁFICO 2: ANUAL (Iniciales y estático) ---
+            st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
-            fig2.update_traces(marker_color='#1f77b4') # Azul
+            fig2.update_traces(marker_color='#1f77b4')
             fig2.update_layout(
-                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras),
+                xaxis=dict(fixedrange=True, categoryorder='array', categoryarray=meses_letras, tickangle=0),
                 yaxis=dict(fixedrange=True, title="mm"),
-                margin=dict(l=20, r=20, t=20, b=20),
-                height=300,
-                dragmode=False # Desactiva el zoom con el dedo
+                height=350,
+                dragmode=False,
+                margin=dict(l=10, r=10, t=20, b=20)
             )
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
+            # --- BOTÓN DE DATOS CRUDOS (Expander) ---
+            st.divider()
+            with st.expander("📂 ACCEDER A REGISTROS CRUDA (PLANILLA)"):
+                st.markdown("### Listado Completo de Supabase")
+                # Mostramos la tabla ordenada por la lluvia más reciente
+                st.dataframe(
+                    df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), 
+                    use_container_width=True
+                )
+
         else:
-            st.info("Sin datos para mostrar analíticas.")
+            st.info("🛰️ Esperando sincronización de datos desde Supabase...")
+            
     except Exception as e:
-        st.error(f"Error en gráficos: {e}")
+        st.error(f"Error en el sistema de analítica: {e}")
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Balance Hídrico")
     kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
