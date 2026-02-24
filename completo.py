@@ -92,8 +92,8 @@ if menu == "📊 Monitoreo Total":
     st.divider()
     m = folium.Map(location=[LAT, LON], zoom_start=15)
     folium.TileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri').add_to(m)
-    folium_static(m, width=700, height=400)
-elif menu == "🌧️ Pluviómetro":
+    folium_static(m, width=700, height=400) 
+    elif menu == "🌧️ Pluviómetro":
     st.markdown("### 🌧️ ANALÍTICA DE PRECIPITACIONES")
     try:
         import datetime
@@ -109,12 +109,10 @@ elif menu == "🌧️ Pluviómetro":
             df['mm'] = pd.to_numeric(df['mm'])
             hoy = datetime.datetime.now()
 
-            # --- CÁLCULOS QUE FALTABAN (Definición de variables) ---
-            # Para el gráfico anual y acumulados
+            # --- CÁLCULOS ---
             df_año_actual = df[df['fecha'].dt.year == hoy.year].copy()
             mensual_sum = df_año_actual.groupby(df_año_actual['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             
-            # Variables de métricas
             acum_mes = mensual_sum[hoy.month]
             acum_año = mensual_sum.sum()
 
@@ -135,7 +133,7 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # --- GRÁFICO 1: DIARIO (Estética Pulida) ---
+            # --- GRÁFICO 1: DIARIO ---
             st.subheader(f"📅 Registro Diario: {hoy.strftime('%B %Y')}")
             fig1 = px.bar(df_dia_fijo, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4') 
@@ -149,7 +147,7 @@ elif menu == "🌧️ Pluviómetro":
             )
             st.plotly_chart(fig1, use_container_width=True, config={'displayModeBar': False})
 
-            # --- GRÁFICO 2: ANUAL (Simétrico al Gráfico 1) ---
+            # --- GRÁFICO 2: ANUAL ---
             st.subheader(f"📊 Acumulado Mensual {hoy.year}")
             fig2 = px.bar(df_anual_fijo, x='Mes', y='mm', template="plotly_dark")
             fig2.update_traces(marker_color='#1f77b4')
@@ -164,30 +162,14 @@ elif menu == "🌧️ Pluviómetro":
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
             st.divider()
-            with st.expander("📂 ACCEDER A REGISTROS CRUDOS"):
+            with st.expander("📂 ACCEDER A REGISTROS CRUDOS (PLANILLA)"):
                 st.dataframe(df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), use_container_width=True)
 
         else:
-            st.info("🛰️ No se detectan registros en Supabase.")
+            st.info("🛰️ Esperando sincronización de datos o sin registros...")
             
     except Exception as e:
-        st.error(f"Error técnico detectado: {e}")         
-# --- CIERRE DE GRÁFICOS ---
-st.divider()
-            
-# El expander debe estar alineado con los st.plotly_chart anteriores
-with st.expander("📂 ACCEDER A REGISTROS CRUDA (PLANILLA)"):
-    st.dataframe(
-        df[['fecha', 'lote', 'mm']].sort_values('fecha', ascending=False), 
-        use_container_width=True
-    )
-else:
-    # Este else pertenece al "if res.data:"
-    st.info("🛰️ Esperando sincronización de datos...")
-            
-   except Exception as e:
-        # Este except pertenece al "try:" inicial del módulo
-        st.error(f"Error en el sistema de analítica: {e}")        
+        st.error(f"Error en el sistema de analítica: {e}")
 elif menu == "💧 Balance Hídrico":
     st.subheader("💧 Balance Hídrico")
     kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
