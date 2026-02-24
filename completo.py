@@ -125,7 +125,7 @@ if menu == "📊 Monitoreo Total":
     
     st.divider()
     
-   elif menu == "🌧️ Pluviómetro":
+elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
 
     try:
