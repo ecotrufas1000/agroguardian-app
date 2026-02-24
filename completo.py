@@ -163,6 +163,7 @@ with st.sidebar:
         else:
             st.warning("⚠️ Activá el GPS y permití el acceso.")
 # ==========================================================
+# ==========================================================
 # IDENTIDAD VISUAL EN SIDEBAR
 # ==========================================================
 st.sidebar.markdown("""
@@ -180,12 +181,15 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Aquí debajo debería ir tu selector actual:
-# menu = st.sidebar.selectbox("Seleccione Sección:", ["📊 Monitoreo Total", ...])
-    st.divider()
-    menu = st.radio("MENÚ DE CONTROL", 
-                   ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"])
+# AGREGAMOS .sidebar AQUÍ TAMBIÉN:
+st.sidebar.divider()
 
+menu = st.sidebar.radio(
+    "MENÚ DE CONTROL", 
+    ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
+)
+
+# Esto sigue igual, fuera del sidebar para procesar la lógica
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
 clima = obtener_clima_completo(LAT, LON)
