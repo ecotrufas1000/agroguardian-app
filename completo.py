@@ -187,11 +187,48 @@ elif menu == "🌧️ Pluviómetro":
             
     except Exception as e:
         st.error(f"Error en el sistema de analítica: {e}")
-elif menu == "💧 Balance Hídrico":
-    st.subheader("💧 Balance Hídrico")
-    kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
-    st.metric("ETc Estimada", f"{round(4.8 * kc, 2)} mm/día")
 
+elif menu == "💧 Balance Hídrico":
+    st.markdown("### 💧 CÁLCULO DE EVAPOTRANSPIRACIÓN (Blaney-Criddle)")
+    
+    try:
+        # 1. Obtener Latitud (del GPS cargado) y Temperatura (del Monitoreo)
+        # Asumimos que tenés estas variables disponibles de tus otras tablas
+        res_gps = supabase.table("configuracion").select("latitud").single().execute()
+        res_clima = supabase.table("monitoreo_clima").select("temp").order("created_at", desc=True).limit(1).execute()
+        
+        lat = float(res_gps.data['latitud']) if res_gps.data else -34.0 # Default si falla
+        temp_actual = float(res_clima.data[0]['temp']) if res_clima.data else 22.0
+        
+        # 2. Calcular 'p' (Factor de horas de luz según Latitud y Mes)
+        mes_actual = datetime.datetime.now().month
+        # Tabla simplificada de factor 'p' según latitud para el Hemisferio Sur
+        tabla_p = {
+            "enero": 0.31, "febrero": 0.28, "marzo": 0.26, "abril": 0.24,
+            "mayo": 0.22, "junio": 0.21, "julio": 0.21, "agosto": 0.23,
+            "septiembre": 0.25, "octubre": 0.27, "noviembre": 0.29, "diciembre": 0.31
+        }
+        meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        p = tabla_p[meses[mes_actual-1]]
+
+        # 3. Cálculo de ETo
+        eto = p * (0.46 * temp_actual + 8)
+        
+        # 4. Interfaz de Usuario
+        st.info(f"📍 Latitud Detectada: {lat} | 🌡️ Temp. Actual: {temp_actual}°C")
+        
+        kc = st.slider("Seleccione Kc del Cultivo", 0.3, 1.2, 0.8, help="Maíz inicial: 0.3 | Maíz pleno: 1.15")
+        
+        etc = eto * kc
+        
+        c1, c2 = st.columns(2)
+        c1.metric("ETo (Referencia)", f"{eto:.2f} mm/día")
+        c2.metric("ETc (Tu Cultivo)", f"{etc:.2f} mm/día", delta=f"{(etc):.1f} mm")
+
+        st.warning(f"💡 Tu cultivo está perdiendo **{etc:.2f} mm** de agua hoy.")
+
+    except Exception as e:
+        st.error(f"Error al calcular Balance: {e}")
 elif menu == "⛈️ Radar Granizo":
     st.components.v1.iframe(f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay=radar", height=600)
 
