@@ -203,18 +203,21 @@ elif menu == "❄️ Análisis de Heladas":
 elif menu == "📝 Bitácora":
     st.write("Módulo de bitácora activo.")
 
-# --- FOOTER DE CONEXIÓN Y SOS (Fuera del flujo de menús para que se vea siempre o en el Home) ---
-st.sidebar.divider() # Esto lo pone al final del menú lateral
+# --- FOOTER DE CONEXIÓN Y SOS CON HORA ARGENTINA ---
+st.sidebar.divider() 
+
+# Ajuste manual de -3 horas para Argentina
+ahora_utc = datetime.datetime.now()
+hora_argentina = ahora_utc - datetime.timedelta(hours=3) # <--- ESTO RESTA LAS 3 HORAS
+fecha_formateada = hora_argentina.strftime("%d/%m/%Y %H:%M")
 
 # 1. Reloj de Sistema
-fecha_actual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
 st.sidebar.markdown(f"""
-    <div style='text-align: center; color: #00ffc3; font-family: monospace; font-size: 0.8em;'>
-        🛰️ SISTEMA ONLINE<br>
-        {fecha_actual}
+    <div style='text-align: center; color: #00ffc3; font-family: monospace; font-size: 0.8em; letter-spacing: 1px;'>
+        🛰️ SISTEMA ONLINE (GMT-3)<br>
+        <span style="font-size: 1.2em;">{fecha_formateada}</span>
     </div>
 """, unsafe_allow_html=True)
-
 # 2. Botón SOS WhatsApp
 st.sidebar.markdown("---")
 numero_sos = "5491122334455" # <--- REEMPLAZA CON TU NÚMERO (Sin el +)
