@@ -372,14 +372,24 @@ elif menu == "💧 Balance Hídrico":
         
         script_humedad = "return [2 * B11, B08 + B11, B08];" # Script simplificado para resaltar agua
         
-        url_limpia = (
+        # --- CONFIGURACIÓN PARA RESALTAR AZULES (HUMEDAD) ---
+        # Definimos un script que potencia la visualización del agua
+        # MSI = (B11 - B08) / (B11 + B08) -> Lo mapeamos a una escala de azules
+        custom_script = "return [Math.max(0, B11 - B08) * 2.5, B11, B08 + B11];" 
+        
+        # Codificamos el script para la URL
+        import urllib.parse
+        encoded_script = urllib.parse.quote(custom_script)
+
+        url_azul_profundo = (
             f"https://apps.sentinel-hub.com/sentinel-playground/?"
             f"source=S2L2A&lat={lat}&lng={lon}&zoom=14"
-            f"&preset=MOISTURE-INDEX" 
-            f"&layers=B01,B02,B03"
+            f"&evalscript={encoded_script}" # <--- INYECTAMOS EL AZUL PROFUNDO
             f"&maxcc=20"
             f"&showContext=false"
         )
+        
+        st.components.v1.iframe(url_azul_profundo, height=700)
         
         # Renderizado del mapa en formato grande
         st.components.v1.iframe(url_limpia, height=700)
