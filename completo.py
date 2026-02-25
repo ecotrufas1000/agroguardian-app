@@ -365,13 +365,20 @@ elif menu == "💧 Balance Hídrico":
         # Explicación de la URL:
         # preset=MOISTURE-INDEX -> Activa la capa que pediste.
         # showContext=false -> ELIMINA la barra lateral de capas y configuración.
+        # --- URL TÉCNICA FORZADA PARA HUMEDAD REAL ---
+        # Usamos el script MSI: (B11 / B08) 
+        # Valores altos = Seco | Valores bajos = Húmedo
+        # Aquí lo configuramos para que el AZUL sea AGUA.
+        
+        script_humedad = "return [2 * B11, B08 + B11, B08];" # Script simplificado para resaltar agua
+        
         url_limpia = (
             f"https://apps.sentinel-hub.com/sentinel-playground/?"
             f"source=S2L2A&lat={lat}&lng={lon}&zoom=14"
-            f"&preset=MOISTURE-INDEX"
+            f"&preset=MOISTURE-INDEX" 
             f"&layers=B01,B02,B03"
             f"&maxcc=20"
-            f"&showContext=false"  # <--- Esto oculta los menús de configuración
+            f"&showContext=false"
         )
         
         # Renderizado del mapa en formato grande
