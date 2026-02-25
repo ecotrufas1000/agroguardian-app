@@ -375,7 +375,74 @@ elif menu == "💧 Balance Hídrico":
             fmt="image/png",
             transparent=True,
             opacity=opacidad,
+            attrelif menu == "💧 Balance Hídrico":
+    import folium
+    from streamlit_folium import folium_static
+
+    st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
+
+    try:
+        # Coordenadas y cálculo
+        lat = LAT if LAT else -38.29
+        lon = LON if LON else -57.55
+        temp_media = st.session_state.clima_data['temp'] if 'clima_data' in st.session_state else 25.0
+
+        # Blaney-Criddle
+        doy = datetime.datetime.now().timetuple().tm_yday
+        delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
+        ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
+        eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
+
+        # Datos de suelo
+        try:
+            url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+            res_cop = requests.get(url_cop).json()
+            hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
+        except:
+            hum_profunda = 0.0
+
+        # Métricas
+        kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
+        etc = eto_diaria * kc
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
+        c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
+        c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
+
+        # --- Mapa Copernicus ---
+        st.divider()
+        st.markdown("### 🛰️ Anomalía de Humedad del Suelo (Copernicus)")
+
+        lat_map = LAT if LAT else -38.29
+        lon_map = LON if LON else -57.55
+        zoom_level = 8 if LAT else 5
+        opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
+
+        m = folium.Map(location=[lat_map, lon_map], zoom_start=zoom_level, tiles="CartoDB dark_matter", control_scale=True)
+        folium.WmsTileLayer(
+            url="https://drought.emergency.copernicus.eu/api/wms",
+            name="Soil Moisture Anomaly",
+            layers="SMI_v4_0_anomaly",
+            fmt="image/png",
+            transparent=True,
+            opacity=opacidad,
             attribution="Copernicus Emergency Management Service",
+        ).add_to(m)
+
+        folium.CircleMarker(
+            location=[lat_map, lon_map],
+            radius=6,
+            color="#00ffc3",
+            fill=True,
+            fill_opacity=1
+        ).add_to(m)
+
+        folium.LayerControl().add_to(m)
+        folium_static(m, width=1000, height=600)
+
+    except Exception as e:
+        st.error(f"Error en Balance Hídrico: {e}")="Copernicus Emergency Management Service",
         ).add_to(m)
 
         folium.CircleMarker(
