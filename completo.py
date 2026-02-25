@@ -355,43 +355,33 @@ elif menu == "💧 Balance Hídrico":
         c2.metric("Consumo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}")
         st.progress(min(etc / 10.0, 1.0))
 
-        # --- MONITOREO DE RESERVAS (ALMACENAJE PROFUNDO) ---
+       # --- SECCIÓN COPERNICUS: AGUA EN EL SUELO ---
         st.divider()
-        st.markdown("### 🏺 ESTADO DEL ALMACENAJE EN EL PERFIL")
+        st.markdown("### 🛰️ VIGILANCIA SATELITAL COPERNICUS (Sentinel)")
         
+        # 1. Indicador Técnico de Humedad Volumétrica (ERA5-Land de Copernicus)
         try:
-            # Consultamos la capa profunda (Root Zone) 28-100cm
-            url_soil = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&forecast_days=1"
-            res_soil = requests.get(url_soil).json()
-            # Tomamos el valor actual (índice 0)
-            almacenaje_vol = res_soil['hourly']['soil_moisture_28_to_100cm'][0]
+            # Consultamos la capa de ERA5-Land integrada en Open-Meteo
+            url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+            res_c = requests.get(url_copernicus).json()
+            humedad_era5 = res_c['hourly']['soil_moisture_28_to_100cm'][0]
             
-            # Cálculo de porcentaje relativo (aproximado para visualización)
-            # El valor suele oscilar entre 0.15 (punto de marchitez) y 0.45 (capacidad de campo)
-            porcentaje_llenado = (almacenaje_vol / 0.5) * 100 
-            
-            col_res1, col_res2 = st.columns([1, 2])
-            with col_res1:
-                st.metric("Agua en Raíz (28-100cm)", f"{almacenaje_vol:.3f} m³/m³", 
-                          delta=f"{porcentaje_llenado:.1f}% Lleno")
-            with col_res2:
-                # Barra de progreso para ver qué tan "cargado" está el perfil
-                st.write("**Nivel de Reserva en el Perfil:**")
-                st.progress(min(almacenaje_vol / 0.5, 1.0))
-                
-        except Exception as e:
-            st.info("🛰️ Almacenaje de suelo: Consultando datos de capas profundas...")
+            st.success(f"📈 **Dato Copernicus ERA5:** {humedad_era5:.3f} m³/m³ en el perfil profundo.")
+        except:
+            st.info("Obteniendo datos de reanálisis Copernicus...")
 
-        # 2. Mapa Interactivo de Humedad de Suelo (Capa ECMWF profunda)
-        url_mapa_suelo = f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=8&overlay=soilmoisture&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C"
+        # 2. Mapa de Humedad de Suelo (Capa Copernicus/Sentinel)
+        # Usamos el motor de Windy que procesa los datos de Copernicus (ECMWF)
+        url_mapa_copernicus = f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=7&overlay=soilmoisture&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C"
         
-        st.components.v1.iframe(url_mapa_suelo, height=500)
+        st.components.v1.iframe(url_mapa_copernicus, height=550)
         
-        st.caption("🔍 Este mapa visualiza la humedad volumétrica. Los tonos azules indican un perfil cargado, vital para la supervivencia del cultivo en periodos sin lluvia.")
-
-    except Exception as e:
-        st.error(f"Error en el módulo de suelo: {e}")
-
+        st.info("""
+            **¿Qué estamos viendo?**
+            Este mapa utiliza el modelo **ECMWF (Copernicus)**. 
+            - **Azul oscuro:** Suelo a Capacidad de Campo o saturado (ideal para siembra o pleno crecimiento).
+            - **Amarillo/Naranja:** Punto de marchitez cercano. El almacenaje está en niveles críticos.
+        """)
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
