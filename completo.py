@@ -372,27 +372,50 @@ elif menu == "💧 Balance Hídrico":
     except:
         st.info("Obteniendo datos de reanálisis Copernicus...")
 
- # 2. Mapa Técnico: Humedad de Suelo (Capa Real Copernicus/ECMWF)
-    # Explicación: overlay=soilmoisture (suelo), product=ecmwf (Copernicus), particlesAnim=off (quita el viento)
-    url_mapa_limpio = (
-        f"https://embed.windy.com/embed2.html?"
-        f"lat={lat}&lon={lon}&zoom=7"
-        f"&overlay=soilmoisture" 
-        f"&product=ecmwf"
-        f"&particlesAnim=off"  # <--- ESTO QUITA LAS RAYITAS DEL VIENTO
-        f"&menu=&message=true&marker=true"
-        f"&calendar=now&pressure=false" # Quitamos presión para limpiar más
-        f"&type=map&location=coordinates&detail=true"
-    )
-    
-    st.components.v1.iframe(url_mapa_limpio, height=550)
-    
-    st.info("""
-        🌍 **Datos de Capa:** Estás viendo el modelo **ECMWF (European Centre for Medium-Range Weather Forecasts)**. 
-        Este es el motor de **Copernicus**. La escala de colores representa m³/m³ de agua:
-        - **Marrón/Amarillo:** Perfil seco (Sequía).
-        - **Verde/Azul:** Perfil cargado (Almacenaje).
-    """) 
+ # --- SECCIÓN COPERNICUS PURI (ERA5-Land) ---
+        st.divider()
+        st.markdown("### 🛰️ RESERVAS TÉCNICAS - DATASET COPERNICUS")
+        
+        try:
+            # Consultamos los últimos 7 días de almacenamiento de suelo (ERA5)
+            url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_7cm,soil_moisture_28_to_100cm&models=ecmwf_ifs&past_days=7&forecast_days=1"
+            res_c = requests.get(url_copernicus).json()
+            
+            # Datos de hoy (último registro)
+            suelo_sup = res_c['hourly']['soil_moisture_0_to_7cm'][-1]
+            suelo_prof = res_c['hourly']['soil_moisture_28_to_100cm'][-1]
+            
+            # 1. Visualización de "Tanques de Agua"
+            c_tanque1, c_tanque2 = st.columns(2)
+            
+            with c_tanque1:
+                st.write("**Capa Semilla (0-7cm)**")
+                st.metric("Humedad Volumétrica", f"{suelo_sup:.3f} m³/m³")
+                st.progress(min(suelo_sup / 0.5, 1.0))
+                
+            with c_tanque2:
+                st.write("**Reserva Profunda (28-100cm)**")
+                st.metric("Almacenaje (AU)", f"{suelo_prof:.3f} m³/m³")
+                st.progress(min(suelo_prof / 0.5, 1.0))
+
+            # 2. Gráfico de Evolución (Esto es lo que Windy no te deja ver bien)
+            st.write("**📈 Evolución del Almacenaje (Última semana)**")
+            historico_suelo = res_c['hourly']['soil_moisture_28_to_100cm']
+            st.area_chart(historico_suelo)
+            
+            st.caption("Gráfico basado en datos de reanálisis ERA5-Land (Copernicus) procesados por ECMWF.")
+
+        except Exception as e:
+            st.error("No se pudo conectar con el servidor de Copernicus ERA5.")
+
+        # Si aún así querés un mapa, usemos el de Google Maps que es más limpio
+        # Solo para ubicación, el dato lo tenés arriba en el gráfico.
+        st.markdown("### 📍 Ubicación del Punto de Control")
+        map_data = pd.DataFrame({'lat': [lat], 'lon': [lon]})
+        st.map(map_data)
+
+    except Exception as e:
+        st.error(f"Error en el módulo de balance: {e}") 
     #AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
