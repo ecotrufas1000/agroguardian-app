@@ -372,21 +372,27 @@ elif menu == "💧 Balance Hídrico":
     except:
         st.info("Obteniendo datos de reanálisis Copernicus...")
 
-  # 2. Mapa de Humedad de Suelo - CAPA TÉCNICA COPERNICUS
-    # Modificamos los parámetros: overlay=soilmoisture y product=ecmwf
-    url_mapa_copernicus = (
+ # 2. Mapa Técnico: Humedad de Suelo (Capa Real Copernicus/ECMWF)
+    # Explicación: overlay=soilmoisture (suelo), product=ecmwf (Copernicus), particlesAnim=off (quita el viento)
+    url_mapa_limpio = (
         f"https://embed.windy.com/embed2.html?"
-        f"lat={lat}&lon={lon}&zoom=8"
-        f"&overlay=soilmoisture"  # Forzamos capa de humedad de suelo
-        f"&product=ecmwf"         # Forzamos modelo Copernicus (ECMWF)
+        f"lat={lat}&lon={lon}&zoom=7"
+        f"&overlay=soilmoisture" 
+        f"&product=ecmwf"
+        f"&particlesAnim=off"  # <--- ESTO QUITA LAS RAYITAS DEL VIENTO
         f"&menu=&message=true&marker=true"
-        f"&calendar=now&pressure=true&type=map"
-        f"&location=coordinates&detail=true"
-        f"&metricWind=km%2Fh&metricTemp=%C2%B0C"
+        f"&calendar=now&pressure=false" # Quitamos presión para limpiar más
+        f"&type=map&location=coordinates&detail=true"
     )
     
-    st.components.v1.iframe(url_mapa_copernicus, height=550)
-# AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
+    st.components.v1.iframe(url_mapa_limpio, height=550)
+    
+    st.info("""
+        🌍 **Datos de Capa:** Estás viendo el modelo **ECMWF (European Centre for Medium-Range Weather Forecasts)**. 
+        Este es el motor de **Copernicus**. La escala de colores representa m³/m³ de agua:
+        - **Marrón/Amarillo:** Perfil seco (Sequía).
+        - **Verde/Azul:** Perfil cargado (Almacenaje).
+    """) AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
