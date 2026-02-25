@@ -332,9 +332,11 @@ elif menu == "💧 Balance Hídrico":
         if 'clima_data' in st.session_state:
             temp_media = st.session_state.clima_data['temp']
             lat = LAT if LAT else -38.29
+            lon = LON if LON else -57.55
         else:
-            temp_media, lat = 25.0, -38.29
+            temp_media, lat, lon = 25.0, -38.29, -57.55
         
+        # --- TU LÓGICA DE BLANEY-CRIDDLE ---
         doy = datetime.datetime.now().timetuple().tm_yday
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
         lat_rad = math.radians(lat)
@@ -345,17 +347,39 @@ elif menu == "💧 Balance Hídrico":
         eto_diaria = p_diario * (0.46 * temp_media + 8)
 
         st.success(f"📍 GPS: {lat:.4f} | Valor P : {p_diario:.4f}")
-        kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
+        kc = st.slider("Kc del Cultivo (Coeficiente)", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
 
         c1, gap, c2 = st.columns([1, 0.1, 1])
         c1.metric("Demanda (ETo)", f"{eto_diaria:.2f} mm/día")
         c2.metric("Consumo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}")
         st.progress(min(etc / 10.0, 1.0))
-    except Exception as e:
-        st.error(f"Error en cálculo: {e}")
 
-elif menu == "⛈️ Radar Granizo":
+        # --- NUEVA SECCIÓN: MONITOREO DE SUELO ---
+        st.divider()
+        st.markdown("### 🗺️ MAPA DE AGUA EN EL SUELO (Open-Meteo / Windy)")
+        
+        # 1. Indicadores Rápidos de Humedad (Satelital)
+        # Aquí consultamos la capa de suelo de Open-Meteo (0-7cm)
+        try:
+            url_soil = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_7cm&forecast_days=1"
+            res_soil = requests.get(url_soil).json()
+            humedad_actual = res_soil['hourly']['soil_moisture_0_to_7cm'][0]
+            
+            st.info(f"🛰️ Humedad actual detectada en los primeros 7cm de suelo: **{humedad_actual * 100:.1f}%**")
+        except:
+            st.info("🛰️ Humedad de suelo: Consultando datos satelitales...")
+
+        # 2. Mapa Interactivo de Humedad
+        # Usamos la capa 'soilmoisture' que es la más precisa para agro
+        url_mapa_suelo = f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=8&overlay=soilmoisture&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C"
+        
+        st.components.v1.iframe(url_mapa_suelo, height=500)
+        
+        st.caption("🔍 El mapa muestra la saturación de agua en el suelo. Los colores amarillos/naranjas indican necesidad de riego.")
+
+    except Exception as e:
+        st.error(f"Error en cálculo: {e}")elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
     if LAT and LON:
