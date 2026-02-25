@@ -322,10 +322,11 @@ elif menu == "🌧️ Pluviómetro":
 
     except Exception as e:
         st.error(f"Error al procesar los datos de lluvia: {e}")
+
 elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
     
-    try:
+    try:  # <-- Empieza el bloque
         # 1. Coordenadas y Cálculo Teórico
         lat = LAT if LAT else -38.29
         lon = LON if LON else -57.55
@@ -353,55 +354,58 @@ elif menu == "💧 Balance Hídrico":
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
-  
-        # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
+      
+        # --- MAPA COPERNICUS DENTRO DEL TRY ---
         import folium
-from streamlit_folium import folium_static
+        from streamlit_folium import folium_static
 
-st.divider()
-st.markdown("### 🛰️ Anomalía de Humedad del Suelo (Copernicus)")
+        st.divider()
+        st.markdown("### 🛰️ Anomalía de Humedad del Suelo (Copernicus)")
 
-# Seguridad por si no hay GPS
-lat_map = LAT if LAT else -38.29
-lon_map = LON if LON else -57.55
+        # Seguridad por si no hay GPS
+        lat_map = LAT if LAT else -38.29
+        lon_map = LON if LON else -57.55
 
-# Control de zoom dinámico
-zoom_level = 8 if LAT else 5
+        # Control de zoom dinámico
+        zoom_level = 8 if LAT else 5
 
-# Slider de transparencia
-opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
+        # Slider de transparencia
+        opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
 
-# Crear mapa base oscuro
-m = folium.Map(
-    location=[lat_map, lon_map],
-    zoom_start=zoom_level,
-    tiles="CartoDB dark_matter",
-    control_scale=True
-)
+        # Crear mapa base oscuro
+        m = folium.Map(
+            location=[lat_map, lon_map],
+            zoom_start=zoom_level,
+            tiles="CartoDB dark_matter",
+            control_scale=True
+        )
 
-# Capa Copernicus Soil Moisture Anomaly
-folium.WmsTileLayer(
-    url="https://drought.emergency.copernicus.eu/api/wms",
-    name="Soil Moisture Anomaly",
-    layers="SMI_v4_0_anomaly",
-    fmt="image/png",
-    transparent=True,
-    opacity=opacidad,
-    attribution="Copernicus Emergency Management Service",
-).add_to(m)
+        # Capa Copernicus Soil Moisture Anomaly
+        folium.WmsTileLayer(
+            url="https://drought.emergency.copernicus.eu/api/wms",
+            name="Soil Moisture Anomaly",
+            layers="SMI_v4_0_anomaly",
+            fmt="image/png",
+            transparent=True,
+            opacity=opacidad,
+            attribution="Copernicus Emergency Management Service",
+        ).add_to(m)
 
-# Marcador del lote
-folium.CircleMarker(
-    location=[lat_map, lon_map],
-    radius=6,
-    color="#00ffc3",
-    fill=True,
-    fill_opacity=1
-).add_to(m)
+        # Marcador del lote
+        folium.CircleMarker(
+            location=[lat_map, lon_map],
+            radius=6,
+            color="#00ffc3",
+            fill=True,
+            fill_opacity=1
+        ).add_to(m)
 
-folium.LayerControl().add_to(m)
+        folium.LayerControl().add_to(m)
 
-folium_static(m, width=1000, height=600)
+        folium_static(m, width=1000, height=600)
+
+    except Exception as e:  # <-- Cierra el try con except
+        st.error(f"Error en Balance Hídrico: {e}")
 
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
