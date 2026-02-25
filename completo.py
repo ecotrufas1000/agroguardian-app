@@ -357,53 +357,41 @@ elif menu == "💧 Balance Hídrico":
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
-
-        # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
-        st.divider()
-        st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
-        
-        # Explicación de la URL:
-        # preset=MOISTURE-INDEX -> Activa la capa que pediste.
-        # showContext=false -> ELIMINA la barra lateral de capas y configuración.
-        # --- URL TÉCNICA FORZADA PARA HUMEDAD REAL ---
-        # Usamos el script MSI: (B11 / B08) 
-        # Valores altos = Seco | Valores bajos = Húmedo
-        # Aquí lo configuramos para que el AZUL sea AGUA.
-        
-        script_humedad = "return [2 * B11, B08 + B11, B08];" # Script simplificado para resaltar agua
-        
-        # --- CONFIGURACIÓN PARA RESALTAR AZULES (HUMEDAD) ---
-        # Definimos un script que potencia la visualización del agua
-        # MSI = (B11 - B08) / (B11 + B08) -> Lo mapeamos a una escala de azules
+# --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
+    st.divider()
+    st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
+    
+    try:
+        # 1. Definimos el script que potencia la visualización del agua
+        # Este cálculo resalta el contenido hídrico en tonos azules eléctricos
         custom_script = "return [Math.max(0, B11 - B08) * 2.5, B11, B08 + B11];" 
         
-        # Codificamos el script para la URL
+        # 2. Codificamos el script para que la URL lo entienda
         import urllib.parse
         encoded_script = urllib.parse.quote(custom_script)
 
+        # 3. Construimos la URL unificada
         url_azul_profundo = (
             f"https://apps.sentinel-hub.com/sentinel-playground/?"
             f"source=S2L2A&lat={lat}&lng={lon}&zoom=14"
-            f"&evalscript={encoded_script}" # <--- INYECTAMOS EL AZUL PROFUNDO
+            f"&evalscript={encoded_script}" 
             f"&maxcc=20"
             f"&showContext=false"
         )
         
+        # 4. Renderizado único (eliminada la línea duplicada que causaba error)
         st.components.v1.iframe(url_azul_profundo, height=700)
         
-        # Renderizado del mapa en formato grande
-        st.components.v1.iframe(url_limpia, height=700)
-        
         st.info("""
-            **Referencia de Color:**
-            El mapa muestra directamente el contenido de agua en la vegetación. 
-            Los tonos **azules** indican hidratación óptima, mientras que los **rojos** alertan sobre estrés hídrico.
+            **Referencia de Color Azul Profundo:**
+            * 🔵 **Azul Brillante:** Alta concentración de agua (perfil cargado o lagunas).
+            * 🟢 **Verde Opaco:** Humedad moderada en vegetación.
+            * 🟤 **Tonos Oscuros/Rojizos:** Suelo seco o estrés hídrico.
         """)
 
     except Exception as e:
         st.error(f"Error en el módulo de balance: {e}")
-
-elif menu == "⛈️ Radar Granizo":
+       elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
     if LAT and LON:
