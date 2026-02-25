@@ -357,66 +357,35 @@ elif menu == "💧 Balance Hídrico":
 # ... (viene de la lógica de Blaney-Criddle)
     except Exception as e:
         st.error(f"Error en cálculo: {e}")
-# --- SECCIÓN COPERNICUS PURI (ERA5-Land) ---
-    st.divider()
-    st.markdown("### 🛰️ RESERVAS TÉCNICAS - DATASET COPERNICUS")
-    
-    try:
-        # 1. Obtención de datos (7 días atrás + pronóstico)
-        # Usamos ERA5-Land (Copernicus) para precisión máxima
-        url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_7cm,soil_moisture_28_to_100cm&models=ecmwf_ifs&past_days=7&forecast_days=1"
-        res_c = requests.get(url_copernicus).json()
+# --- SECCIÓN DEL MAPA DE HUMEDAD (NASA) ---
+        st.divider()
+        st.markdown("### 🗺️ MAPA DE HUMEDAD EN EL SUELO (NASA SMAP / GLDAS)")
         
-        if 'hourly' in res_c:
-            # Datos actuales
-            suelo_sup = res_c['hourly']['soil_moisture_0_to_7cm'][-1]
-            suelo_prof = res_c['hourly']['soil_moisture_28_to_100cm'][-1]
-            
-            # 2. Visualización de "Tanques de Agua"
-            c_tanque1, c_tanque2 = st.columns(2)
-            
-            with c_tanque1:
-                st.write("**Capa Semilla (0-7cm)**")
-                st.metric("Humedad Volumétrica", f"{suelo_sup:.3f} m³/m³")
-                st.progress(min(max(suelo_sup / 0.5, 0.0), 1.0))
-                
-            with c_tanque2:
-                st.write("**Reserva Profunda (28-100cm)**")
-                st.metric("Almacenaje (AU)", f"{suelo_prof:.3f} m³/m³")
-                st.progress(min(max(suelo_prof / 0.5, 0.0), 1.0))
+        # Consultamos el dato numérico actual para acompañar al mapa
+        url_data = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_10cm&models=nasa_gldas&forecast_days=1"
+        res = requests.get(url_data).json()
+        humedad_valor = res['hourly']['soil_moisture_0_to_10cm'][0]
 
-          # 3. Gráfico de Evolución (Mejorado para ver variaciones)
-            st.write("**📈 Evolución del Almacenaje (Última semana)**")
-            
-            # Extraemos los datos de la respuesta de la API
-            historico_suelo = res_c.get('hourly', {}).get('soil_moisture_28_to_100cm', [])
-            
-            if historico_suelo:
-                # Convertimos a DataFrame para que Streamlit ajuste el eje Y automáticamente
-                df_historico = pd.DataFrame({
-                    'Humedad Volumétrica (m3/m3)': historico_suelo
-                })
-                
-                # Usamos line_chart para ver la curva sin la "mancha" del area_chart
-                st.line_chart(df_historico, use_container_width=True)
-                
-                # Mostramos los extremos para dar contexto
-                v_max = max(historico_suelo)
-                v_min = min(historico_suelo)
-                st.caption(f"📊 Variación en el periodo: Máx {v_max:.3f} | Mín {v_min:.3f}")
-            else:
-                st.warning("No hay datos históricos disponibles para graficar.")
+        st.info(f"🛰️ Humedad Volumétrica Detectada: **{humedad_valor:.3f} m³/m³**")
 
-        # 4. Mapa de ubicación (Limpio)
-        st.markdown("### 📍 Ubicación del Punto de Control")
-        # Creamos el dataframe para el mapa (Asegurate de tener import pandas as pd)
-        df_punto = pd.DataFrame({'lat': [lat], 'lon': [lon]})
-        st.map(df_punto)
+        # Embebemos el visualizador de capas de humedad (Capa de Suelo de NASA/ECMWF)
+        # Usamos una configuración de Windy optimizada que SOLO muestra humedad (sin viento)
+        url_mapa_limpio = (
+            f"https://embed.windy.com/embed2.html?"
+            f"lat={lat}&lon={lon}&zoom=8"
+            f"&overlay=soilmoisture" 
+            f"&product=ecmwf"
+            f"&particlesAnim=off" # Desactivamos el viento para que no tape el mapa
+            f"&menu=&message=false&marker=true"
+            f"&calendar=now&pressure=false&type=map&location=coordinates&detail=true"
+        )
+        
+        st.components.v1.iframe(url_mapa_limpio, height=500)
+        
+        st.caption("Interpretación: Colores Azules (Saturado), Verdes (Óptimo), Amarillos/Rojos (Estrés/Seco).")
 
     except Exception as e:
-        st.error(f"Error en el módulo de balance: {e}")
-    #AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
-elif menu == "⛈️ Radar Granizo":
+        st.error(f"Error en el módulo: {e}")elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
     if LAT and LON:
