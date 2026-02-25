@@ -387,8 +387,6 @@ elif menu == "💧 Balance Hídrico":
         except Exception as e:
             st.error(f"Error en el módulo de mapa: {e}")
 # <--- ASEGURATE DE QUE NO HAYA MÁS ESPACIOS AQUÍ ABAJO ANTES DEL ELIF --->
-
-elif menu == "⛈️ Radar Granizo":
 # --- AQUÍ TERMINA EL MENÚ DE BALANCE Y EMPIEZA EL SIGUIENTE ---
 
 elif menu == "⛈️ Radar Granizo":
