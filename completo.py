@@ -392,7 +392,8 @@ elif menu == "💧 Balance Hídrico":
         Este es el motor de **Copernicus**. La escala de colores representa m³/m³ de agua:
         - **Marrón/Amarillo:** Perfil seco (Sequía).
         - **Verde/Azul:** Perfil cargado (Almacenaje).
-    """) AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
+    """) 
+    #AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
