@@ -382,6 +382,7 @@ elif menu == "💧 Balance Hídrico":
             - **Azul oscuro:** Suelo a Capacidad de Campo o saturado (ideal para siembra o pleno crecimiento).
             - **Amarillo/Naranja:** Punto de marchitez cercano. El almacenaje está en niveles críticos.
         """)
+        
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
