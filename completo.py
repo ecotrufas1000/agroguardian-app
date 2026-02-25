@@ -327,7 +327,7 @@ elif menu == "🌧️ Pluviómetro":
     except Exception as e:
         st.error(f"Error al procesar los datos de lluvia: {e}")
 elif menu == "💧 Balance Hídrico":
-    st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS")
+    st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
     
     try:
         # 1. Coordenadas y Cálculo Teórico
@@ -342,9 +342,12 @@ elif menu == "💧 Balance Hídrico":
         eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
 
         # 2. Obtención de datos de Suelo (Copernicus ERA5-Land)
-        url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
-        res_cop = requests.get(url_cop).json()
-        hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
+        try:
+            url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+            res_cop = requests.get(url_cop).json()
+            hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
+        except:
+            hum_profunda = 0.0
 
         # 3. Métricas de Consumo
         kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
@@ -353,37 +356,35 @@ elif menu == "💧 Balance Hídrico":
         c1, c2, c3 = st.columns(3)
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
-        c3.metric("Agua en Perfil", f"{hum_profunda:.3f} m³/m³")
+        c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
 
-        # --- MAPA DE BALANCE HÍDRICO (SENTINEL-2 / COPERNICUS) ---
+        # --- MAPA FILTRADO DIRECTO (SENTINEL-2 MOISTURE INDEX) ---
         st.divider()
-        st.markdown("### 🗺️ MAPA DE ESTRÉS HÍDRICO (Sentinel-2 MSI)")
+        st.markdown("### 🗺️ MAPA DIRECTO DE HUMEDAD (Sentinel-2 SR)")
         
-        # Usamos Sentinel Hub para mostrar el índice de estrés de humedad
-        # Este mapa analiza la reflectancia del agua en las hojas (B11 y B8)
-        # Es lo más cercano a un 'mapa de balance' que Sentinel-2 puede dar.
-        lat_m, lon_m = lat, lon
-        zoom = 13
+        # URL MODIFICADA: Forzamos preset=MOISTURE-INDEX para evitar selección manual
+        # Usamos zoom 14 para ver el detalle de los lotes directamente
+        url_sentinel_directo = (
+            f"https://apps.sentinel-hub.com/sentinel-playground/?"
+            f"source=S2L2A&lat={lat}&lng={lon}&zoom=14"
+            f"&preset=MOISTURE-INDEX" # <--- FILTRO DIRECTO APLICADO
+            f"&layers=B01,B02,B03"
+            f"&maxcc=20" # Máxima cobertura de nubes 20%
+            f"&gain=1.0&gamma=1.0"
+        )
         
-        # Generamos el visor de Sentinel-2 para el área
-        st.write("🛰️ **Analizando bandas infrarrojas de onda corta (SWIR)...**")
-        
-        # Mapa Interactivo de Sentinel Hub (Capa de Humedad)
-        # Esta URL fuerza la visualización del índice de humedad de Copernicus
-        url_sentinel = f"https://apps.sentinel-hub.com/sentinel-playground/?source=S2L2A&lat={lat_m}&lng={lon_m}&zoom={zoom}&preset=6_MOISTURE_INDEX&layers=B01,B02,B03&maxcc=20"
-        
-        st.components.v1.iframe(url_sentinel, height=600)
+        # Renderizado con altura suficiente para ver la escala
+        st.components.v1.iframe(url_sentinel_directo, height=700, scrolling=True)
         
         st.info("""
-            **Guía del Mapa Copernicus S2:**
-            - **Azul intenso:** Vegetación con alto contenido de agua (Balance positivo).
-            - **Rojo/Amarillo:** Estrés hídrico o suelo desnudo seco (Balance negativo).
-            - **Transparente/Blanco:** Nubes o baja densidad.
+            **Interpretación del Índice de Humedad (MSI):**
+            * 🟦 **Azul / Cian:** Vegetación hidratada (Balance hídrico óptimo).
+            * 🟩 **Verde:** Humedad moderada.
+            * 🟥 **Rojo / Amarillo:** Estrés hídrico (Suelo seco o planta sufriendo).
         """)
 
     except Exception as e:
-        st.error(f"Error al conectar con Copernicus: {e}")
-        
+        st.error(f"Error en el módulo de balance: {e}")        
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
