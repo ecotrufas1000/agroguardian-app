@@ -322,23 +322,22 @@ elif menu == "🌧️ Pluviómetro":
 
     except Exception as e:
         st.error(f"Error al procesar los datos de lluvia: {e}")
-
 elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
     
-    try:  # <-- TODO el bloque va dentro de este try
-        # 1. Coordenadas y cálculo de ETo
+    try:
+        # 1. Coordenadas y Cálculo Teórico
         lat = LAT if LAT else -38.29
         lon = LON if LON else -57.55
         temp_media = st.session_state.clima_data['temp'] if 'clima_data' in st.session_state else 25.0
 
-        # Lógica Blaney-Criddle
+        # --- Lógica Blaney-Criddle ---
         doy = datetime.datetime.now().timetuple().tm_yday
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
         ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
         eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
 
-        # 2. Humedad del suelo
+        # 2. Obtención de datos de Suelo
         try:
             url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
             res_cop = requests.get(url_cop).json()
@@ -346,34 +345,29 @@ elif menu == "💧 Balance Hídrico":
         except:
             hum_profunda = 0.0
 
-        # 3. Métricas ET
+        # 3. Métricas de Consumo
         kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
-        
+
         c1, c2, c3 = st.columns(3)
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
-      
-        # --- MAPA COPERNICUS (TODO DENTRO DEL MISMO TRY) ---
+
+        # --- MAPA COPERNICUS DE HUMEDAD ---
         import folium
         from streamlit_folium import folium_static
 
         st.divider()
         st.markdown("### 🛰️ Anomalía de Humedad del Suelo (Copernicus)")
 
+        # Seguridad por si no hay GPS
         lat_map = LAT if LAT else -38.29
         lon_map = LON if LON else -57.55
         zoom_level = 8 if LAT else 5
         opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
 
-        m = folium.Map(
-            location=[lat_map, lon_map],
-            zoom_start=zoom_level,
-            tiles="CartoDB dark_matter",
-            control_scale=True
-        )
-
+        m = folium.Map(location=[lat_map, lon_map], zoom_start=zoom_level, tiles="CartoDB dark_matter", control_scale=True)
         folium.WmsTileLayer(
             url="https://drought.emergency.copernicus.eu/api/wms",
             name="Soil Moisture Anomaly",
@@ -395,51 +389,41 @@ elif menu == "💧 Balance Hídrico":
         folium.LayerControl().add_to(m)
         folium_static(m, width=1000, height=600)
 
-    except Exception as e:  # <-- Cierra el try correctamente
+    except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
+
+
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
-    
-    if LAT and LON:
-        # --- FILA DE INDICADORES DE RIESGO ---
+
+    if LAT and LON and clima:
         c1, c2, c3 = st.columns(3)
-        
+
+        hum = clima['hum']
+        temp = clima['temp']
+        presion = clima['presion']
+        rocio = clima['rocio']
+
         with c1:
-            # Lógica agronómica: Alta humedad + Alta temperatura = Energía para tormentas
-            riesgo = "ALTO" if clima['hum'] > 80 and clima['temp'] > 25 else "MEDIO" if clima['hum'] > 60 else "BAJO"
+            riesgo = "ALTO" if hum > 80 and temp > 25 else "MEDIO" if hum > 60 else "BAJO"
             st.metric("Riesgo de Inestabilidad", riesgo, delta="Basado en Hum/Temp")
-        
+
         with c2:
-            # La presión baja suele indicar la llegada de un frente de tormenta
-            st.metric("Presión Atmosférica", f"{clima['presion']} hPa")
-        
+            st.metric("Presión Atmosférica", f"{presion} hPa")
+
         with c3:
-            st.metric("Punto de Rocío", f"{clima['rocio']} °C", help="A mayor punto de rocío, más combustible para la tormenta")
+            st.metric("Punto de Rocío", f"{rocio} °C", help="A mayor punto de rocío, más combustible para la tormenta")
 
         st.divider()
 
-        # --- SELECTOR DE CAPAS PARA EL RADAR ---
-        capa = st.segmented_control(
-            "Seleccionar Capa del Sensor:", 
-            options=["Radar", "Rayos", "Nubes"], 
-            default="Radar"
-        )
-        
-        vistas = {
-            "Radar": "radar",
-            "Rayos": "thunder",
-            "Nubes": "satellite"
-        }
+        # Selector de capa nativo
+        capa = st.radio("Seleccionar Capa del Sensor:", ["Radar", "Rayos", "Nubes"], index=0)
+        vistas = {"Radar": "radar", "Rayos": "thunder", "Nubes": "satellite"}
 
-        # --- MAPA INTERACTIVO DINÁMICO ---
         st.markdown(f"### 🛰️ Sensor Activo: {capa}")
-        
-        # Generamos la URL dinámica según la capa elegida
         url_windy = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay={vistas[capa]}&product=radar&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
-        
         st.components.v1.iframe(url_windy, height=600)
-        
-        # --- LEYENDA TÉCNICA ---
+
         with st.expander("ℹ️ ¿Cómo leer el radar?"):
             st.write("""
             - **Colores Verdes/Azules:** Lluvia ligera o moderada.
@@ -449,6 +433,7 @@ elif menu == "⛈️ Radar Granizo":
             """)
     else:
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
+
 elif menu == "❄️ Análisis de Heladas":
     if clima:
         st.metric("Riesgo Térmico", f"{clima['temp']}°C")
