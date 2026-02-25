@@ -327,67 +327,63 @@ elif menu == "🌧️ Pluviómetro":
     except Exception as e:
         st.error(f"Error al procesar los datos de lluvia: {e}")
 elif menu == "💧 Balance Hídrico":
-    st.markdown("### 💧 CÁLCULO DE PRECISIÓN (Blaney-Criddle)")
+    st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS")
     
     try:
-        # 1. Definición de Coordenadas y Clima
-        if 'clima_data' in st.session_state:
-            temp_media = st.session_state.clima_data['temp']
-            lat = LAT if LAT else -38.29
-            lon = LON if LON else -57.55
-        else:
-            temp_media, lat, lon = 25.0, -38.29, -57.55
+        # 1. Coordenadas y Cálculo Teórico
+        lat = LAT if LAT else -38.29
+        lon = LON if LON else -57.55
+        temp_media = st.session_state.clima_data['temp'] if 'clima_data' in st.session_state else 25.0
         
-        # 2. Lógica de Blaney-Criddle
+        # --- Lógica Blaney-Criddle ---
         doy = datetime.datetime.now().timetuple().tm_yday
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
-        lat_rad = math.radians(lat)
-        arg = -math.tan(lat_rad) * math.tan(delta)
-        ws = math.acos(max(-1, min(1, arg)))
-        N = (24 / math.pi) * ws
-        p_diario = (N / 4380) * 100
-        eto_diaria = p_diario * (0.46 * temp_media + 8)
+        ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
+        eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
 
-        # 3. Interfaz de Métricas
-        st.success(f"📍 GPS: {lat:.4f}, {lon:.4f} | Valor P : {p_diario:.4f}")
-        kc = st.slider("Kc del Cultivo (Coeficiente)", 0.3, 1.2, 0.8)
+        # 2. Obtención de datos de Suelo (Copernicus ERA5-Land)
+        url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+        res_cop = requests.get(url_cop).json()
+        hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
+
+        # 3. Métricas de Consumo
+        kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
+        
+        c1, c2, c3 = st.columns(3)
+        c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
+        c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
+        c3.metric("Agua en Perfil", f"{hum_profunda:.3f} m³/m³")
 
-        c1, gap, c2 = st.columns([1, 0.1, 1])
-        c1.metric("Demanda (ETo)", f"{eto_diaria:.2f} mm/día")
-        c2.metric("Consumo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}")
-        st.progress(min(max(etc / 10.0, 0.0), 1.0))
-
-        # --- SECCIÓN DEL MAPA DE HUMEDAD (Integrada correctamente) ---
+        # --- MAPA DE BALANCE HÍDRICO (SENTINEL-2 / COPERNICUS) ---
         st.divider()
-        st.markdown("### 🗺️ MAPA DE HUMEDAD EN EL SUELO (NASA SMAP / GLDAS)")
+        st.markdown("### 🗺️ MAPA DE ESTRÉS HÍDRICO (Sentinel-2 MSI)")
         
-        # Consultamos el dato numérico para el indicador
-        try:
-            url_data = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_10cm&models=nasa_gldas&forecast_days=1"
-            res = requests.get(url_data).json()
-            if 'hourly' in res:
-                humedad_valor = res['hourly']['soil_moisture_0_to_10cm'][0]
-                st.info(f"🛰️ Humedad Volumétrica Detectada: **{humedad_valor:.3f} m³/m³**")
-        except:
-            st.warning("No se pudo recuperar el dato numérico de la NASA, pero cargando mapa...")
-
-        # Mapa de Windy optimizado (Capa de Humedad de Suelo)
-        url_mapa_limpio = (
-            f"https://embed.windy.com/embed2.html?"
-            f"lat={lat}&lon={lon}&zoom=8"
-            f"&overlay=soilmoisture" 
-            f"&product=ecmwf"
-            f"&particlesAnim=off"  # Crucial para que no se vea el viento
-            f"&menu=&message=false&marker=true"
-            f"&calendar=now&pressure=false&type=map&location=coordinates&detail=true"
-        )
+        # Usamos Sentinel Hub para mostrar el índice de estrés de humedad
+        # Este mapa analiza la reflectancia del agua en las hojas (B11 y B8)
+        # Es lo más cercano a un 'mapa de balance' que Sentinel-2 puede dar.
+        lat_m, lon_m = lat, lon
+        zoom = 13
         
-        st.components.v1.iframe(url_mapa_limpio, height=500)
-        st.caption("Interpretación: Colores Azules (Saturado), Verdes (Óptimo), Amarillos/Rojos (Seco).")
+        # Generamos el visor de Sentinel-2 para el área
+        st.write("🛰️ **Analizando bandas infrarrojas de onda corta (SWIR)...**")
+        
+        # Mapa Interactivo de Sentinel Hub (Capa de Humedad)
+        # Esta URL fuerza la visualización del índice de humedad de Copernicus
+        url_sentinel = f"https://apps.sentinel-hub.com/sentinel-playground/?source=S2L2A&lat={lat_m}&lng={lon_m}&zoom={zoom}&preset=6_MOISTURE_INDEX&layers=B01,B02,B03&maxcc=20"
+        
+        st.components.v1.iframe(url_sentinel, height=600)
+        
+        st.info("""
+            **Guía del Mapa Copernicus S2:**
+            - **Azul intenso:** Vegetación con alto contenido de agua (Balance positivo).
+            - **Rojo/Amarillo:** Estrés hídrico o suelo desnudo seco (Balance negativo).
+            - **Transparente/Blanco:** Nubes o baja densidad.
+        """)
 
     except Exception as e:
-        st.error(f"Error general en el módulo de Balance: {e}")
+        st.error(f"Error al conectar con Copernicus: {e}")
+        
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
