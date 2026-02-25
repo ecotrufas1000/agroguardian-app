@@ -358,32 +358,34 @@ elif menu == "💧 Balance Hídrico":
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
 
-        # --- MAPA LIMPIO (SOLO EL MAPA, SIN CONFIGURACIÓN) ---
+        # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
         st.divider()
-        st.markdown("### 🗺️ MAPA DIRECTO DE HUMEDAD (Sentinel-2 SR)")
+        st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
         
-        # Parámetros clave para ocultar la interfaz:
-        # showContext=false: Oculta la barra lateral de configuración.
-        url_sentinel_limpio = (
+        # Explicación de la URL:
+        # preset=MOISTURE-INDEX -> Activa la capa que pediste.
+        # showContext=false -> ELIMINA la barra lateral de capas y configuración.
+        url_limpia = (
             f"https://apps.sentinel-hub.com/sentinel-playground/?"
             f"source=S2L2A&lat={lat}&lng={lon}&zoom=14"
             f"&preset=MOISTURE-INDEX"
             f"&layers=B01,B02,B03"
             f"&maxcc=20"
-            f"&showContext=false" # <--- ESTO OCULTA LA CONFIGURACIÓN
+            f"&showContext=false"  # <--- Esto oculta los menús de configuración
         )
         
-        # Usamos un contenedor CSS para "recortar" bordes si fuera necesario, 
-        # pero con showContext=false debería ser suficiente.
-        st.components.v1.iframe(url_sentinel_limpio, height=600)
+        # Renderizado del mapa en formato grande
+        st.components.v1.iframe(url_limpia, height=700)
         
         st.info("""
-            **Interpretación del Índice de Humedad (MSI):**
-            * 🟦 **Azul / Cian:** Humedad óptima. | 🟥 **Rojo / Amarillo:** Estrés hídrico.
+            **Referencia de Color:**
+            El mapa muestra directamente el contenido de agua en la vegetación. 
+            Los tonos **azules** indican hidratación óptima, mientras que los **rojos** alertan sobre estrés hídrico.
         """)
 
     except Exception as e:
         st.error(f"Error en el módulo de balance: {e}")
+
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
