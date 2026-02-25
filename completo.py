@@ -322,7 +322,7 @@ elif menu == "🌧️ Pluviómetro":
 
     except Exception as e:
         st.error(f"Error al procesar los datos de lluvia: {e}")
- elif menu == "💧 Balance Hídrico":
+elif menu == "💧 Balance Hídrico":
     import folium
     from streamlit_folium import folium_static
     st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
