@@ -357,7 +357,8 @@ elif menu == "💧 Balance Hídrico":
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
-# --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
+        
+    # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
     st.divider()
     st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
     
