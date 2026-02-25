@@ -420,16 +420,16 @@ elif menu == "💧 Balance Hídrico":
 
         m = folium.Map(location=[lat_map, lon_map], zoom_start=zoom_level, tiles="CartoDB dark_matter", control_scale=True)
         folium.WmsTileLayer(
-    url="https://drought.emergency.copernicus.eu/api/wms",
-    name="Soil Moisture Anomaly",
-    layers="SMI_v4_0_anomaly",
-    fmt="image/png",
-    transparent=True,
-    opacity=opacidad,
-    attr="Copernicus Emergency Management Service",
-    version="1.3.0",
-    styles="",
-).add_to(m)
+            url="https://drought.emergency.copernicus.eu/api/wms",
+            name="Soil Moisture Anomaly",
+            layers="SMI_v4_0_anomaly",
+            fmt="image/png",
+            transparent=True,
+            opacity=opacidad,
+            attr="Copernicus Emergency Management Service",
+            version="1.3.0",
+            styles="",
+        ).add_to(m)
         folium.CircleMarker(
             location=[lat_map, lon_map],
             radius=6,
