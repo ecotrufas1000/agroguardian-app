@@ -385,14 +385,21 @@ elif menu == "💧 Balance Hídrico":
                 st.metric("Almacenaje (AU)", f"{suelo_prof:.3f} m³/m³")
                 st.progress(min(max(suelo_prof / 0.5, 0.0), 1.0))
 
-            # 3. Gráfico de Evolución
+            # 3. Gráfico de Evolución (Mejorado para ver variaciones)
             st.write("**📈 Evolución del Almacenaje (Última semana)**")
-            historico_suelo = res_c['hourly']['soil_moisture_28_to_100cm']
-            st.area_chart(historico_suelo)
             
-            st.caption("Gráfico basado en datos de reanálisis ERA5-Land (Copernicus) procesados por ECMWF.")
-        else:
-            st.warning("No se recibieron datos del servidor Copernicus. Verificá las coordenadas.")
+            # Convertimos la lista a un DataFrame para que Streamlit lo maneje mejor
+            df_historico = pd.DataFrame({
+                'Humedad Volumétrica (m3/m3)': historico_suelo
+            })
+            
+            # Usamos line_chart en lugar de area_chart para evitar la "mancha" azul
+            st.line_chart(df_historico, use_container_width=True)
+            
+            # Tip: Mostramos el valor máximo y mínimo para entender la escala
+            v_max = max(historico_suelo)
+            v_min = min(historico_suelo)
+            st.caption(f"📊 Variación en el periodo: Max {v_max:.3f} | Min {v_min:.3f}")
 
         # 4. Mapa de ubicación (Limpio)
         st.markdown("### 📍 Ubicación del Punto de Control")
