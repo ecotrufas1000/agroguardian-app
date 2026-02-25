@@ -354,34 +354,44 @@ elif menu == "💧 Balance Hídrico":
         c1.metric("Demanda (ETo)", f"{eto_diaria:.2f} mm/día")
         c2.metric("Consumo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}")
         st.progress(min(etc / 10.0, 1.0))
+# ... (viene de la lógica de Blaney-Criddle)
+    except Exception as e:
+        st.error(f"Error en cálculo: {e}")
 
-       # --- SECCIÓN COPERNICUS: AGUA EN EL SUELO ---
-        st.divider()
-        st.markdown("### 🛰️ VIGILANCIA SATELITAL COPERNICUS (Sentinel)")
+    # --- SECCIÓN COPERNICUS: AGUA EN EL SUELO (Fuera del try anterior para evitar conflictos) ---
+    st.divider()
+    st.markdown("### 🛰️ VIGILANCIA SATELITAL COPERNICUS (Sentinel)")
+    
+    try:
+        # Consultamos la capa de ERA5-Land integrada en Open-Meteo
+        url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+        res_c = requests.get(url_copernicus).json()
+        humedad_era5 = res_c['hourly']['soil_moisture_28_to_100cm'][0]
         
-        # 1. Indicador Técnico de Humedad Volumétrica (ERA5-Land de Copernicus)
-        try:
-            # Consultamos la capa de ERA5-Land integrada en Open-Meteo
-            url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
-            res_c = requests.get(url_copernicus).json()
-            humedad_era5 = res_c['hourly']['soil_moisture_28_to_100cm'][0]
-            
-            st.success(f"📈 **Dato Copernicus ERA5:** {humedad_era5:.3f} m³/m³ en el perfil profundo.")
-        except:
-            st.info("Obteniendo datos de reanálisis Copernicus...")
+        st.success(f"📈 **Dato Copernicus ERA5:** {humedad_era5:.3f} m³/m³ en el perfil profundo.")
+    except:
+        st.info("Obteniendo datos de reanálisis Copernicus...")
 
-        # 2. Mapa de Humedad de Suelo (Capa Copernicus/Sentinel)
-        # Usamos el motor de Windy que procesa los datos de Copernicus (ECMWF)
-        url_mapa_copernicus = f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=7&overlay=soilmoisture&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C"
-        
-        st.components.v1.iframe(url_mapa_copernicus, height=550)
-        
-        st.info("""
-            **¿Qué estamos viendo?**
-            Este mapa utiliza el modelo **ECMWF (Copernicus)**. 
-            - **Azul oscuro:** Suelo a Capacidad de Campo o saturado (ideal para siembra o pleno crecimiento).
-            - **Amarillo/Naranja:** Punto de marchitez cercano. El almacenaje está en niveles críticos.
-        """)
+    # 2. Mapa de Humedad de Suelo
+    url_mapa_copernicus = f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=7&overlay=soilmoisture&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C"
+    
+    st.components.v1.iframe(url_mapa_copernicus, height=550)
+    
+    st.info("""
+        **¿Qué estamos viendo?**
+        Este mapa utiliza el modelo **ECMWF (Copernicus)**. 
+        - **Azul oscuro:** Suelo a Capacidad de Campo o saturado.
+        - **Amarillo/Naranja:** El almacenaje está en niveles críticos.
+    """)
+
+# AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
+elif menu == "⛈️ Radar Granizo":
+    st.header("⛈️ Monitor de Tormentas y Granizo")
+    
+    if LAT and LON:
+        # --- FILA DE INDICADORES DE RIESGO ---
+        c1, c2, c3 = st.columns(3)
+        # ... sigue tu código del radar
         
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
