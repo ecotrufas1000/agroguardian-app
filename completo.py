@@ -9,11 +9,7 @@ import math
 import datetime
 import pandas as pd
 import plotly.express as px
-st.set_page_config(
-    page_title="AGROGUARDIAN LAB v2.6",
-    page_icon="🚜",
-    layout="wide"
-)
+
 # ==========================================================
 # FUNCIONES DE CONVERSIÓN (DEBEN IR ARRIBA)
 # ==========================================================
