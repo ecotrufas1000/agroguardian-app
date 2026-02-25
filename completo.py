@@ -328,7 +328,9 @@ elif menu == "🌧️ Pluviómetro":
         st.error(f"Error al procesar los datos de lluvia: {e}")
 elif menu == "💧 Balance Hídrico":
     st.markdown("### 💧 CÁLCULO DE PRECISIÓN (Blaney-Criddle)")
+    
     try:
+        # 1. Definición de Coordenadas y Clima
         if 'clima_data' in st.session_state:
             temp_media = st.session_state.clima_data['temp']
             lat = LAT if LAT else -38.29
@@ -336,7 +338,7 @@ elif menu == "💧 Balance Hídrico":
         else:
             temp_media, lat, lon = 25.0, -38.29, -57.55
         
-        # --- TU LÓGICA DE BLANEY-CRIDDLE ---
+        # 2. Lógica de Blaney-Criddle
         doy = datetime.datetime.now().timetuple().tm_yday
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
         lat_rad = math.radians(lat)
@@ -346,47 +348,46 @@ elif menu == "💧 Balance Hídrico":
         p_diario = (N / 4380) * 100
         eto_diaria = p_diario * (0.46 * temp_media + 8)
 
-        st.success(f"📍 GPS: {lat:.4f} | Valor P : {p_diario:.4f}")
+        # 3. Interfaz de Métricas
+        st.success(f"📍 GPS: {lat:.4f}, {lon:.4f} | Valor P : {p_diario:.4f}")
         kc = st.slider("Kc del Cultivo (Coeficiente)", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
 
         c1, gap, c2 = st.columns([1, 0.1, 1])
         c1.metric("Demanda (ETo)", f"{eto_diaria:.2f} mm/día")
         c2.metric("Consumo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}")
-        st.progress(min(etc / 10.0, 1.0))
-# ... (viene de la lógica de Blaney-Criddle)
-    except Exception as e:
-        st.error(f"Error en cálculo: {e}")
-# --- SECCIÓN DEL MAPA DE HUMEDAD (NASA) ---
+        st.progress(min(max(etc / 10.0, 0.0), 1.0))
+
+        # --- SECCIÓN DEL MAPA DE HUMEDAD (Integrada correctamente) ---
         st.divider()
         st.markdown("### 🗺️ MAPA DE HUMEDAD EN EL SUELO (NASA SMAP / GLDAS)")
         
-        # Consultamos el dato numérico actual para acompañar al mapa
-        url_data = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_10cm&models=nasa_gldas&forecast_days=1"
-        res = requests.get(url_data).json()
-        humedad_valor = res['hourly']['soil_moisture_0_to_10cm'][0]
+        # Consultamos el dato numérico para el indicador
+        try:
+            url_data = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_10cm&models=nasa_gldas&forecast_days=1"
+            res = requests.get(url_data).json()
+            if 'hourly' in res:
+                humedad_valor = res['hourly']['soil_moisture_0_to_10cm'][0]
+                st.info(f"🛰️ Humedad Volumétrica Detectada: **{humedad_valor:.3f} m³/m³**")
+        except:
+            st.warning("No se pudo recuperar el dato numérico de la NASA, pero cargando mapa...")
 
-        st.info(f"🛰️ Humedad Volumétrica Detectada: **{humedad_valor:.3f} m³/m³**")
-
-        # Embebemos el visualizador de capas de humedad (Capa de Suelo de NASA/ECMWF)
-        # Usamos una configuración de Windy optimizada que SOLO muestra humedad (sin viento)
+        # Mapa de Windy optimizado (Capa de Humedad de Suelo)
         url_mapa_limpio = (
             f"https://embed.windy.com/embed2.html?"
             f"lat={lat}&lon={lon}&zoom=8"
             f"&overlay=soilmoisture" 
             f"&product=ecmwf"
-            f"&particlesAnim=off" # Desactivamos el viento para que no tape el mapa
+            f"&particlesAnim=off"  # Crucial para que no se vea el viento
             f"&menu=&message=false&marker=true"
             f"&calendar=now&pressure=false&type=map&location=coordinates&detail=true"
         )
         
         st.components.v1.iframe(url_mapa_limpio, height=500)
-        
-        st.caption("Interpretación: Colores Azules (Saturado), Verdes (Óptimo), Amarillos/Rojos (Estrés/Seco).")
+        st.caption("Interpretación: Colores Azules (Saturado), Verdes (Óptimo), Amarillos/Rojos (Seco).")
 
     except Exception as e:
-        st.error(f"Error en el módulo: {e}")
-
+        st.error(f"Error general en el módulo de Balance: {e}")
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
