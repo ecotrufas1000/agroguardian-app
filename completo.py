@@ -385,21 +385,27 @@ elif menu == "💧 Balance Hídrico":
                 st.metric("Almacenaje (AU)", f"{suelo_prof:.3f} m³/m³")
                 st.progress(min(max(suelo_prof / 0.5, 0.0), 1.0))
 
-            # 3. Gráfico de Evolución (Mejorado para ver variaciones)
+          # 3. Gráfico de Evolución (Mejorado para ver variaciones)
             st.write("**📈 Evolución del Almacenaje (Última semana)**")
             
-            # Convertimos la lista a un DataFrame para que Streamlit lo maneje mejor
-            df_historico = pd.DataFrame({
-                'Humedad Volumétrica (m3/m3)': historico_suelo
-            })
+            # Extraemos los datos de la respuesta de la API
+            historico_suelo = res_c.get('hourly', {}).get('soil_moisture_28_to_100cm', [])
             
-            # Usamos line_chart en lugar de area_chart para evitar la "mancha" azul
-            st.line_chart(df_historico, use_container_width=True)
-            
-            # Tip: Mostramos el valor máximo y mínimo para entender la escala
-            v_max = max(historico_suelo)
-            v_min = min(historico_suelo)
-            st.caption(f"📊 Variación en el periodo: Max {v_max:.3f} | Min {v_min:.3f}")
+            if historico_suelo:
+                # Convertimos a DataFrame para que Streamlit ajuste el eje Y automáticamente
+                df_historico = pd.DataFrame({
+                    'Humedad Volumétrica (m3/m3)': historico_suelo
+                })
+                
+                # Usamos line_chart para ver la curva sin la "mancha" del area_chart
+                st.line_chart(df_historico, use_container_width=True)
+                
+                # Mostramos los extremos para dar contexto
+                v_max = max(historico_suelo)
+                v_min = min(historico_suelo)
+                st.caption(f"📊 Variación en el periodo: Máx {v_max:.3f} | Mín {v_min:.3f}")
+            else:
+                st.warning("No hay datos históricos disponibles para graficar.")
 
         # 4. Mapa de ubicación (Limpio)
         st.markdown("### 📍 Ubicación del Punto de Control")
