@@ -375,10 +375,9 @@ elif menu == "💧 Balance Hídrico":
             fmt="image/png",
             transparent=True,
             opacity=opacidad,
-            attrelif menu == "💧 Balance Hídrico":
-    import folium
-    from streamlit_folium import folium_static
-
+            attr="Copernicus Emergency Management Service",  # ← correcto
+).add_to(m)
+    
     st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
 
     try:
