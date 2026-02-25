@@ -357,24 +357,21 @@ elif menu == "💧 Balance Hídrico":
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
-   # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
+  # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
         st.divider()
         st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
         
         try:
-            # Aseguramos que existan las variables de posición
+            # 1. Variables de posición
             lat_map = lat if 'lat' in locals() else -38.29
             lon_map = lon if 'lon' in locals() else -57.55
             
-            # 1. Definimos el script que potencia la visualización del agua
-            custom_script = "return [Math.max(0, B11 - B08) * 2.5, B11, B08 + B11];" 
-            
-            # 2. Codificamos el script de forma segura
+            # 2. Definimos y codificamos el script
             import urllib.parse
+            custom_script = "return [Math.max(0, B11 - B08) * 2.5, B11, B08 + B11];" 
             encoded_script = urllib.parse.quote(custom_script)
 
             # 3. Construcción de la URL
-        try:
             url_azul_profundo = (
                 f"https://apps.sentinel-hub.com/sentinel-playground/?"
                 f"source=S2L2A&lat={lat_map}&lng={lon_map}&zoom=14"
@@ -388,8 +385,7 @@ elif menu == "💧 Balance Hídrico":
             st.info("🔵 **Azul:** Humedad alta | 🟢 **Verde:** Moderada | 🟤 **Oscuro:** Seco")
             
         except Exception as e:
-            st.error(f"Error en el mapa de humedad: {e}")
-
+            st.error(f"Error en el módulo de mapa: {e}")
 # <--- ASEGURATE DE QUE NO HAYA MÁS ESPACIOS AQUÍ ABAJO ANTES DEL ELIF --->
 
 elif menu == "⛈️ Radar Granizo":
