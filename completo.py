@@ -385,14 +385,8 @@ elif menu == "💧 Balance Hídrico":
         st.caption("Interpretación: Colores Azules (Saturado), Verdes (Óptimo), Amarillos/Rojos (Estrés/Seco).")
 
     except Exception as e:
-        st.error(f"Error en el módulo: {e}")elif menu == "⛈️ Radar Granizo":
-    st.header("⛈️ Monitor de Tormentas y Granizo")
-    
-    if LAT and LON:
-        # --- FILA DE INDICADORES DE RIESGO ---
-        c1, c2, c3 = st.columns(3)
-        # ... sigue tu código del radar
-        
+        st.error(f"Error en el módulo: {e}")
+
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
