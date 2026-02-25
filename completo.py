@@ -357,65 +357,51 @@ elif menu == "💧 Balance Hídrico":
 # ... (viene de la lógica de Blaney-Criddle)
     except Exception as e:
         st.error(f"Error en cálculo: {e}")
-
-    # --- SECCIÓN COPERNICUS: AGUA EN EL SUELO (Fuera del try anterior para evitar conflictos) ---
+# --- SECCIÓN COPERNICUS PURI (ERA5-Land) ---
     st.divider()
-    st.markdown("### 🛰️ VIGILANCIA SATELITAL COPERNICUS (Sentinel)")
+    st.markdown("### 🛰️ RESERVAS TÉCNICAS - DATASET COPERNICUS")
     
     try:
-        # Consultamos la capa de ERA5-Land integrada en Open-Meteo
-        url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+        # 1. Obtención de datos (7 días atrás + pronóstico)
+        # Usamos ERA5-Land (Copernicus) para precisión máxima
+        url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_7cm,soil_moisture_28_to_100cm&models=ecmwf_ifs&past_days=7&forecast_days=1"
         res_c = requests.get(url_copernicus).json()
-        humedad_era5 = res_c['hourly']['soil_moisture_28_to_100cm'][0]
         
-        st.success(f"📈 **Dato Copernicus ERA5:** {humedad_era5:.3f} m³/m³ en el perfil profundo.")
-    except:
-        st.info("Obteniendo datos de reanálisis Copernicus...")
-
- # --- SECCIÓN COPERNICUS PURI (ERA5-Land) ---
-        st.divider()
-        st.markdown("### 🛰️ RESERVAS TÉCNICAS - DATASET COPERNICUS")
-        
-        try:
-            # Consultamos los últimos 7 días de almacenamiento de suelo (ERA5)
-            url_copernicus = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_7cm,soil_moisture_28_to_100cm&models=ecmwf_ifs&past_days=7&forecast_days=1"
-            res_c = requests.get(url_copernicus).json()
-            
-            # Datos de hoy (último registro)
+        if 'hourly' in res_c:
+            # Datos actuales
             suelo_sup = res_c['hourly']['soil_moisture_0_to_7cm'][-1]
             suelo_prof = res_c['hourly']['soil_moisture_28_to_100cm'][-1]
             
-            # 1. Visualización de "Tanques de Agua"
+            # 2. Visualización de "Tanques de Agua"
             c_tanque1, c_tanque2 = st.columns(2)
             
             with c_tanque1:
                 st.write("**Capa Semilla (0-7cm)**")
                 st.metric("Humedad Volumétrica", f"{suelo_sup:.3f} m³/m³")
-                st.progress(min(suelo_sup / 0.5, 1.0))
+                st.progress(min(max(suelo_sup / 0.5, 0.0), 1.0))
                 
             with c_tanque2:
                 st.write("**Reserva Profunda (28-100cm)**")
                 st.metric("Almacenaje (AU)", f"{suelo_prof:.3f} m³/m³")
-                st.progress(min(suelo_prof / 0.5, 1.0))
+                st.progress(min(max(suelo_prof / 0.5, 0.0), 1.0))
 
-            # 2. Gráfico de Evolución (Esto es lo que Windy no te deja ver bien)
+            # 3. Gráfico de Evolución
             st.write("**📈 Evolución del Almacenaje (Última semana)**")
             historico_suelo = res_c['hourly']['soil_moisture_28_to_100cm']
             st.area_chart(historico_suelo)
             
             st.caption("Gráfico basado en datos de reanálisis ERA5-Land (Copernicus) procesados por ECMWF.")
+        else:
+            st.warning("No se recibieron datos del servidor Copernicus. Verificá las coordenadas.")
 
-        except Exception as e:
-            st.error("No se pudo conectar con el servidor de Copernicus ERA5.")
-
-        # Si aún así querés un mapa, usemos el de Google Maps que es más limpio
-        # Solo para ubicación, el dato lo tenés arriba en el gráfico.
+        # 4. Mapa de ubicación (Limpio)
         st.markdown("### 📍 Ubicación del Punto de Control")
-        map_data = pd.DataFrame({'lat': [lat], 'lon': [lon]})
-        st.map(map_data)
+        # Creamos el dataframe para el mapa (Asegurate de tener import pandas as pd)
+        df_punto = pd.DataFrame({'lat': [lat], 'lon': [lon]})
+        st.map(df_punto)
 
     except Exception as e:
-        st.error(f"Error en el módulo de balance: {e}") 
+        st.error(f"Error en el módulo de balance: {e}")
     #AHORA SÍ, EL SIGUIENTE MENÚ (Asegurate que esté alineado con los otros elif)
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
