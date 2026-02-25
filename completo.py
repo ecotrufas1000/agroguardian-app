@@ -341,7 +341,7 @@ elif menu == "💧 Balance Hídrico":
         ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
         eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
 
-        # 2. Obtención de datos de Suelo (Copernicus ERA5-Land)
+        # 2. Obtención de datos de Suelo
         try:
             url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
             res_cop = requests.get(url_cop).json()
@@ -358,33 +358,32 @@ elif menu == "💧 Balance Hídrico":
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
 
-        # --- MAPA FILTRADO DIRECTO (SENTINEL-2 MOISTURE INDEX) ---
+        # --- MAPA LIMPIO (SOLO EL MAPA, SIN CONFIGURACIÓN) ---
         st.divider()
         st.markdown("### 🗺️ MAPA DIRECTO DE HUMEDAD (Sentinel-2 SR)")
         
-        # URL MODIFICADA: Forzamos preset=MOISTURE-INDEX para evitar selección manual
-        # Usamos zoom 14 para ver el detalle de los lotes directamente
-        url_sentinel_directo = (
+        # Parámetros clave para ocultar la interfaz:
+        # showContext=false: Oculta la barra lateral de configuración.
+        url_sentinel_limpio = (
             f"https://apps.sentinel-hub.com/sentinel-playground/?"
             f"source=S2L2A&lat={lat}&lng={lon}&zoom=14"
-            f"&preset=MOISTURE-INDEX" # <--- FILTRO DIRECTO APLICADO
+            f"&preset=MOISTURE-INDEX"
             f"&layers=B01,B02,B03"
-            f"&maxcc=20" # Máxima cobertura de nubes 20%
-            f"&gain=1.0&gamma=1.0"
+            f"&maxcc=20"
+            f"&showContext=false" # <--- ESTO OCULTA LA CONFIGURACIÓN
         )
         
-        # Renderizado con altura suficiente para ver la escala
-        st.components.v1.iframe(url_sentinel_directo, height=700, scrolling=True)
+        # Usamos un contenedor CSS para "recortar" bordes si fuera necesario, 
+        # pero con showContext=false debería ser suficiente.
+        st.components.v1.iframe(url_sentinel_limpio, height=600)
         
         st.info("""
             **Interpretación del Índice de Humedad (MSI):**
-            * 🟦 **Azul / Cian:** Vegetación hidratada (Balance hídrico óptimo).
-            * 🟩 **Verde:** Humedad moderada.
-            * 🟥 **Rojo / Amarillo:** Estrés hídrico (Suelo seco o planta sufriendo).
+            * 🟦 **Azul / Cian:** Humedad óptima. | 🟥 **Rojo / Amarillo:** Estrés hídrico.
         """)
 
     except Exception as e:
-        st.error(f"Error en el módulo de balance: {e}")        
+        st.error(f"Error en el módulo de balance: {e}")
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
