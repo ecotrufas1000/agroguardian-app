@@ -355,31 +355,42 @@ elif menu == "💧 Balance Hídrico":
         c2.metric("Consumo (ETc)", f"{etc:.2f} mm/día", delta=f"Kc: {kc}")
         st.progress(min(etc / 10.0, 1.0))
 
-        # --- NUEVA SECCIÓN: MONITOREO DE SUELO ---
+        # --- MONITOREO DE RESERVAS (ALMACENAJE PROFUNDO) ---
         st.divider()
-        st.markdown("### 🗺️ MAPA DE AGUA EN EL SUELO (Open-Meteo / Windy)")
+        st.markdown("### 🏺 ESTADO DEL ALMACENAJE EN EL PERFIL")
         
-        # 1. Indicadores Rápidos de Humedad (Satelital)
-        # Aquí consultamos la capa de suelo de Open-Meteo (0-7cm)
         try:
-            url_soil = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_0_to_7cm&forecast_days=1"
+            # Consultamos la capa profunda (Root Zone) 28-100cm
+            url_soil = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&forecast_days=1"
             res_soil = requests.get(url_soil).json()
-            humedad_actual = res_soil['hourly']['soil_moisture_0_to_7cm'][0]
+            # Tomamos el valor actual (índice 0)
+            almacenaje_vol = res_soil['hourly']['soil_moisture_28_to_100cm'][0]
             
-            st.info(f"🛰️ Humedad actual detectada en los primeros 7cm de suelo: **{humedad_actual * 100:.1f}%**")
-        except:
-            st.info("🛰️ Humedad de suelo: Consultando datos satelitales...")
+            # Cálculo de porcentaje relativo (aproximado para visualización)
+            # El valor suele oscilar entre 0.15 (punto de marchitez) y 0.45 (capacidad de campo)
+            porcentaje_llenado = (almacenaje_vol / 0.5) * 100 
+            
+            col_res1, col_res2 = st.columns([1, 2])
+            with col_res1:
+                st.metric("Agua en Raíz (28-100cm)", f"{almacenaje_vol:.3f} m³/m³", 
+                          delta=f"{porcentaje_llenado:.1f}% Lleno")
+            with col_res2:
+                # Barra de progreso para ver qué tan "cargado" está el perfil
+                st.write("**Nivel de Reserva en el Perfil:**")
+                st.progress(min(almacenaje_vol / 0.5, 1.0))
+                
+        except Exception as e:
+            st.info("🛰️ Almacenaje de suelo: Consultando datos de capas profundas...")
 
-        # 2. Mapa Interactivo de Humedad
-        # Usamos la capa 'soilmoisture' que es la más precisa para agro
+        # 2. Mapa Interactivo de Humedad de Suelo (Capa ECMWF profunda)
         url_mapa_suelo = f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=8&overlay=soilmoisture&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C"
         
         st.components.v1.iframe(url_mapa_suelo, height=500)
         
-        st.caption("🔍 El mapa muestra la saturación de agua en el suelo. Los colores amarillos/naranjas indican necesidad de riego.")
+        st.caption("🔍 Este mapa visualiza la humedad volumétrica. Los tonos azules indican un perfil cargado, vital para la supervivencia del cultivo en periodos sin lluvia.")
 
     except Exception as e:
-        st.error(f"Error en cálculo: {e}")
+        st.error(f"Error en el módulo de suelo: {e}")
 
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
