@@ -382,8 +382,8 @@ elif menu == "💧 Balance Hídrico":
             
         except Exception as e:
             st.error(f"Error en el módulo de mapa: {e}")
-        except Exception as e:
-            st.error(f"Error en Balance Hídrico: {e}")
+    except Exception as e:
+        st.error(f"Error en Balance Hídrico: {e}")
 
 # <--- ASEGURATE DE QUE NO HAYA MÁS ESPACIOS AQUÍ ABAJO ANTES DEL ELIF --->
 # --- AQUÍ TERMINA EL MENÚ DE BALANCE Y EMPIEZA EL SIGUIENTE ---
