@@ -394,6 +394,7 @@ elif menu == "💧 Balance Hídrico":
 
         except Exception as e:
             st.error(f"Error en el renderizado del mapa: {e}")     
+            
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
