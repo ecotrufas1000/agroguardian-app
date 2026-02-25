@@ -379,7 +379,9 @@ elif menu == "💧 Balance Hídrico":
         st.caption("🔍 El mapa muestra la saturación de agua en el suelo. Los colores amarillos/naranjas indican necesidad de riego.")
 
     except Exception as e:
-        st.error(f"Error en cálculo: {e}")elif menu == "⛈️ Radar Granizo":
+        st.error(f"Error en cálculo: {e}")
+
+elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
     if LAT and LON:
