@@ -373,25 +373,26 @@ elif menu == "💧 Balance Hídrico":
             import urllib.parse
             encoded_script = urllib.parse.quote(custom_script)
 
-            # 3. Construimos la URL unificada
+            # 3. Construcción de la URL
+        try:
             url_azul_profundo = (
                 f"https://apps.sentinel-hub.com/sentinel-playground/?"
                 f"source=S2L2A&lat={lat_map}&lng={lon_map}&zoom=14"
-                f"&evalscript={encoded_script}" 
+                f"&evalscript={encoded_script}"
                 f"&maxcc=20"
                 f"&showContext=false"
             )
             
-            # --- 4. Renderizado del mapa ---
-        try:
+            # 4. Renderizado del mapa
             st.components.v1.iframe(url_azul_profundo, height=700)
             st.info("🔵 **Azul:** Humedad alta | 🟢 **Verde:** Moderada | 🟤 **Oscuro:** Seco")
+            
         except Exception as e:
-            st.error(f"Error visual en el mapa: {e}")
+            st.error(f"Error en el mapa de humedad: {e}")
 
-    except Exception as e:
-        st.error(f"Error general en el módulo de balance: {e}")
+# <--- ASEGURATE DE QUE NO HAYA MÁS ESPACIOS AQUÍ ABAJO ANTES DEL ELIF --->
 
+elif menu == "⛈️ Radar Granizo":
 # --- AQUÍ TERMINA EL MENÚ DE BALANCE Y EMPIEZA EL SIGUIENTE ---
 
 elif menu == "⛈️ Radar Granizo":
