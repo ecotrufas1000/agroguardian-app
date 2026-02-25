@@ -357,42 +357,44 @@ elif menu == "💧 Balance Hídrico":
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
+   # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
+        st.divider()
+        st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
         
-    # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
-    st.divider()
-    st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
-    
-    try:
-        # 1. Definimos el script que potencia la visualización del agua
-        # Este cálculo resalta el contenido hídrico en tonos azules eléctricos
-        custom_script = "return [Math.max(0, B11 - B08) * 2.5, B11, B08 + B11];" 
-        
-        # 2. Codificamos el script para que la URL lo entienda
-        import urllib.parse
-        encoded_script = urllib.parse.quote(custom_script)
+        try:
+            # Aseguramos que existan las variables de posición
+            lat_map = lat if 'lat' in locals() else -38.29
+            lon_map = lon if 'lon' in locals() else -57.55
+            
+            # 1. Definimos el script que potencia la visualización del agua
+            custom_script = "return [Math.max(0, B11 - B08) * 2.5, B11, B08 + B11];" 
+            
+            # 2. Codificamos el script de forma segura
+            import urllib.parse
+            encoded_script = urllib.parse.quote(custom_script)
 
-        # 3. Construimos la URL unificada
-        url_azul_profundo = (
-            f"https://apps.sentinel-hub.com/sentinel-playground/?"
-            f"source=S2L2A&lat={lat}&lng={lon}&zoom=14"
-            f"&evalscript={encoded_script}" 
-            f"&maxcc=20"
-            f"&showContext=false"
-        )
-        
-        # 4. Renderizado único (eliminada la línea duplicada que causaba error)
-        st.components.v1.iframe(url_azul_profundo, height=700)
-        
-        st.info("""
-            **Referencia de Color Azul Profundo:**
-            * 🔵 **Azul Brillante:** Alta concentración de agua (perfil cargado o lagunas).
-            * 🟢 **Verde Opaco:** Humedad moderada en vegetación.
-            * 🟤 **Tonos Oscuros/Rojizos:** Suelo seco o estrés hídrico.
-        """)
+            # 3. Construimos la URL unificada
+            url_azul_profundo = (
+                f"https://apps.sentinel-hub.com/sentinel-playground/?"
+                f"source=S2L2A&lat={lat_map}&lng={lon_map}&zoom=14"
+                f"&evalscript={encoded_script}" 
+                f"&maxcc=20"
+                f"&showContext=false"
+            )
+            
+            # 4. Renderizado del mapa
+            st.components.v1.iframe(url_azul_profundo, height=700)
+            
+            st.info("""
+                **Referencia de Color Azul Profundo:**
+                * 🔵 **Azul Brillante:** Alta concentración de agua (perfil cargado o lagunas).
+                * 🟢 **Verde Opaco:** Humedad moderada en vegetación.
+                * 🟤 **Tonos Oscuros/Rojizos:** Suelo seco o estrés hídrico.
+            """)
 
-    except Exception as e:
-        st.error(f"Error en el módulo de balance: {e}")
-       elif menu == "⛈️ Radar Granizo":
+        except Exception as e:
+            st.error(f"Error en el renderizado del mapa: {e}")     
+          elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
     if LAT and LON:
