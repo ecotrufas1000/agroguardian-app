@@ -382,23 +382,18 @@ elif menu == "💧 Balance Hídrico":
                 f"&showContext=false"
             )
             
-            # 4. Renderizado del mapa
+            # --- 4. Renderizado del mapa ---
+        try:
             st.components.v1.iframe(url_azul_profundo, height=700)
-            
-            st.info("""
-                **Referencia de Color Azul Profundo:**
-                * 🔵 **Azul Brillante:** Alta concentración de agua (perfil cargado o lagunas).
-                * 🟢 **Verde Opaco:** Humedad moderada en vegetación.
-                * 🟤 **Tonos Oscuros/Rojizos:** Suelo seco o estrés hídrico.
-            """)
-
+            st.info("🔵 **Azul:** Humedad alta | 🟢 **Verde:** Moderada | 🟤 **Oscuro:** Seco")
         except Exception as e:
-            st.error(f"Error en el renderizado del mapa: {e}")     
-            
+            st.error(f"Error visual en el mapa: {e}")
 
-        except Exception as e:
-            st.error(f"Error en el renderizado del mapa: {e}")     
-            
+    except Exception as e:
+        st.error(f"Error general en el módulo de balance: {e}")
+
+# --- AQUÍ TERMINA EL MENÚ DE BALANCE Y EMPIEZA EL SIGUIENTE ---
+
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
     
