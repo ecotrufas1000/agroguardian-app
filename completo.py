@@ -322,22 +322,26 @@ elif menu == "🌧️ Pluviómetro":
 
     except Exception as e:
         st.error(f"Error al procesar los datos de lluvia: {e}")
+        
 elif menu == "💧 Balance Hídrico":
+    import folium
+    from streamlit_folium import folium_static
+
     st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
-    
+
     try:
-        # 1. Coordenadas y Cálculo Teórico
+        # Coordenadas y cálculo
         lat = LAT if LAT else -38.29
         lon = LON if LON else -57.55
         temp_media = st.session_state.clima_data['temp'] if 'clima_data' in st.session_state else 25.0
 
-        # --- Lógica Blaney-Criddle ---
+        # Blaney-Criddle
         doy = datetime.datetime.now().timetuple().tm_yday
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
         ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
         eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
 
-        # 2. Obtención de datos de Suelo
+        # Datos de suelo
         try:
             url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
             res_cop = requests.get(url_cop).json()
@@ -345,7 +349,7 @@ elif menu == "💧 Balance Hídrico":
         except:
             hum_profunda = 0.0
 
-        # 3. Métricas de Consumo
+        # Métricas
         kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
 
@@ -354,14 +358,10 @@ elif menu == "💧 Balance Hídrico":
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
 
-        # --- MAPA COPERNICUS DE HUMEDAD ---
-        import folium
-        from streamlit_folium import folium_static
-
+        # --- Mapa Copernicus ---
         st.divider()
         st.markdown("### 🛰️ Anomalía de Humedad del Suelo (Copernicus)")
 
-        # Seguridad por si no hay GPS
         lat_map = LAT if LAT else -38.29
         lon_map = LON if LON else -57.55
         zoom_level = 8 if LAT else 5
@@ -391,8 +391,6 @@ elif menu == "💧 Balance Hídrico":
 
     except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
-
-
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
 
