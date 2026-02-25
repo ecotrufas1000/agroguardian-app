@@ -353,40 +353,55 @@ elif menu == "💧 Balance Hídrico":
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
-  # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
-        st.divider()
-        st.markdown("### 🗺️ VISTA DIRECTA DE HUMEDAD (Sentinel-2 SR)")
-        
-        try:
-            # 1. Variables de posición
-            lat_map = lat if 'lat' in locals() else -38.29
-            lon_map = lon if 'lon' in locals() else -57.55
-            
-            # 2. Definimos y codificamos el script
-            import urllib.parse
-            custom_script = "return [Math.max(0, B11 - B08) * 2.5, B11, B08 + B11];" 
-            encoded_script = urllib.parse.quote(custom_script)
+  
+        # --- MAPA PURIFICADO (SOLO EL DATO DE HUMEDAD) ---
+        import folium
+from streamlit_folium import folium_static
 
-            # 3. Construcción de la URL
-            url_azul_profundo = (
-                f"https://apps.sentinel-hub.com/sentinel-playground/?"
-                f"source=S2L2A&lat={lat_map}&lng={lon_map}&zoom=14"
-                f"&evalscript={encoded_script}"
-                f"&maxcc=20"
-                f"&showContext=false"
-            )
-            
-            # 4. Renderizado del mapa
-            st.components.v1.iframe(url_azul_profundo, height=700)
-            st.info("🔵 **Azul:** Humedad alta | 🟢 **Verde:** Moderada | 🟤 **Oscuro:** Seco")
-            
-        except Exception as e:
-            st.error(f"Error en el módulo de mapa: {e}")
-    except Exception as e:
-        st.error(f"Error en Balance Hídrico: {e}")
+st.divider()
+st.markdown("### 🛰️ Anomalía de Humedad del Suelo (Copernicus)")
 
-# <--- ASEGURATE DE QUE NO HAYA MÁS ESPACIOS AQUÍ ABAJO ANTES DEL ELIF --->
-# --- AQUÍ TERMINA EL MENÚ DE BALANCE Y EMPIEZA EL SIGUIENTE ---
+# Seguridad por si no hay GPS
+lat_map = LAT if LAT else -38.29
+lon_map = LON if LON else -57.55
+
+# Control de zoom dinámico
+zoom_level = 8 if LAT else 5
+
+# Slider de transparencia
+opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
+
+# Crear mapa base oscuro
+m = folium.Map(
+    location=[lat_map, lon_map],
+    zoom_start=zoom_level,
+    tiles="CartoDB dark_matter",
+    control_scale=True
+)
+
+# Capa Copernicus Soil Moisture Anomaly
+folium.WmsTileLayer(
+    url="https://drought.emergency.copernicus.eu/api/wms",
+    name="Soil Moisture Anomaly",
+    layers="SMI_v4_0_anomaly",
+    fmt="image/png",
+    transparent=True,
+    opacity=opacidad,
+    attribution="Copernicus Emergency Management Service",
+).add_to(m)
+
+# Marcador del lote
+folium.CircleMarker(
+    location=[lat_map, lon_map],
+    radius=6,
+    color="#00ffc3",
+    fill=True,
+    fill_opacity=1
+).add_to(m)
+
+folium.LayerControl().add_to(m)
+
+folium_static(m, width=1000, height=600)
 
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
