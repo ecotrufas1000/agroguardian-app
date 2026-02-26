@@ -190,9 +190,13 @@ with st.sidebar:
         st.caption("Acepta los permisos de ubicación en el navegador.")
 
     st.divider()
-    menu = st.radio("MENÚ", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "📝 Bitácora"])
-    key="menu_principal"
-    )
+    
+    # --- RADIO BUTTON CORREGIDO ---
+    menu = st.radio(
+        "MENÚ", 
+        ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "📝 Bitácora"],
+        key="menu_principal"  # <-- El key va adentro
+    ) # <-- Aquí se cierra la función
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
 clima = obtener_clima_completo(LAT, LON)
