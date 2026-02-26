@@ -170,24 +170,47 @@ with st.sidebar:
 
     st.divider()
 
-    # --- BLOQUE DE GPS (PEGAR AQUÍ) ---
+    # --- GPS AUTOMÁTICO (REEMPLAZA TU BLOQUE ANTERIOR) ---
     from streamlit_js_eval import streamlit_js_eval
     
-    st.markdown("### 📡 Sensor de Campo")
+    # Captura la ubicación automáticamente sin necesidad de clics
+    loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
     
-    # Este botón pide la ubicación solo cuando haces clic
-    if st.button("🔍 DETECTAR MI UBICACIÓN"):
-        # Llamada directa al GPS del navegador
-        loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc')
+    if loc:
+        lat_gps = loc.get('latitude')
+        lon_gps = loc.get('longitude')
         
-        if loc:
-            # Si el navegador responde, guardamos en la base de datos y en el estado
-            lat_gps = loc.get('latitude')
-            lon_gps = loc.get('longitude')
+        # Solo disparamos el guardado si las coordenadas son nuevas
+        if lat_gps and (st.session_state.get('lat') != lat_gps):
+            st.session_state.lat = lat_gps
+            st.session_state.lon = lon_gps
             
-            if lat_gps and lon_gps:
-                st.session_state.lat = lat_gps
-                st.session_state.lon = lon_gps
+            # Guardado silencioso en Supabase
+            try:
+                supabase.table("configuracion").insert({
+                    "latitud": lat_gps, 
+                    "longitud": lon_gps
+                }).execute()
+            except:
+                pass # Si falla la DB, la app sigue funcionando igual
+            
+            st.rerun()
+
+    # Diseño visual del estado del sensor (Estilo Terminal)
+    if st.session_state.get('lat'):
+        st.markdown(f"""
+            <div style='background: #00ffc31a; padding: 12px; border-radius: 8px; border: 1px solid #00ffc3; margin-bottom: 15px;'>
+                <p style='color:#00ffc3; font-size:12px; margin:0; font-family:monospace; font-weight:bold;'>
+                    🛰️ SENSOR GPS ACTIVO
+                </p>
+                <p style='color:#00ffc3; font-size:11px; margin:5px 0 0 0; font-family:monospace; opacity:0.8;'>
+                    LAT: {st.session_state.lat:.4f}<br>
+                    LON: {st.session_state.lon:.4f}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("📡 Sincronizando con satélites...")
                 # Guardamos en Supabase
                 try:
                     supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
