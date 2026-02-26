@@ -350,11 +350,22 @@ elif menu == "💧 Balance Hídrico":
         # --- Mapa NASA GIBS ---
         # --- Mapa SEPA INTA ---
         st.markdown("### 🌱 Agua Útil en el Suelo - SEPA/INTA")
-        st.components.v1.iframe(
-            "https://sepa.inta.gob.ar/productos/agua_en_suelo/",
-            height=600,
-            scrolling=True
-        )
+        st.markdown("""
+        <div style="background-color:#111; padding:20px; border-radius:10px; text-align:center;">
+            <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:10px;">
+                🛰️ Mapa de Agua Útil en Suelo — mismo producto que usa el SMN/INTA
+            </p>
+            <p style="color:#aaa; font-family:monospace; font-size:12px; margin-bottom:15px;">
+                Actualización cada 10 días | Balance hídrico satelital + estaciones INTA/SMN
+            </p>
+            <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/" target="_blank"
+               style="background-color:#00ffc3; color:#000; padding:12px 24px; 
+                      border-radius:8px; font-family:monospace; font-weight:bold; 
+                      text-decoration:none; font-size:14px;">
+                🌱 Ver Mapa SEPA/INTA
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown("""
         <div style="background-color:#111; padding:15px; border-radius:10px; margin-top:10px;">
