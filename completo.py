@@ -272,50 +272,60 @@ elif menu == "🌧️ Pluviómetro":
             c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
             c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
             c4.metric("📊 Registros", f"{len(df)} eventos")
-            # --- BOTÓN DE WHATSAPP ---
+           # --- BOTÓN DE WHATSAPP CON TABLA DETALLADA ---
             st.divider()
             
-            # Preparamos el mensaje de texto
+            # 1. Preparamos el detalle de los últimos 10 registros
+            ultimos_registros = df.sort_values('fecha', ascending=False).head(10)
+            detalle_tabla = ""
+            for i, row in ultimos_registros.iterrows():
+                fecha_str = row['fecha'].strftime('%d/%m')
+                detalle_tabla += f"📍 {fecha_str}: {row['mm']:.1f} mm\n"
+
+            # 2. Construimos el mensaje completo
             mensaje_wa = (
-                f"🌱 *REPORTE AGROGUARDIAN - PLUVIÓMETRO*\n"
+                f"🌱 *REPORTE AGROGUARDIAN*\n"
                 f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
                 f"--------------------------------\n"
-                f"💧 *Acumulado Mes:* {df_mes['mm'].sum():.1f} mm\n"
-                f"📆 *Acumulado Anual:* {df_año['mm'].sum():.1f} mm\n"
-                f"⚡ *Máximo diario:* {df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm\n"
+                f"💧 *RESUMEN:* \n"
+                f"• Mes: {df_mes['mm'].sum():.1f} mm\n"
+                f"• Año: {df_año['mm'].sum():.1f} mm\n"
                 f"--------------------------------\n"
-                f"🛰️ _Enviado desde Precision Lab v2.6_"
+                f"📋 *ÚLTIMOS REGISTROS:* \n"
+                f"{detalle_tabla}"
+                f"--------------------------------\n"
+                f"🛰️ _Precision Lab v2.6_"
             )
             
-            # Codificamos el mensaje para URL
+            # 3. Codificamos el mensaje para URL
             import urllib.parse
             mensaje_url = urllib.parse.quote(mensaje_wa)
             wa_url = f"https://wa.me/?text={mensaje_url}"
 
-            # Botón visual
+            # 4. Botón visual mejorado
             st.markdown(f"""
                 <a href="{wa_url}" target="_blank" style="text-decoration: none;">
                     <div style="
                         background-color: #25D366;
                         color: white;
-                        padding: 12px 20px;
-                        border-radius: 10px;
+                        padding: 15px;
+                        border-radius: 12px;
                         text-align: center;
                         font-weight: bold;
-                        font-family: sans-serif;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        gap: 10px;
-                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                        gap: 12px;
+                        box-shadow: 0px 6px 15px rgba(0,0,0,0.4);
+                        transition: transform 0.2s;
                     ">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20px">
-                        ENVIAR REPORTE POR WHATSAPP
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="25px">
+                        ENVIAR REPORTE + TABLA DIARIA
                     </div>
                 </a>
             """, unsafe_allow_html=True)
-            st.write("") # Espacio estético
-
+            st.write("")
             st.divider()
             
             # Estilo común para gráficos
