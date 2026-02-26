@@ -63,26 +63,15 @@ st.set_page_config(
 
 st.markdown("""
     <style>
+        /* Estilo General */
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
         [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
-        [data-testid="stSidebar"] hr {
-            display: none !important;
-        }
-        [data-testid="stSidebar"] .stMarkdown hr {
-            display: none !important;
-        }
-        [data-testid="stSidebar"] .stButton button {
-            background-color: #000000 !important;
-            color: #00ffc3 !important;
-            border: 1px solid #00ffc3 !important;
-        }
-        header [data-testid="stHeaderActionElements"] button, 
-        [data-testid="stSidebarCollapseIcon"],
-        .st-emotion-cache-6qob1r { 
-            color: #00ffc3 !important; 
-            fill: #00ffc3 !important;
-        }
+        
+        /* Eliminar línea blanca y widgets de carga */
+        iframe[title="streamlit_js_eval.streamlit_js_eval"] { display: none; }
+        .stSpinner, [data-testid="stStatusWidget"] { display: none !important; }
 
+        /* Tipografía y Colores */
         h1, h2, h3, p, label, .stMarkdown {
             color: #00ffc3 !important;
             font-family: 'Courier New', monospace !important;
@@ -97,7 +86,6 @@ st.markdown("""
         footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
-
 # --- INICIALIZACIÓN DE SUPABASE (Asegúrate de tener tus credenciales) ---
 # url: str = st.secrets["SUPABASE_URL"]
 # key: str = st.secrets["SUPABASE_KEY"]
