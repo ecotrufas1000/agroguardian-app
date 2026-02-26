@@ -170,33 +170,33 @@ with st.sidebar:
 
     st.divider()
 
-    # --- GPS AUTOMÁTICO (REEMPLAZA TU BLOQUE ANTERIOR) ---
+    # --- GPS AUTOMÁTICO (CORREGIDO) ---
     from streamlit_js_eval import streamlit_js_eval
     
-    # Captura la ubicación automáticamente sin necesidad de clics
+    # Captura la ubicación automáticamente
     loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
     
     if loc:
         lat_gps = loc.get('latitude')
         lon_gps = loc.get('longitude')
         
-        # Solo disparamos el guardado si las coordenadas son nuevas
+        # Solo actualizamos si las coordenadas son nuevas o cambiaron
         if lat_gps and (st.session_state.get('lat') != lat_gps):
             st.session_state.lat = lat_gps
             st.session_state.lon = lon_gps
             
-            # Guardado silencioso en Supabase
+            # Intento de guardado en Supabase
             try:
                 supabase.table("configuracion").insert({
                     "latitud": lat_gps, 
                     "longitud": lon_gps
                 }).execute()
             except:
-                pass # Si falla la DB, la app sigue funcionando igual
+                pass # Continuar aunque falle la DB
             
             st.rerun()
 
-    # Diseño visual del estado del sensor (Estilo Terminal)
+    # Diseño visual del estado del sensor
     if st.session_state.get('lat'):
         st.markdown(f"""
             <div style='background: #00ffc31a; padding: 12px; border-radius: 8px; border: 1px solid #00ffc3; margin-bottom: 15px;'>
@@ -211,19 +211,7 @@ with st.sidebar:
         """, unsafe_allow_html=True)
     else:
         st.info("📡 Sincronizando con satélites...")
-            # Guardamos en Supabase
-        try:
-            supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-            st.success(f"📍 Vinculado: {lat_gps:.4f}")
-            st.rerun()
-        except:
-            st.warning("Ubicación temporal activada (sin conexión a DB)")
-    else:
-        st.info("Buscando señal... Dale permiso al navegador si te lo pide.")
-
-    # Muestra la ubicación actual que está usando la app
-    if st.session_state.get('lat'):
-        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📍 ACTUAL: {st.session_state.lat:.4f}, {st.session_state.lon:.4f}</p>", unsafe_allow_html=True)
+        st.caption("Acepta los permisos de ubicación en el navegador.")
 
     st.divider()
 
