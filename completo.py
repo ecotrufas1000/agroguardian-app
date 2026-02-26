@@ -366,15 +366,15 @@ elif menu == "💧 Balance Hídrico":
         folium.WmsTileLayer(
             url="https://geoservicios.conae.gov.ar/geoserver/HumedadDeSuelos/wms",
             name="SAOCOM - Humedad Suelo 50cm",
-            layers="HumedadDeSuelos:DSS_MSMKR_1",
+            layers="HumedadDeSuelos:DSS_MSM_1",
             fmt="image/png",
             transparent=True,
             opacity=opacidad,
             attr="CONAE - Misión SAOCOM",
             version="1.1.1",
             styles="",
+            crs="EPSG:4326",
         ).add_to(m)
-
         folium.CircleMarker(
             location=[lat_map, lon_map],
             radius=8,
