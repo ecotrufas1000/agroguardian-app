@@ -151,26 +151,7 @@ if 'lat' not in st.session_state:
             st.session_state.lon = float(res.data[0]['longitud'])
     except:
         st.session_state.lat = None
-
 # --- SIDEBAR Y NAVEGACIÓN ---
-with st.sidebar:
-    gps_data = get_geolocation()
-    
-    if st.button("📍 VINCULAR GPS DEL MÓVIL"):
-        if gps_data:
-            lat_gps = gps_data['coords']['latitude']
-            lon_gps = gps_data['coords']['longitude']
-            supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-            st.session_state.lat = lat_gps
-            st.session_state.lon = lon_gps
-            st.success("✅ Ubicación actualizada")
-            st.rerun()
-        else:
-            st.warning("⚠️ Activá el GPS y permití el acceso.")
-# ==========================================================
-# ==========================================================
-# IDENTIDAD VISUAL EN SIDEBAR
-# ==========================================================
 with st.sidebar:
     st.markdown("""
         <div style="
@@ -203,11 +184,11 @@ with st.sidebar:
         else:
             st.warning("⚠️ Activá el GPS y permití el acceso.")
 
-st.sidebar.divider()
-menu = st.sidebar.radio(
-    "MENÚ DE CONTROL", 
-    ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
-)
+    st.divider()
+    menu = st.sidebar.radio(
+        "MENÚ DE CONTROL", 
+        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
+    )
 
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
