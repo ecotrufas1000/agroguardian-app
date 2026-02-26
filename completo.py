@@ -1,4 +1,4 @@
-import streamlit as st
+mimport streamlit as st
 from supabase import create_client
 from streamlit_folium import folium_static
 import folium
@@ -354,7 +354,7 @@ elif menu == "💧 Balance Hídrico":
         lon_map = LON if LON else -57.55
         zoom_level = 8 if LAT else 5
         opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
-        fecha_nasa = "2026-02-20"
+        fecha_nasa = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
         m = folium.Map(
             location=[lat_map, lon_map],
             zoom_start=zoom_level,
@@ -366,7 +366,7 @@ elif menu == "💧 Balance Hídrico":
         folium.WmsTileLayer(
             url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
             name="NASA SMAP Humedad Suelo",
-            layers="SMAP_L4_Analyzed_Surface_Soil_Moisture",
+            layers=layers="SMAP_L4_Analyzed_Root_Zone_Soil_Moisture",
             fmt="image/png",
             transparent=True,
             opacity=opacidad,
