@@ -192,8 +192,7 @@ with st.sidebar:
     
     gps_data = get_geolocation()
     if st.button("📍 VINCULAR GPS DEL MÓVIL"):
-        ...resto del código GPS...
-
+    
 # AGREGAMOS .sidebar AQUÍ TAMBIÉN:
 st.sidebar.divider()
 
