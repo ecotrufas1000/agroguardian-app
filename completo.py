@@ -348,51 +348,44 @@ elif menu == "💧 Balance Hídrico":
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
         st.divider()
         # --- Mapa NASA GIBS ---
-st.divider()
-st.markdown("### 🛰️ Humedad del Suelo - NASA SMAP (Global)")
-lat_map = LAT if LAT else -38.29
-lon_map = LON if LON else -57.55
-zoom_level = 8 if LAT else 5
-opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
-
-# Fecha de ayer para asegurar datos disponibles
-fecha_nasa = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-
-m = folium.Map(
-    location=[lat_map, lon_map],
-    zoom_start=zoom_level,
-    tiles="CartoDB dark_matter",
-    control_scale=True
-)
-
-# Capa SMAP humedad superficial (global, cubre Argentina)
-folium.WmsTileLayer(
-    url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
-    name="NASA SMAP Soil Moisture",
-    layers="SMAP_L4_Analyzed_Root_Zone_Soil_Moisture",
-    fmt="image/png",
-    transparent=True,
-    opacity=opacidad,
-    attr="NASA GIBS / SMAP",
-    version="1.3.0",
-    styles="",
-    extra_params={"TIME": fecha_nasa},
-).add_to(m)
-
-folium.CircleMarker(
-    location=[lat_map, lon_map],
-    radius=8,
-    color="#00ffc3",
-    fill=True,
-    fill_color="#00ffc3",
-    fill_opacity=1,
-    tooltip=f"📍 Lat: {lat_map:.4f} | Lon: {lon_map:.4f}"
-).add_to(m)
-
-folium.LayerControl().add_to(m)
-folium_static(m, width=1000, height=600)
+        st.markdown("### 🛰️ Humedad del Suelo - NASA SMAP (Global)")
+        lat_map = LAT if LAT else -38.29
+        lon_map = LON if LON else -57.55
+        zoom_level = 8 if LAT else 5
+        opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
+        fecha_nasa = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        m = folium.Map(
+            location=[lat_map, lon_map],
+            zoom_start=zoom_level,
+            tiles="CartoDB dark_matter",
+            control_scale=True
+        )
+        folium.WmsTileLayer(
+            url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
+            name="NASA SMAP Soil Moisture",
+            layers="SMAP_L4_Analyzed_Root_Zone_Soil_Moisture",
+            fmt="image/png",
+            transparent=True,
+            opacity=opacidad,
+            attr="NASA GIBS / SMAP",
+            version="1.3.0",
+            styles="",
+            extra_params={"TIME": fecha_nasa},
+        ).add_to(m)
+        folium.CircleMarker(
+            location=[lat_map, lon_map],
+            radius=8,
+            color="#00ffc3",
+            fill=True,
+            fill_color="#00ffc3",
+            fill_opacity=1,
+            tooltip=f"📍 Lat: {lat_map:.4f} | Lon: {lon_map:.4f}"
+        ).add_to(m)
+        folium.LayerControl().add_to(m)
+        folium_static(m, width=1000, height=600)
     except Exception as e:
-        st.error(f"Error en Balance Hídrico: {e}")       
+        st.error(f"Error en Balance Hídrico: {e}")
+
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
 
