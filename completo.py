@@ -378,7 +378,13 @@ elif menu == "🌧️ Pluviómetro":
                         st.rerun()
                         
                     except Exception as e:
-                        st.error(f"Error al guardar: {e}")
+                st.error(f"Error al guardar: {e}")
+
+        else:
+            st.info("🛰️ No hay registros de lluvia cargados todavía.")
+
+    except Exception as e:
+        st.error(f"Error al procesar los datos de lluvia: {e}")
                         
 elif menu == "💧 Balance Hídrico":
     import folium
