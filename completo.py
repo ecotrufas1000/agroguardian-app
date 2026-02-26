@@ -374,11 +374,14 @@ elif menu == "🌧️ Pluviómetro":
                                     "lote": row['lote']
                                 }).eq("id", row['id']).execute()
 
+                        # ... (viene del loop de actualización)
                         st.success("✅ ¡Base de Datos sincronizada!")
                         st.rerun()
                         
                     except Exception as e:
-                st.error(f"Error al guardar: {e}")
+                        st.error(f"Error al guardar: {e}")
+
+            st.divider() # Este cierra el bloque del botón y vuelve al flujo principal
 
         else:
             st.info("🛰️ No hay registros de lluvia cargados todavía.")
