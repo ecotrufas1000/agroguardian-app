@@ -364,16 +364,16 @@ elif menu == "💧 Balance Hídrico":
 
         # Capa SAOCOM - Humedad perfil suelo 50cm krigeado (día más reciente = layer 1)
         folium.WmsTileLayer(
-            url="https://geoservicios.conae.gov.ar/geoserver/HumedadDeSuelos/wms",
-            name="SAOCOM - Humedad Suelo 50cm",
-            layers="HumedadDeSuelos:DSS_MSM_1",
+            url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
+            name="NASA SMAP Humedad Suelo",
+            layers="SMAP_L4_Analyzed_Surface_Soil_Moisture",
             fmt="image/png",
             transparent=True,
             opacity=opacidad,
-            attr="CONAE - Misión SAOCOM",
-            version="1.1.1",
+            attr="NASA GIBS / SMAP L4",
+            version="1.3.0",
             styles="",
-            crs="EPSG:4326",
+            extra_params={"TIME": fecha_nasa},
         ).add_to(m)
         folium.CircleMarker(
             location=[lat_map, lon_map],
