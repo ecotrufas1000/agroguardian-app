@@ -284,19 +284,20 @@ elif menu == "🌧️ Pluviómetro":
                 margin=dict(l=10, r=10, t=30, b=20)
             )
 
-            # --- GRÁFICO 1: DIARIO (Ya lo tenías, lo mantenemos) ---
+            # --- GRÁFICO 1: DIARIO ---
             st.subheader(f"📅 Detalle Diario — {hoy.strftime('%B %Y')}")
             df_mes['dia'] = df_mes['fecha'].dt.day
             df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
             fig1 = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4')
             fig1.update_layout(**estilo_grafico)
-            st.plotly_chart(fig1, use_container_width=True)
+            
+            # MOSTRAR ESTÁTICO:
+            st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
 
-            # --- GRÁFICO 2: MENSUAL ACUMULADO (AÑADIDO) ---
+            # --- GRÁFICO 2: MENSUAL ACUMULADO ---
             st.subheader(f"📊 Acumulado Mensual — Año {hoy.year}")
             meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-            # Agrupar por mes (1-12)
             mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             df_anual = pd.DataFrame({'Mes': meses_nombres, 'Prec_mm': mensual.values})
 
@@ -304,8 +305,9 @@ elif menu == "🌧️ Pluviómetro":
                           text_auto='.1f', title="Distribución de Lluvias por Mes")
             fig2.update_traces(marker_color='#00ffc3', textposition="outside")
             fig2.update_layout(**estilo_grafico)
-            st.plotly_chart(fig2, use_container_width=True)
-
+            
+            # MOSTRAR ESTÁTICO:
+            st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
             
 
             st.divider()
