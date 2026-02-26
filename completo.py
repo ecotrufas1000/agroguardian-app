@@ -329,7 +329,7 @@ elif menu == "🌧️ Pluviómetro":
                     mime='text/csv',
                 )
                 
-               # --- SECCIÓN DE GESTIÓN Y EDICIÓN (REEMPLAZA TU st.dataframe ANTERIOR) ---
+            # --- SECCIÓN DE GESTIÓN Y EDICIÓN (REEMPLAZA TU st.dataframe ANTERIOR) ---
             st.divider()
             st.subheader("📂 Gestión de Registros Históricos")
             st.info("💡 Haz doble clic en los 'mm' para corregir o selecciona una fila y pulsa 'Suprimir' para borrar.")
@@ -379,6 +379,7 @@ elif menu == "🌧️ Pluviómetro":
                         
                     except Exception as e:
                         st.error(f"Error al guardar: {e}")
+                        
 elif menu == "💧 Balance Hídrico":
     import folium
     from streamlit_folium import folium_static
