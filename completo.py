@@ -171,21 +171,40 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
+    # --- LÓGICA DE GPS SEGURA ---
+    # Usamos una clave única y evitamos que el rerun bloquee la app
     gps_data = get_geolocation(key="gps_location")
     
     if gps_data and 'coords' in gps_data:
         lat_gps = gps_data['coords']['latitude']
         lon_gps = gps_data['coords']['longitude']
+        
+        # Guardamos en session_state para que los datos sobrevivan al refresco
+        st.session_state.lat_temp = lat_gps
+        st.session_state.lon_temp = lon_gps
+        
         st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 GPS: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
+        
         if st.button("📍 VINCULAR GPS DEL MÓVIL"):
-            supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-            st.session_state.lat = lat_gps
-            st.session_state.lon = lon_gps
-            st.success("✅ Ubicación actualizada")
-            st.rerun()
+            try:
+                # Insertamos en Supabase
+                supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+                
+                # Actualizamos el estado global
+                st.session_state.lat = lat_gps
+                st.session_state.lon = lon_gps
+                
+                st.success("✅ Ubicación actualizada")
+                # Un pequeño sleep ayuda a que el mensaje se vea antes de recargar
+                import time
+                time.sleep(1)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error Supabase: {e}")
     else:
-        st.button("📍 VINCULAR GPS DEL MÓVIL", disabled=True)
-        st.markdown("<p style='color:#888; font-size:11px; font-family:monospace;'>⏳ Esperando GPS...</p>", unsafe_allow_html=True)
+        # En lugar de desactivar el botón, explicamos por qué no está
+        st.button("📍 VINCULAR GPS DEL MÓVIL", disabled=True, help="Activa el GPS en tu navegador/móvil")
+        st.markdown("<p style='color:#ff4b4b; font-size:11px; font-family:monospace;'>⚠️ GPS NO DETECTADO: Activa la ubicación</p>", unsafe_allow_html=True)
         st.divider()
     menu = st.sidebar.radio(
         "MENÚ DE CONTROL", 
