@@ -10,6 +10,18 @@ import datetime
 import pandas as pd
 import plotly.express as px
 from streamlit_js_eval import streamlit_js_eval
+import streamlit as st
+from supabase import create_client
+from streamlit_folium import folium_static
+import folium
+import requests
+import json
+import os
+import math
+import datetime
+import pandas as pd
+import plotly.express as px
+from streamlit_js_eval import streamlit_js_eval
 # 1. Captura de GPS fuera de cualquier bloque (Sidebar o Menú)
 # Esto evita que el componente colapse al intentar renderizarse en espacios reducidos
 # --- CAPTURA DE GPS CON FILTRO ANTI-COLAPSO ---
