@@ -63,7 +63,12 @@ st.markdown("""
     <style>
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
         [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
-        
+
+        [data-testid="stSidebar"] .stButton button {
+            background-color: #000000 !important;
+            color: #00ffc3 !important;
+            border: 1px solid #00ffc3 !important;
+        }
         header [data-testid="stHeaderActionElements"] button, 
         [data-testid="stSidebarCollapseIcon"],
         .st-emotion-cache-6qob1r { 
@@ -144,7 +149,6 @@ if 'lat' not in st.session_state:
 
 # --- SIDEBAR Y NAVEGACIÓN ---
 with st.sidebar:
-    st.markdown("### 🛰️ SENSORES DEL LOTE")
     gps_data = get_geolocation()
     
     if st.button("📍 VINCULAR GPS DEL MÓVIL"):
@@ -164,16 +168,19 @@ with st.sidebar:
 # ==========================================================
 st.sidebar.markdown("""
     <div style="
-        background-color: #1e1e1e; 
-        padding: 20px; 
-        border-radius: 10px; 
-        border: 1px solid #00ffc3; 
         text-align: center; 
         margin-bottom: 20px;
-        box-shadow: 0px 4px 15px rgba(0, 255, 195, 0.2);
+        padding: 10px;
     ">
-        <h1 style="color: #00ffc3; margin: 0; font-size: 22px; letter-spacing: 2px;">AGROGUARDIAN</h1>
-        <p style="color: #ffffff; margin: 0; font-size: 12px; opacity: 0.8;">PRECISION LAB v2.6</p>
+        <h1 style="
+            color: #00ffc3; 
+            margin: 0; 
+            font-size: 26px; 
+            letter-spacing: 3px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0px 0px 12px #00ffc3;
+        ">AGROGUARDIAN</h1>
+        <p style="color: #00ffc3; margin: 0; font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
     </div>
 """, unsafe_allow_html=True)
 
