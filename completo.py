@@ -329,22 +329,56 @@ elif menu == "🌧️ Pluviómetro":
                     mime='text/csv',
                 )
                 
-                # Tabla interactiva
-                st.dataframe(
-                    df_display[['fecha', 'lote', 'mm']], 
-                    use_container_width=True,
-                    column_config={
-                        "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm"),
-                        "fecha": "Fecha de Registro",
-                        "lote": "Identificación Lote"
-                    }
-                )
+               # --- SECCIÓN DE GESTIÓN Y EDICIÓN (REEMPLAZA TU st.dataframe ANTERIOR) ---
+            st.divider()
+            st.subheader("📂 Gestión de Registros Históricos")
+            st.info("💡 Haz doble clic en los 'mm' para corregir o selecciona una fila y pulsa 'Suprimir' para borrar.")
 
-        else:
-            st.info("🛰️ No hay registros de lluvia cargados todavía en Supabase.")
+            # Preparar los datos para el editor
+            df_editable = df.copy().sort_values('fecha', ascending=False)
+            
+            # El "Data Editor" es la herramienta clave de Streamlit para esto
+            edited_df = st.data_editor(
+                df_editable[['id', 'fecha', 'lote', 'mm']], 
+                key="editor_lluvias",
+                num_rows="dynamic", # Permite borrar filas
+                use_container_width=True,
+                disabled=["id", "fecha"], # Protegemos estos campos para que no se altere el tiempo
+                column_config={
+                    "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
+                    "fecha": st.column_config.DatetimeColumn("Fecha de Registro", format="DD/MM/YYYY HH:mm"),
+                    "lote": "Lote/Identificación",
+                    "id": None # Mantenemos el ID oculto pero disponible para la lógica
+                }
+            )
 
-    except Exception as e:
-        st.error(f"Error al procesar los datos de lluvia: {e}")
+            # --- LÓGICA DE ACTUALIZACIÓN EN SUPABASE ---
+            c_save1, c_save2 = st.columns([1, 4])
+            with c_save1:
+                if st.button("💾 GUARDAR CAMBIOS"):
+                    try:
+                        # 1. Detectar FILAS BORRADAS
+                        ids_originales = set(df['id'].tolist())
+                        ids_actuales = set(edited_df['id'].dropna().tolist()) # Evitamos los IDs de filas nuevas si las hubiera
+                        ids_a_borrar = list(ids_originales - ids_actuales)
+
+                        for id_b in ids_a_borrar:
+                            supabase.table("registros_lluvia").delete().eq("id", id_b).execute()
+
+                        # 2. Detectar CAMBIOS EN LOS VALORES (Edición)
+                        # Comparamos fila por fila los mm y el lote
+                        for index, row in edited_df.iterrows():
+                            if pd.notnull(row['id']): # Solo registros que ya existían
+                                supabase.table("registros_lluvia").update({
+                                    "mm": row['mm'],
+                                    "lote": row['lote']
+                                }).eq("id", row['id']).execute()
+
+                        st.success("✅ ¡Base de Datos sincronizada!")
+                        st.rerun()
+                        
+                    except Exception as e:
+                        st.error(f"Error al guardar: {e}")
 elif menu == "💧 Balance Hídrico":
     import folium
     from streamlit_folium import folium_static
