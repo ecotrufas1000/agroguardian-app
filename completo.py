@@ -348,30 +348,33 @@ elif menu == "💧 Balance Hídrico":
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
         st.divider()
         # --- Mapa NASA GIBS ---
-        st.markdown("### 🛰️ Humedad del Suelo - NASA SMAP (Global)")
+        # --- Mapa CONAE SAOCOM ---
+        st.markdown("### 🛰️ Humedad del Suelo - SAOCOM/CONAE (Argentina)")
         lat_map = LAT if LAT else -38.29
         lon_map = LON if LON else -57.55
         zoom_level = 8 if LAT else 5
         opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
-        fecha_nasa = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+
         m = folium.Map(
             location=[lat_map, lon_map],
             zoom_start=zoom_level,
             tiles="CartoDB dark_matter",
             control_scale=True
         )
+
+        # Capa SAOCOM - Humedad perfil suelo 50cm krigeado (día más reciente = layer 1)
         folium.WmsTileLayer(
-            url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
-            name="NASA SMAP Soil Moisture",
-            layers="SMAP_L4_Analyzed_Root_Zone_Soil_Moisture",
+            url="https://geoservicios.conae.gov.ar/geoserver/HumedadDeSuelos/wms",
+            name="SAOCOM - Humedad Suelo 50cm",
+            layers="HumedadDeSuelos:DSS_MSMKR_1",
             fmt="image/png",
             transparent=True,
             opacity=opacidad,
-            attr="NASA GIBS / SMAP",
-            version="1.3.0",
+            attr="CONAE - Misión SAOCOM",
+            version="1.1.1",
             styles="",
-            extra_params={"TIME": fecha_nasa},
         ).add_to(m)
+
         folium.CircleMarker(
             location=[lat_map, lon_map],
             radius=8,
@@ -381,42 +384,38 @@ elif menu == "💧 Balance Hídrico":
             fill_opacity=1,
             tooltip=f"📍 Lat: {lat_map:.4f} | Lon: {lon_map:.4f}"
         ).add_to(m)
+
         folium.LayerControl().add_to(m)
         folium_static(m, width=1000, height=600)
-        # Leyenda de colores SMAP
+
+        # Leyenda SAOCOM (misma paleta que SMN/INTA: azul=húmedo, naranja/rojo=seco)
         st.markdown("""
         <div style="background-color:#111; padding:15px; border-radius:10px; margin-top:10px;">
             <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:12px;">
-                🗺️ <b>Referencia de Humedad del Suelo (NASA SMAP)</b>
+                🗺️ <b>Referencia - Humedad Perfil Suelo 0-50cm (SAOCOM/CONAE)</b>
             </p>
             <table style="width:100%; font-family:monospace; font-size:12px;">
                 <tr>
-                    <td><div style="background:#053061; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Saturado (&gt;0.55 m³/m³)</td>
                     <td><div style="background:#2166ac; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Muy húmedo (0.45–0.55)</td>
-                </tr>
-                <tr>
+                    <td style="color:white; padding:4px 8px;">Muy húmedo (&gt;80%)</td>
                     <td><div style="background:#4dac26; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Húmedo (0.35–0.45)</td>
-                    <td><div style="background:#a6d96a; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Normal-húmedo (0.30–0.35)</td>
+                    <td style="color:white; padding:4px 8px;">Húmedo (60–80%)</td>
                 </tr>
                 <tr>
-                    <td><div style="background:#d9ef8b; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Normal (0.25–0.30)</td>
+                    <td><div style="background:#b8e186; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Normal-húmedo (40–60%)</td>
                     <td><div style="background:#fee08b; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Normal-seco (0.20–0.25)</td>
+                    <td style="color:white; padding:4px 8px;">Normal-seco (30–40%)</td>
                 </tr>
                 <tr>
                     <td><div style="background:#fc8d59; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Seco (0.10–0.20)</td>
+                    <td style="color:white; padding:4px 8px;">Seco (15–30%)</td>
                     <td><div style="background:#d73027; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Muy seco (&lt;0.10 m³/m³)</td>
+                    <td style="color:white; padding:4px 8px;">Muy seco (&lt;15%)</td>
                 </tr>
             </table>
             <p style="color:#888; font-size:11px; margin-top:10px; font-family:monospace;">
-                📡 NASA SMAP L4 — Humedad zona radicular (0–100 cm) | Actualización diaria
+                📡 CONAE SAOCOM — Humedad volumétrica promedio 0–50cm | Región Pampeana | Actualización diaria
             </p>
         </div>
         """, unsafe_allow_html=True)
