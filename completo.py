@@ -170,24 +170,22 @@ with st.sidebar:
             <p style="color: #00ffc3; margin: 0; font-size: 13px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
         </div>
     """, unsafe_allow_html=True)
+
     gps_data = get_geolocation(key="gps_location")
     
     if gps_data and 'coords' in gps_data:
         lat_gps = gps_data['coords']['latitude']
         lon_gps = gps_data['coords']['longitude']
-        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 Señal GPS: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
-        if st.button("📍 VINCULAR GPS DEL MÓVIL", type="primary"):
-            try:
-                supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-                st.session_state.lat = lat_gps
-                st.session_state.lon = lon_gps
-                st.success("✅ GPS VINCULADO")
-                st.balloons()
-            except Exception as e:
-                st.error(f"❌ Error al guardar: {e}")
+        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 GPS: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
+        if st.button("📍 VINCULAR GPS DEL MÓVIL"):
+            supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+            st.session_state.lat = lat_gps
+            st.session_state.lon = lon_gps
+            st.success("✅ Ubicación actualizada")
+            st.rerun()
     else:
-        st.warning("⏳ Buscando señal GPS... Activá el GPS del móvil y recargá la página.")
         st.button("📍 VINCULAR GPS DEL MÓVIL", disabled=True)
+        st.markdown("<p style='color:#888; font-size:11px; font-family:monospace;'>⏳ Esperando GPS...</p>", unsafe_allow_html=True)
         st.divider()
     menu = st.sidebar.radio(
         "MENÚ DE CONTROL", 
