@@ -348,56 +348,27 @@ elif menu == "💧 Balance Hídrico":
         c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
         st.divider()
         # --- Mapa NASA GIBS ---
-        # --- Mapa CONAE SAOCOM ---
-        st.markdown("### 🛰️ Humedad del Suelo - SAOCOM/CONAE (Argentina)")
-        lat_map = LAT if LAT else -38.29
-        lon_map = LON if LON else -57.55
-        zoom_level = 8 if LAT else 5
-        opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
-        fecha_nasa = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-        m = folium.Map(
-            location=[lat_map, lon_map],
-            zoom_start=zoom_level,
-            tiles="CartoDB dark_matter",
-            control_scale=True
+        # --- Mapa SEPA INTA ---
+        st.markdown("### 🛰️ Agua Útil en el Suelo - SEPA/INTA (Argentina)")
+        
+        # Imagen directa de SEPA INTA - se actualiza cada 10 días
+        url_sepa = "https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/images/ultima.png"
+        
+        st.image(
+            url_sepa,
+            caption="Fuente: SEPA-INTA | % Agua útil en perfil de suelo | Actualización cada 10 días",
+            use_column_width=True
         )
-
-        # Capa SAOCOM - Humedad perfil suelo 50cm krigeado (día más reciente = layer 1)
-        folium.WmsTileLayer(
-            url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
-            name="NASA SMAP Humedad Suelo",
-            layers="SMAP_L4_Analyzed_Root_Zone_Soil_Moisture",
-            fmt="image/png",
-            transparent=True,
-            opacity=opacidad,
-            attr="NASA GIBS / SMAP L4",
-            version="1.3.0",
-            styles="",
-            extra_params={"TIME": fecha_nasa},
-        ).add_to(m)
-        folium.CircleMarker(
-            location=[lat_map, lon_map],
-            radius=8,
-            color="#00ffc3",
-            fill=True,
-            fill_color="#00ffc3",
-            fill_opacity=1,
-            tooltip=f"📍 Lat: {lat_map:.4f} | Lon: {lon_map:.4f}"
-        ).add_to(m)
-
-        folium.LayerControl().add_to(m)
-        folium_static(m, width=1000, height=600)
-
-        # Leyenda SAOCOM (misma paleta que SMN/INTA: azul=húmedo, naranja/rojo=seco)
+        
         st.markdown("""
         <div style="background-color:#111; padding:15px; border-radius:10px; margin-top:10px;">
-            <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:12px;">
-                🗺️ <b>Referencia - Humedad Perfil Suelo 0-50cm (SAOCOM/CONAE)</b>
+            <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:8px;">
+                🗺️ <b>Referencia - % Agua Útil en Suelo (SEPA/INTA)</b>
             </p>
             <table style="width:100%; font-family:monospace; font-size:12px;">
                 <tr>
                     <td><div style="background:#2166ac; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Muy húmedo (&gt;80%)</td>
+                    <td style="color:white; padding:4px 8px;">Saturado (>80%)</td>
                     <td><div style="background:#4dac26; width:30px; height:20px; border-radius:4px;"></div></td>
                     <td style="color:white; padding:4px 8px;">Húmedo (60–80%)</td>
                 </tr>
@@ -405,17 +376,17 @@ elif menu == "💧 Balance Hídrico":
                     <td><div style="background:#b8e186; width:30px; height:20px; border-radius:4px;"></div></td>
                     <td style="color:white; padding:4px 8px;">Normal-húmedo (40–60%)</td>
                     <td><div style="background:#fee08b; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Normal-seco (30–40%)</td>
+                    <td style="color:white; padding:4px 8px;">Normal-seco (20–40%)</td>
                 </tr>
                 <tr>
                     <td><div style="background:#fc8d59; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Seco (15–30%)</td>
+                    <td style="color:white; padding:4px 8px;">Seco (5–20%)</td>
                     <td><div style="background:#d73027; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Muy seco (&lt;15%)</td>
+                    <td style="color:white; padding:4px 8px;">Muy seco (<5%)</td>
                 </tr>
             </table>
             <p style="color:#888; font-size:11px; margin-top:10px; font-family:monospace;">
-                📡 CONAE SAOCOM — Humedad volumétrica promedio 0–50cm | Región Pampeana | Actualización diaria
+                📡 SEPA-INTA | Balance hídrico satelital + estaciones INTA/SMN | Mismo producto que usa el SMN
             </p>
         </div>
         """, unsafe_allow_html=True)
