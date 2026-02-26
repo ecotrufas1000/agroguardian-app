@@ -325,7 +325,7 @@ elif menu == "🌧️ Pluviómetro":
 elif menu == "💧 Balance Hídrico":
     import folium
     from streamlit_folium import folium_static
-    st.markdown("### 💧 MONITOREO DE PRECISIÓN COPERNICUS (S2_SR)")
+    st.markdown("### 💧 ETo * Blanney Criddle")
     try:
         lat = LAT if LAT else -38.29
         lon = LON if LON else -57.55
