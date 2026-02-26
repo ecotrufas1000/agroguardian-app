@@ -183,7 +183,6 @@ with st.sidebar:
             st.rerun()
         else:
             st.warning("⚠️ Activá el GPS y permití el acceso.")
-
     st.divider()
     menu = st.sidebar.radio(
         "MENÚ DE CONTROL", 
