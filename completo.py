@@ -386,27 +386,37 @@ elif menu == "💧 Balance Hídrico":
         # Leyenda de colores SMAP
         st.markdown("""
         <div style="background-color:#111; padding:15px; border-radius:10px; margin-top:10px;">
-            <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:8px;">
+            <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:12px;">
                 🗺️ <b>Referencia de Humedad del Suelo (NASA SMAP)</b>
             </p>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <div style="background:#67001f; width:30px; height:20px; border-radius:4px;"></div>
-                <span style="color:white; font-size:12px; margin-right:12px;">Muy seco (&lt;0.05 m³/m³)</span>
-                <div style="background:#d6604d; width:30px; height:20px; border-radius:4px;"></div>
-                <span style="color:white; font-size:12px; margin-right:12px;">Seco (0.05–0.15)</span>
-                <div style="background:#f4a582; width:30px; height:20px; border-radius:4px;"></div>
-                <span style="color:white; font-size:12px; margin-right:12px;">Moderado seco (0.15–0.25)</span>
-                <div style="background:#fddbc7; width:30px; height:20px; border-radius:4px;"></div>
-                <span style="color:white; font-size:12px; margin-right:12px;">Normal (0.25–0.35)</span>
-                <div style="background:#92c5de; width:30px; height:20px; border-radius:4px;"></div>
-                <span style="color:white; font-size:12px; margin-right:12px;">Húmedo (0.35–0.45)</span>
-                <div style="background:#4393c3; width:30px; height:20px; border-radius:4px;"></div>
-                <span style="color:white; font-size:12px; margin-right:12px;">Muy húmedo (0.45–0.55)</span>
-                <div style="background:#053061; width:30px; height:20px; border-radius:4px;"></div>
-                <span style="color:white; font-size:12px;">Saturado (&gt;0.55 m³/m³)</span>
-            </div>
-            <p style="color:#888; font-size:11px; margin-top:8px; font-family:monospace;">
-                📡 Fuente: NASA SMAP L4 — Humedad zona radicular (0–100 cm) | Actualización diaria
+            <table style="width:100%; font-family:monospace; font-size:12px;">
+                <tr>
+                    <td><div style="background:#053061; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Saturado (&gt;0.55 m³/m³)</td>
+                    <td><div style="background:#2166ac; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Muy húmedo (0.45–0.55)</td>
+                </tr>
+                <tr>
+                    <td><div style="background:#4dac26; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Húmedo (0.35–0.45)</td>
+                    <td><div style="background:#a6d96a; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Normal-húmedo (0.30–0.35)</td>
+                </tr>
+                <tr>
+                    <td><div style="background:#d9ef8b; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Normal (0.25–0.30)</td>
+                    <td><div style="background:#fee08b; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Normal-seco (0.20–0.25)</td>
+                </tr>
+                <tr>
+                    <td><div style="background:#fc8d59; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Seco (0.10–0.20)</td>
+                    <td><div style="background:#d73027; width:30px; height:20px; border-radius:4px;"></div></td>
+                    <td style="color:white; padding:4px 8px;">Muy seco (&lt;0.10 m³/m³)</td>
+                </tr>
+            </table>
+            <p style="color:#888; font-size:11px; margin-top:10px; font-family:monospace;">
+                📡 NASA SMAP L4 — Humedad zona radicular (0–100 cm) | Actualización diaria
             </p>
         </div>
         """, unsafe_allow_html=True)
