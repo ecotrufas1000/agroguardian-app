@@ -63,7 +63,12 @@ st.markdown("""
     <style>
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
         [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
-
+        [data-testid="stSidebar"] hr {
+            display: none !important;
+        }
+        [data-testid="stSidebar"] .stMarkdown hr {
+            display: none !important;
+        }
         [data-testid="stSidebar"] .stButton button {
             background-color: #000000 !important;
             color: #00ffc3 !important;
@@ -166,23 +171,28 @@ with st.sidebar:
 # ==========================================================
 # IDENTIDAD VISUAL EN SIDEBAR
 # ==========================================================
-st.sidebar.markdown("""
-    <div style="
-        text-align: center; 
-        margin-bottom: 20px;
-        padding: 10px;
-    ">
-        <h1 style="
-            color: #00ffc3; 
-            margin: 0; 
-            font-size: 26px; 
-            letter-spacing: 3px;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0px 0px 12px #00ffc3;
-        ">AGROGUARDIAN</h1>
-        <p style="color: #00ffc3; margin: 0; font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
-    </div>
-""", unsafe_allow_html=True)
+with st.sidebar:
+    st.sidebar.markdown("""
+        <div style="
+            text-align: center; 
+            margin-bottom: 20px;
+            padding: 10px;
+        ">
+            <h1 style="
+                color: #00ffc3; 
+                margin: 0; 
+                font-size: 32px; 
+                letter-spacing: 3px;
+                font-family: 'Courier New', monospace;
+                text-shadow: 0px 0px 12px #00ffc3;
+            ">AGROGUARDIAN</h1>
+            <p style="color: #00ffc3; margin: 0; font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    gps_data = get_geolocation()
+    if st.button("📍 VINCULAR GPS DEL MÓVIL"):
+        ...resto del código GPS...
 
 # AGREGAMOS .sidebar AQUÍ TAMBIÉN:
 st.sidebar.divider()
