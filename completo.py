@@ -382,7 +382,7 @@ elif menu == "💧 Balance Hídrico":
             tooltip=f"📍 Lat: {lat_map:.4f} | Lon: {lon_map:.4f}"
         ).add_to(m)
         folium.LayerControl().add_to(m)
-        folium_static(m, width=1000, height=600
+        folium_static(m, width=1000, height=600)
         # Leyenda de colores SMAP
         st.markdown("""
         <div style="background-color:#111; padding:15px; border-radius:10px; margin-top:10px;">
