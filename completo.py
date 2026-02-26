@@ -272,6 +272,49 @@ elif menu == "🌧️ Pluviómetro":
             c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
             c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
             c4.metric("📊 Registros", f"{len(df)} eventos")
+            # --- BOTÓN DE WHATSAPP ---
+            st.divider()
+            
+            # Preparamos el mensaje de texto
+            mensaje_wa = (
+                f"🌱 *REPORTE AGROGUARDIAN - PLUVIÓMETRO*\n"
+                f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
+                f"--------------------------------\n"
+                f"💧 *Acumulado Mes:* {df_mes['mm'].sum():.1f} mm\n"
+                f"📆 *Acumulado Anual:* {df_año['mm'].sum():.1f} mm\n"
+                f"⚡ *Máximo diario:* {df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm\n"
+                f"--------------------------------\n"
+                f"🛰️ _Enviado desde Precision Lab v2.6_"
+            )
+            
+            # Codificamos el mensaje para URL
+            import urllib.parse
+            mensaje_url = urllib.parse.quote(mensaje_wa)
+            wa_url = f"https://wa.me/?text={mensaje_url}"
+
+            # Botón visual
+            st.markdown(f"""
+                <a href="{wa_url}" target="_blank" style="text-decoration: none;">
+                    <div style="
+                        background-color: #25D366;
+                        color: white;
+                        padding: 12px 20px;
+                        border-radius: 10px;
+                        text-align: center;
+                        font-weight: bold;
+                        font-family: sans-serif;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                    ">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20px">
+                        ENVIAR REPORTE POR WHATSAPP
+                    </div>
+                </a>
+            """, unsafe_allow_html=True)
+            st.write("") # Espacio estético
 
             st.divider()
             
