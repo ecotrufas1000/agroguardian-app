@@ -154,63 +154,57 @@ if 'lat' not in st.session_state:
 # --- SIDEBAR Y NAVEGACIÓN ---
 with st.sidebar:
     st.markdown("""
-        <div style="
-            text-align: center; 
-            margin-bottom: 20px;
-            padding: 10px;
-        ">
-            <h1 style="
-                color: #00ffc3; 
-                margin: 0; 
-                font-size: 30px; 
-                letter-spacing: 3px;
-                font-family: 'Courier New', monospace;
-                text-shadow: 0px 0px 12px #00ffc3;
-            ">AGROGUARDIAN</h1>
-            <p style="color: #00ffc3; margin: 0; font-size: 13px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
+        <div style="text-align: center; margin-bottom: 20px; padding: 10px;">
+            <h1 style="color: #00ffc3; margin: 0; font-size: 30px; letter-spacing: 3px;
+                font-family: 'Courier New', monospace; text-shadow: 0px 0px 12px #00ffc3;">
+                AGROGUARDIAN
+            </h1>
+            <p style="color: #00ffc3; margin: 0; font-size: 13px; opacity: 0.7; font-family: 'Courier New', monospace;">
+                PRECISION LAB v2.6
+            </p>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- LÓGICA DE GPS SEGURA ---
-    # Usamos una clave única y evitamos que el rerun bloquee la app
+    # --- LÓGICA DE GPS OPTIMIZADA ---
+    # Colocamos el componente de geolocalización fuera de condiciones críticas
     gps_data = get_geolocation(key="gps_location")
     
     if gps_data and 'coords' in gps_data:
         lat_gps = gps_data['coords']['latitude']
         lon_gps = gps_data['coords']['longitude']
         
-        # Guardamos en session_state para que los datos sobrevivan al refresco
-        st.session_state.lat_temp = lat_gps
-        st.session_state.lon_temp = lon_gps
+        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 GPS DETECTADO: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
         
-        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 GPS: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
-        
-        if st.button("📍 VINCULAR GPS DEL MÓVIL"):
+        # Solo mostramos el botón si el GPS detectado es DIFERENTE al actual para evitar bucles
+        if st.button("📍 VINCULAR GPS AL LOTE"):
             try:
                 # Insertamos en Supabase
-                supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+                supabase.table("configuracion").insert({
+                    "latitud": lat_gps, 
+                    "longitud": lon_gps,
+                    "created_at": datetime.datetime.now().isoformat()
+                }).execute()
                 
-                # Actualizamos el estado global
+                # Actualizamos session_state
                 st.session_state.lat = lat_gps
                 st.session_state.lon = lon_gps
                 
-                st.success("✅ Ubicación actualizada")
-                # Un pequeño sleep ayuda a que el mensaje se vea antes de recargar
-                import time
-                time.sleep(1)
+                st.success("✅ Coordenadas Vinculadas")
                 st.rerun()
             except Exception as e:
-                st.error(f"Error Supabase: {e}")
+                st.error(f"Error al guardar: {e}")
     else:
-        # En lugar de desactivar el botón, explicamos por qué no está
-        st.button("📍 VINCULAR GPS DEL MÓVIL", disabled=True, help="Activa el GPS en tu navegador/móvil")
-        st.markdown("<p style='color:#ff4b4b; font-size:11px; font-family:monospace;'>⚠️ GPS NO DETECTADO: Activa la ubicación</p>", unsafe_allow_html=True)
-        st.divider()
-    menu = st.sidebar.radio(
-        "MENÚ DE CONTROL", 
-        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
-    )
+        st.warning("📡 Esperando señal GPS...")
+        st.caption("Asegúrate de tener el GPS activo y dar permisos al navegador.")
 
+    st.divider()
+    
+    # El radio button debe ir FUERA de los bloques if del GPS para que siempre sea visible
+    menu = st.radio(
+        "MENÚ DE CONTROL", 
+        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+        key="menu_principal"
+    )
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
 clima = obtener_clima_completo(LAT, LON)
