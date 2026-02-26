@@ -212,14 +212,14 @@ with st.sidebar:
     else:
         st.info("📡 Sincronizando con satélites...")
             # Guardamos en Supabase
-            try:
-                 supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-                 st.success(f"📍 Vinculado: {lat_gps:.4f}")
-                 st.rerun()
-            except:
-                 st.warning("Ubicación temporal activada (sin conexión a DB)")
+        try:
+            supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+            st.success(f"📍 Vinculado: {lat_gps:.4f}")
+            st.rerun()
+        except:
+            st.warning("Ubicación temporal activada (sin conexión a DB)")
     else:
-            st.info("Buscando señal... Dale permiso al navegador si te lo pide.")
+        st.info("Buscando señal... Dale permiso al navegador si te lo pide.")
 
     # Muestra la ubicación actual que está usando la app
     if st.session_state.get('lat'):
