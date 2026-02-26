@@ -172,7 +172,7 @@ with st.sidebar:
 # IDENTIDAD VISUAL EN SIDEBAR
 # ==========================================================
 with st.sidebar:
-    st.sidebar.markdown("""
+    st.markdown("""
         <div style="
             text-align: center; 
             margin-bottom: 20px;
@@ -189,26 +189,31 @@ with st.sidebar:
             <p style="color: #00ffc3; margin: 0; font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
         </div>
     """, unsafe_allow_html=True)
-    
+
     gps_data = get_geolocation()
     if st.button("📍 VINCULAR GPS DEL MÓVIL"):
-    
-# AGREGAMOS .sidebar AQUÍ TAMBIÉN:
-st.sidebar.divider()
+        if gps_data:
+            lat_gps = gps_data['coords']['latitude']
+            lon_gps = gps_data['coords']['longitude']
+            supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+            st.session_state.lat = lat_gps
+            st.session_state.lon = lon_gps
+            st.success("✅ Ubicación actualizada")
+            st.rerun()
+        else:
+            st.warning("⚠️ Activá el GPS y permití el acceso.")
 
+st.sidebar.divider()
 menu = st.sidebar.radio(
     "MENÚ DE CONTROL", 
     ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"]
 )
 
-# Esto sigue igual, fuera del sidebar para procesar la lógica
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
 clima = obtener_clima_completo(LAT, LON)
-
 if clima:
     st.session_state.clima_data = clima
-
 # ==========================================================
 # 4. PÁGINAS (ESTRUCTURA INTEGRADA)
 # ==========================================================
