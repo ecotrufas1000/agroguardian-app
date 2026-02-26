@@ -11,7 +11,13 @@ import pandas as pd
 import plotly.express as px
 # 1. Captura de GPS fuera de cualquier bloque (Sidebar o Menú)
 # Esto evita que el componente colapse al intentar renderizarse en espacios reducidos
-gps_data = get_geolocation(key="gps_location")
+# --- CAPTURA DE GPS CON FILTRO ANTI-COLAPSO ---
+try:
+    # Agregamos un componente que solo se activa si el usuario lo permite
+    gps_data = get_geolocation(key="gps_location")
+except Exception as e:
+    st.error(f"Error en sensor GPS: {e}")
+    gps_data = None
 
 # ==========================================================
 # FUNCIONES DE CONVERSIÓN (DEBEN IR ARRIBA)
