@@ -354,7 +354,7 @@ elif menu == "💧 Balance Hídrico":
         lon_map = LON if LON else -57.55
         zoom_level = 8 if LAT else 5
         opacidad = st.slider("Transparencia de capa", 0.1, 1.0, 0.7)
-        fecha_nasa = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        fecha_nasa = "2026-02-20"
         m = folium.Map(
             location=[lat_map, lon_map],
             zoom_start=zoom_level,
