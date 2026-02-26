@@ -9,6 +9,9 @@ import math
 import datetime
 import pandas as pd
 import plotly.express as px
+# 1. Captura de GPS fuera de cualquier bloque (Sidebar o Menú)
+# Esto evita que el componente colapse al intentar renderizarse en espacios reducidos
+gps_data = get_geolocation(key="gps_location")
 
 # ==========================================================
 # FUNCIONES DE CONVERSIÓN (DEBEN IR ARRIBA)
@@ -152,6 +155,7 @@ if 'lat' not in st.session_state:
     except:
         st.session_state.lat = None
 # --- SIDEBAR Y NAVEGACIÓN ---
+# --- SIDEBAR Y NAVEGACIÓN ---
 with st.sidebar:
     st.markdown("""
         <div style="text-align: center; margin-bottom: 20px; padding: 10px;">
@@ -159,50 +163,34 @@ with st.sidebar:
                 font-family: 'Courier New', monospace; text-shadow: 0px 0px 12px #00ffc3;">
                 AGROGUARDIAN
             </h1>
-            <p style="color: #00ffc3; margin: 0; font-size: 13px; opacity: 0.7; font-family: 'Courier New', monospace;">
-                PRECISION LAB v2.6
-            </p>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- LÓGICA DE GPS OPTIMIZADA ---
-    # Colocamos el componente de geolocalización fuera de condiciones críticas
-    gps_data = get_geolocation(key="gps_location")
-    
+    # Solo procesamos si gps_data tiene información
     if gps_data and 'coords' in gps_data:
         lat_gps = gps_data['coords']['latitude']
         lon_gps = gps_data['coords']['longitude']
         
-        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 GPS DETECTADO: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 GPS ACTIVO: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
         
-        # Solo mostramos el botón si el GPS detectado es DIFERENTE al actual para evitar bucles
-        if st.button("📍 VINCULAR GPS AL LOTE"):
+        if st.button("📍 VINCULAR POSICIÓN"):
             try:
-                # Insertamos en Supabase
                 supabase.table("configuracion").insert({
                     "latitud": lat_gps, 
-                    "longitud": lon_gps,
-                    "created_at": datetime.datetime.now().isoformat()
+                    "longitud": lon_gps
                 }).execute()
-                
-                # Actualizamos session_state
                 st.session_state.lat = lat_gps
                 st.session_state.lon = lon_gps
-                
-                st.success("✅ Coordenadas Vinculadas")
+                st.success("✅ Vinculado")
                 st.rerun()
             except Exception as e:
-                st.error(f"Error al guardar: {e}")
+                st.error(f"Error: {e}")
     else:
-        st.warning("📡 Esperando señal GPS...")
-        st.caption("Asegúrate de tener el GPS activo y dar permisos al navegador.")
+        st.info("📡 Buscando señal GPS...")
+        st.caption("Acepta los permisos de ubicación en el navegador.")
 
     st.divider()
-    
-    # El radio button debe ir FUERA de los bloques if del GPS para que siempre sea visible
-    menu = st.radio(
-        "MENÚ DE CONTROL", 
-        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+    menu = st.radio("MENÚ", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "📝 Bitácora"])
         key="menu_principal"
     )
 LAT = st.session_state.get('lat')
