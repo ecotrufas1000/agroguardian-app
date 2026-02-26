@@ -349,15 +349,11 @@ elif menu == "💧 Balance Hídrico":
         st.divider()
         # --- Mapa NASA GIBS ---
         # --- Mapa SEPA INTA ---
-        st.markdown("### 🛰️ Agua Útil en el Suelo - SEPA/INTA (Argentina)")
-        
-        # Imagen directa de SEPA INTA - se actualiza cada 10 días
-        url_sepa = "https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/images/ultima.png"
-        
-        st.image(
-            url_sepa,
-            caption="Fuente: SEPA-INTA | % Agua útil en perfil de suelo | Actualización cada 10 días",
-            use_column_width=True
+        st.markdown("### 🌱 Agua Útil en el Suelo - SEPA/INTA")
+        st.components.v1.iframe(
+            "https://sepa.inta.gob.ar/productos/agua_en_suelo/",
+            height=600,
+            scrolling=True
         )
         
         st.markdown("""
