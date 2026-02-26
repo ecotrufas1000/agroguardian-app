@@ -191,7 +191,7 @@ with st.sidebar:
 
     st.divider()
     menu = st.radio("MENÚ", ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "📝 Bitácora"])
-        key="menu_principal"
+    key="menu_principal"
     )
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
