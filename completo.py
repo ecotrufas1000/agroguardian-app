@@ -9,6 +9,7 @@ import math
 import datetime
 import pandas as pd
 import plotly.express as px
+from streamlit_js_eval import streamlit_js_eval
 # 1. Captura de GPS fuera de cualquier bloque (Sidebar o Menú)
 # Esto evita que el componente colapse al intentar renderizarse en espacios reducidos
 # --- CAPTURA DE GPS CON FILTRO ANTI-COLAPSO ---
@@ -160,7 +161,7 @@ if 'lat' not in st.session_state:
             st.session_state.lon = float(res.data[0]['longitud'])
     except:
         st.session_state.lat = None
-# --- SIDEBAR Y NAVEGACIÓN ---
+# --- SIDEBAR Y NAVEGACIÓN 
 # --- SIDEBAR Y NAVEGACIÓN ---
 with st.sidebar:
     st.markdown("""
@@ -169,40 +170,54 @@ with st.sidebar:
                 font-family: 'Courier New', monospace; text-shadow: 0px 0px 12px #00ffc3;">
                 AGROGUARDIAN
             </h1>
+            <p style="color: #00ffc3; margin: 0; font-size: 13px; opacity: 0.7; font-family: 'Courier New', monospace;">
+                PRECISION LAB v2.6
+            </p>
         </div>
     """, unsafe_allow_html=True)
 
-    # Solo procesamos si gps_data tiene información
-    if gps_data and 'coords' in gps_data:
-        lat_gps = gps_data['coords']['latitude']
-        lon_gps = gps_data['coords']['longitude']
+    st.divider()
+
+    # --- BLOQUE DE GPS (PEGAR AQUÍ) ---
+    from streamlit_js_eval import streamlit_js_eval
+    
+    st.markdown("### 📡 Sensor de Campo")
+    
+    # Este botón pide la ubicación solo cuando haces clic
+    if st.button("🔍 DETECTAR MI UBICACIÓN"):
+        # Llamada directa al GPS del navegador
+        loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc')
         
-        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📡 GPS ACTIVO: {lat_gps:.4f}, {lon_gps:.4f}</p>", unsafe_allow_html=True)
-        
-        if st.button("📍 VINCULAR POSICIÓN"):
-            try:
-                supabase.table("configuracion").insert({
-                    "latitud": lat_gps, 
-                    "longitud": lon_gps
-                }).execute()
+        if loc:
+            # Si el navegador responde, guardamos en la base de datos y en el estado
+            lat_gps = loc.get('latitude')
+            lon_gps = loc.get('longitude')
+            
+            if lat_gps and lon_gps:
                 st.session_state.lat = lat_gps
                 st.session_state.lon = lon_gps
-                st.success("✅ Vinculado")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error: {e}")
-    else:
-        st.info("📡 Buscando señal GPS...")
-        st.caption("Acepta los permisos de ubicación en el navegador.")
+                # Guardamos en Supabase
+                try:
+                    supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+                    st.success(f"📍 Vinculado: {lat_gps:.4f}")
+                    st.rerun()
+                except:
+                    st.warning("Ubicación temporal activada (sin conexión a DB)")
+        else:
+            st.info("Buscando señal... Dale permiso al navegador si te lo pide.")
+
+    # Muestra la ubicación actual que está usando la app
+    if st.session_state.get('lat'):
+        st.markdown(f"<p style='color:#00ffc3; font-size:11px; font-family:monospace;'>📍 ACTUAL: {st.session_state.lat:.4f}, {st.session_state.lon:.4f}</p>", unsafe_allow_html=True)
 
     st.divider()
-    
-    # --- RADIO BUTTON CORREGIDO ---
+
+    # --- EL MENÚ DE NAVEGACIÓN ---
     menu = st.radio(
-        "MENÚ", 
-        ["📊 Monitoreo Total", "💧 Balance Hídrico", "⛈️ Radar Granizo", "📝 Bitácora"],
-        key="menu_principal"  # <-- El key va adentro
-    ) # <-- Aquí se cierra la función
+        "MENÚ DE CONTROL", 
+        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+        key="menu_principal"
+    )
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
 clima = obtener_clima_completo(LAT, LON)
