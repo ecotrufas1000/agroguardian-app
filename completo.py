@@ -378,36 +378,7 @@ elif menu == "💧 Balance Hídrico":
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("""
-        <div style="background-color:#111; padding:15px; border-radius:10px; margin-top:10px;">
-            <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:8px;">
-                🗺️ <b>Referencia - % Agua Útil en Suelo (SEPA/INTA)</b>
-            </p>
-            <table style="width:100%; font-family:monospace; font-size:12px;">
-                <tr>
-                    <td><div style="background:#2166ac; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Saturado (>80%)</td>
-                    <td><div style="background:#4dac26; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Húmedo (60–80%)</td>
-                </tr>
-                <tr>
-                    <td><div style="background:#b8e186; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Normal-húmedo (40–60%)</td>
-                    <td><div style="background:#fee08b; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Normal-seco (20–40%)</td>
-                </tr>
-                <tr>
-                    <td><div style="background:#fc8d59; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Seco (5–20%)</td>
-                    <td><div style="background:#d73027; width:30px; height:20px; border-radius:4px;"></div></td>
-                    <td style="color:white; padding:4px 8px;">Muy seco (<5%)</td>
-                </tr>
-            </table>
-            <p style="color:#888; font-size:11px; margin-top:10px; font-family:monospace;">
-                📡 SEPA-INTA | Balance hídrico satelital + estaciones INTA/SMN | Mismo producto que usa el SMN
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+       
     except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
 
