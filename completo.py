@@ -358,7 +358,7 @@ elif menu == "💧 Balance Hídrico":
             <p style="color:#aaa; font-family:monospace; font-size:12px; margin-bottom:15px;">
                 Actualización cada 10 días | Balance hídrico satelital + estaciones INTA/SMN
             </p>
-            <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/" target="_blank"
+            <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/"
                style="background-color:#00ffc3; color:#000; padding:12px 24px; 
                       border-radius:8px; font-family:monospace; font-weight:bold; 
                       text-decoration:none; font-size:14px;">
