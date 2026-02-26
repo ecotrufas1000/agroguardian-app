@@ -366,7 +366,7 @@ elif menu == "💧 Balance Hídrico":
         folium.WmsTileLayer(
             url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
             name="NASA SMAP Humedad Suelo",
-            layers=layers="SMAP_L4_Analyzed_Root_Zone_Soil_Moisture",
+            layers="SMAP_L4_Analyzed_Root_Zone_Soil_Moisture",
             fmt="image/png",
             transparent=True,
             opacity=opacidad,
