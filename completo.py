@@ -1,4 +1,4 @@
-mimport streamlit as st
+import streamlit as st
 from supabase import create_client
 from streamlit_folium import folium_static
 import folium
