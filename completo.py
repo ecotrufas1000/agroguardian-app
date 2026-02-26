@@ -340,12 +340,14 @@ elif menu == "💧 Balance Hídrico":
             hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
         except:
             hum_profunda = 0.0
+        # Conversión m³/m³ a mm: perfil 28-100cm = 72cm = 720mm
+        hum_perfil_mm = hum_profunda * 720
         kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
         c1, c2, c3 = st.columns(3)
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
-        c3.metric("Humedad Perfil", f"{hum_profunda:.3f} m³/m³")
+        c3.metric("Humedad Perfil", f"{hum_perfil_mm:.1f} mm", help="Agua en perfil 28-100cm")
         st.divider()
         # --- Mapa NASA GIBS ---
         # --- Mapa SEPA INTA ---
