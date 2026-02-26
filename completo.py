@@ -162,12 +162,12 @@ with st.sidebar:
             <h1 style="
                 color: #00ffc3; 
                 margin: 0; 
-                font-size: 32px; 
+                font-size: 30px; 
                 letter-spacing: 3px;
                 font-family: 'Courier New', monospace;
                 text-shadow: 0px 0px 12px #00ffc3;
             ">AGROGUARDIAN</h1>
-            <p style="color: #00ffc3; margin: 0; font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
+            <p style="color: #00ffc3; margin: 0; font-size: 13px; opacity: 0.7; font-family: 'Courier New', monospace;">PRECISION LAB v2.6</p>
         </div>
     """, unsafe_allow_html=True)
 
