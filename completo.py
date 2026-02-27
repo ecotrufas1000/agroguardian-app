@@ -10,9 +10,10 @@ import datetime
 import pandas as pd
 import plotly.express as px
 from streamlit_js_eval import streamlit_js_eval
+import urllib.parse
 
 # ==========================================================
-# 1. FUNCIONES DE APOYO
+# 1. FUNCIONES DE APOYO (Calculos y Clima)
 # ==========================================================
 def grados_a_direccion(grados):
     try:
@@ -21,12 +22,10 @@ def grados_a_direccion(grados):
         return direcciones[(val % 16)]
     except: return "N/A"
 
-import urllib.parse
 def generar_link_whatsapp(tarea, lote, temp, viento, nota):
     texto = f"📝 *Reporte AgroGuardian Pro*\n\n✅ *Tarea:* {tarea}\n📍 *Lote:* {lote}\n🌡️ *Condiciones:* {temp}°C | 💨 {viento} km/h\n"
     if nota: texto += f"📋 *Notas:* {nota}\n"
-    msg_encoded = urllib.parse.quote(texto)
-    return f"https://wa.me/?text={msg_encoded}"
+    return f"https://wa.me/?text={urllib.parse.quote(texto)}"
 
 def obtener_clima_completo(lat, lon):
     if not lat or not lon: return None
@@ -38,52 +37,52 @@ def obtener_clima_completo(lat, lon):
             t, h = r["main"]["temp"], r["main"]["humidity"]
             a, b = 17.27, 237.7
             alpha = ((a * t) / (b + t)) + math.log(h/100.0)
-            punto_rocio = (b * alpha) / (a - alpha)
+            rocio = (b * alpha) / (a - alpha)
             return {
                 "temp": t, "hum": h, "v_vel": round(r["wind"]["speed"] * 3.6, 1),
-                "v_dir": r["wind"].get("deg", 0), "rocio": round(punto_rocio, 1),
+                "v_dir": r["wind"].get("deg", 0), "rocio": round(rocio, 1),
                 "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural")
             }
     except: return None
 
 # ==========================================================
-# 2. CONFIGURACIÓN Y CONEXIÓN
+# 2. CONFIGURACIÓN Y ESTILO (Terminal Dark)
 # ==========================================================
-st.set_page_config(page_title="AgroGuardian Pro | Lab Terminal", layout="wide", page_icon="🛰️")
+st.set_page_config(page_title="AgroGuardian Pro", layout="wide", page_icon="🛰️")
 
-try:
-    SUPABASE_URL = st.secrets["SUPABASE_URL"]
-    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception as e:
-    st.error("🚨 Error de configuración en Secrets.")
-    st.stop()
-
-# --- ESTILOS CSS ---
 st.markdown("""
     <style>
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
         [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
-        iframe[title="streamlit_js_eval.streamlit_js_eval"] { display: none; }
         h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
         [data-testid="stMetric"] { background-color: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
-        button { background-color: #00ffc3 !important; color: #0d1117 !important; font-weight: bold !important; }
+        iframe[title="streamlit_js_eval.streamlit_js_eval"] { display: none; }
     </style>
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 3. SIDEBAR UNIFICADO (Logo -> Menú -> GPS)
+# 3. CONEXIÓN BASE DE DATOS
+# ==========================================================
+try:
+    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+except:
+    st.error("🚨 Error de conexión con Supabase.")
+    st.stop()
+
+# ==========================================================
+# 4. SIDEBAR ÚNICO (Solo una instancia de cada cosa)
 # ==========================================================
 with st.sidebar:
+    # 1. Logo
     try:
         st.image("logo.png", use_container_width=True)
-        st.markdown("<p style='text-align:center; color:#00ffc3; font-size:11px; opacity:0.8; letter-spacing:2px;'>PRECISION LAB v2.6</p>", unsafe_allow_html=True)
     except:
-        st.markdown("<h2 style='color: #00ffc3; text-align: center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
-
+        st.markdown("<h2 style='text-align:center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
+    
+    st.markdown("<p style='text-align:center; font-size:10px; opacity:0.7;'>PRECISION LAB v2.6</p>", unsafe_allow_html=True)
     st.divider()
 
-    # NAVEGACIÓN ÚNICA
+    # 2. El Menú de Radio (ESTE ES EL ÚNICO QUE DEBE EXISTIR)
     menu = st.radio(
         "MENÚ DE CONTROL", 
         ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
@@ -92,9 +91,8 @@ with st.sidebar:
 
     st.divider()
 
-    # LÓGICA GPS
+    # 3. GPS automático
     loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
-    
     if loc:
         lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
         if lat_gps and (st.session_state.get('lat') != lat_gps):
@@ -103,35 +101,30 @@ with st.sidebar:
             except: pass
             st.rerun()
 
+    # Cartel de GPS
     if st.session_state.get('lat'):
         st.markdown(f"""
-            <div style='background: #00ffc31a; padding: 12px; border-radius: 8px; border: 1px solid #00ffc3;'>
-                <p style='color:#00ffc3; font-size:12px; margin:0; font-family:monospace;'>🛰️ GPS ACTIVO</p>
-                <p style='color:#00ffc3; font-size:11px; margin:5px 0 0 0; font-family:monospace; opacity:0.8;'>
-                    {st.session_state.lat:.4f} | {st.session_state.lon:.4f}
-                </p>
+            <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#00ffc31a;'>
+                <small>🛰️ SENSOR GPS ACTIVO</small><br>
+                <code style='color:#00ffc3;'>{st.session_state.lat:.4f}, {st.session_state.lon:.4f}</code>
             </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("📡 Sincronizando...")
+        st.info("📡 Sincronizando satélites...")
 
 # ==========================================================
-# 4. LÓGICA DE DATOS GLOBAL
+# 5. LÓGICA DE DATOS GLOBAL
 # ==========================================================
-if 'lat' not in st.session_state:
-    try:
-        res = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
-        if res.data:
-            st.session_state.lat = float(res.data[0]['latitud'])
-            st.session_state.lon = float(res.data[0]['longitud'])
-    except: st.session_state.lat = None
-
-LAT, LON = st.session_state.get('lat'), st.session_state.get('lon')
+LAT = st.session_state.get('lat')
+LON = st.session_state.get('lon')
 clima = obtener_clima_completo(LAT, LON)
 
 if clima:
     st.session_state.clima_data = clima
 
+# --- DESDE AQUÍ EMPIEZAN TUS IF MENU ---
+# if menu == "📊 Monitoreo Total":
+# ...
 # --- A PARTIR DE AQUÍ SIGUEN TUS "IF MENU == ..." ---
 #==========================================================
 # 4. PÁGINAS (ESTRUCTURA INTEGRADA)
