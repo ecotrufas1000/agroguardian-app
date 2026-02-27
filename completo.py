@@ -740,64 +740,59 @@ if menu == "🔍 Diagnóstico IA":
             if st.button("🚀 INICIAR ESCANEO CIENTÍFICO"):
                 with st.spinner("Procesando imagen..."):
                     try:
-                        # Prompt especializado
-                        prompt = "Actúa como un experto en fitopatología. Identifica la enfermedad o plaga en esta imagen agrícola. Da un diagnóstico corto, severidad y tratamiento sugerido. Responde de forma concisa."
-                        
                         import io
 
-    # Convertir imagen a bytes
-    img_bytes = io.BytesIO()
-    img.save(img_bytes, format="PNG")
-    img_bytes = img_bytes.getvalue()
+                        # Prompt especializado
+                        prompt = "Actúa como un experto en fitopatología. Identifica la enfermedad o plaga en esta imagen agrícola. Da un diagnóstico corto, severidad y tratamiento sugerido. Responde de forma concisa."
 
-    response = model.generate_content([
-        prompt,
-        {
-            "mime_type": "image/png",
-            "data": img_bytes
-        }
-    )]
+                        # Convertir imagen a bytes
+                        img_bytes = io.BytesIO()
+                        img.save(img_bytes, format="PNG")
+                        img_bytes = img_bytes.getvalue()
 
-resultado_texto = response.text
-                        resultado_texto = response.text
-                        
+                        response = model.generate_content([
+                            prompt,
+                            {
+                                "mime_type": "image/png",
+                                "data": img_bytes
+                            }
+                        ])  # <-- corregido: el paréntesis de cierre estaba mal
+
+                        resultado_texto = response.text  # <-- línea duplicada eliminada
+
                         st.markdown(f"""
                             <div style='background:#161b22; padding:15px; border-radius:10px; border:1px solid #00ffc3; color:#00ffc3;'>
                                 <h4 style='margin-top:0;'>🔬 RESULTADO DEL ANÁLISIS</h4>
                                 {resultado_texto}
                             </div>
                         """, unsafe_allow_html=True)
-                        
+
                         # --- BOTÓN PARA GUARDAR EN BASE DE DATOS
                         if st.button("💾 GUARDAR EN BITÁCORA"):
                             try:
                                 file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
-
                                 supabase.storage.from_("diagnosticos").upload(
                                     file_name,
                                     img_bytes,
                                     {"content-type": "image/png"}
                                 )
-
                                 public_url = supabase.storage.from_("diagnosticos").get_public_url(file_name)
-
                                 data_insert = {
                                     "fecha": str(datetime.date.today()),
                                     "tipo": "Diagnóstico IA",
                                     "detalle": resultado_texto[:200],
                                     "imagen_url": public_url
                                 }
-
                                 supabase.table("foto").insert(data_insert).execute()
-
                                 st.success("✅ Diagnóstico e imagen guardados correctamente.")
-
                             except Exception as e:
-                               st.error(f"Error al guardar en Supabase: {e}")
+                                st.error(f"Error al guardar en Supabase: {e}")
+
+                    except Exception as e:
+                        st.error(f"Error al procesar la imagen: {e}")
         else:
             st.info("📌 Sube una foto de cerca y bien iluminada del problema (hojas, insectos o manchas).")
 
     st.divider()
-
 # --- FIN DEL CÓDIGO ---
 # Aquí termina el archivo. No hace falta cerrar llaves ni nada más en Python.        
