@@ -626,21 +626,41 @@ elif menu == "❄️ Análisis de Heladas":
             df_h = pd.DataFrame(columns=['id', 'fecha', 'intensidad', 'duracion'])
 
         # --- CÁLCULOS ESTADÍSTICOS (Solo si hay datos previos) ---
-        if not df_h.empty and pd.notnull(df_h['fecha']).any():
-            hoy = datetime.datetime.now()
-            df_h_anio = df_h[df_h['fecha'].dt.year == hoy.year].copy()
+        # --- CÁLCULOS ESTADÍSTICOS ---
+        hoy = datetime.datetime.now()
+        # Filtramos por el año en curso (Usando 'Fecha' con mayúscula)
+        df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
+        
+        if not df_h_anio.empty:
+            df_h_anio = df_h_anio.sort_values('Fecha')
+            primera = df_h_anio.iloc[0]['Fecha']
+            ultima = df_h_anio.iloc[-1]['Fecha']
+            dias_con_helada = (ultima - primera).days
+            dias_libres = 365 - dias_con_helada
             
-            if not df_h_anio.empty:
-                df_h_anio = df_h_anio.sort_values('fecha')
-                primera = df_h_anio.iloc[0]['fecha']
-                ultima = df_h_anio.iloc[-1]['fecha']
-                dias_con_helada = (ultima - primera).days
-                dias_libres = 365 - dias_con_helada
+            # --- CUADRO DE RESUMEN ---
+            st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
+            
+            # Buscamos la más intensa y sumamos duración (Con Mayúsculas)
+            helada_mas_fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
+            horas_frio_total = df_h_anio['Duracion'].sum()
 
-                m1, m2, m3 = st.columns(3)
-                m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
-                m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
-                m3.metric("📅 Período Crítico", f"{dias_con_helada} días")
+            st.info(f"""
+            🗓 **Período con Heladas:** {dias_con_helada} días  
+            🌱 **Período Libre:** {dias_libres} días  
+            ❄️ **Helada más intensa:** {helada_mas_fuerte['Intensidad']}°C ({helada_mas_fuerte['Fecha'].strftime('%d/%m')})  
+            ⏳ **Horas de frío acumuladas:** {horas_frio_total:.1f} hs
+            """)
+
+        # ... (dentro del botón de GUARDAR) ...
+        for _, row in edited_h.iterrows():
+            if pd.notnull(row['fecha']): # El nombre en el editor (Python)
+                datos = {
+                    "Fecha": row['fecha'].isoformat(), # Mapeo a Supabase
+                    "Intensidad": row['intensidad'],
+                    "Duracion": row['duracion']
+                }
+                
         # --- RESUMEN DE CICLO ANUAL ---
                 st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
                 
