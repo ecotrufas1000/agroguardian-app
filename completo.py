@@ -11,127 +11,22 @@ import pandas as pd
 import plotly.express as px
 from streamlit_js_eval import streamlit_js_eval
 
-
 # ==========================================================
-# FUNCIONES DE CONVERSIÓN (DEBEN IR ARRIBA)
+# 1. FUNCIONES DE APOYO
 # ==========================================================
 def grados_a_direccion(grados):
     try:
         val = int((grados / 22.5) + 0.5)
-        direcciones = [
-            "N", "NNE", "NE", "ENE", 
-            "E", "ESE", "SE", "SSE", 
-            "S", "SSO", "SO", "OSO", 
-            "O", "ONO", "NO", "NNO"
-        ]
+        direcciones = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
         return direcciones[(val % 16)]
-    except:
-        return "N/A"
+    except: return "N/A"
+
 import urllib.parse
 def generar_link_whatsapp(tarea, lote, temp, viento, nota):
-    texto = f"📝 *Reporte AgroGuardian Pro*\n\n"
-    texto += f"✅ *Tarea:* {tarea}\n"
-    texto += f"📍 *Lote:* {lote}\n"
-    texto += f"🌡️ *Condiciones:* {temp}°C | 💨 {viento} km/h\n"
-    if nota:
-        texto += f"📋 *Notas:* {nota}\n"
-    
-    # Codificar para URL
+    texto = f"📝 *Reporte AgroGuardian Pro*\n\n✅ *Tarea:* {tarea}\n📍 *Lote:* {lote}\n🌡️ *Condiciones:* {temp}°C | 💨 {viento} km/h\n"
+    if nota: texto += f"📋 *Notas:* {nota}\n"
     msg_encoded = urllib.parse.quote(texto)
     return f"https://wa.me/?text={msg_encoded}"
-# ==========================================================
-# 1.5 CONEXIÓN A BASE DE DATOS
-# ==========================================================
-
-# Accedemos a las credenciales guardadas en Streamlit Cloud
-try:
-    SUPABASE_URL = st.secrets["SUPABASE_URL"]
-    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception as e:
-    st.error("🚨 Error: No se encontraron las credenciales 'SUPABASE_URL' y 'SUPABASE_KEY' en los Secrets de Streamlit.")
-    st.stop() # Detiene la app si no hay conexión, para evitar errores en cadena
-
-# ==========================================================
-# 1. CONFIGURACIÓN BASE Y ESTILO TERMINAL
-# ==========================================================
-st.set_page_config(
-    page_title="AgroGuardian Pro | Lab Terminal",
-    layout="wide",
-    page_icon="🛰️"
-)
-st.markdown("""
-    <style>
-        /* --- ESTILO GENERAL (Lo que ya tenías) --- */
-        .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
-        [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
-        
-        iframe[title="streamlit_js_eval.streamlit_js_eval"] { display: none; }
-        .stSpinner, [data-testid="stStatusWidget"] { display: none !important; }
-
-        h1, h2, h3, p, label, .stMarkdown {
-            color: #00ffc3 !important;
-            font-family: 'Courier New', monospace !important;
-        }
-
-        [data-testid="stMetricValue"] {
-            color: #00ffc3 !important;
-            text-shadow: 0px 0px 10px #00ffc3;
-        }
-        
-        .stDataFrame, [data-testid="stTable"] { background-color: #0d1117 !important; }
-        footer {visibility: hidden;}
-
-        /* --- NUEVO ESTILO NEÓN PARA INPUTS Y BOTONES --- */
-        .stTextInput>div>div>input, .stNumberInput>div>div>input, .stSelectbox>div>div>select {
-            background-color: #161b22 !important;
-            color: #00ffc3 !important;
-            border: 1px solid #30363d !important;
-        }
-
-        /* Botones con efecto hover */
-        button[kind="primary"], .stButton>button {
-            background-color: #00ffc3 !important;
-            color: #0d1117 !important;
-            border: none !important;
-            transition: 0.3s all ease;
-            font-weight: bold !important;
-        }
-
-        button[kind="primary"]:hover, .stButton>button:hover {
-            box-shadow: 0px 0px 15px #00ffc3 !important;
-            transform: scale(1.02);
-            color: #0d1117 !important;
-        }
-
-        /* Tarjetas de métricas */
-        [data-testid="stMetric"] {
-            background-color: #161b22;
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #30363d;
-        }
-    </style>
-""", unsafe_allow_html=True)
-# --- INICIALIZACIÓN DE SUPABASE (Asegúrate de tener tus credenciales) ---
-# url: str = st.secrets["SUPABASE_URL"]
-# key: str = st.secrets["SUPABASE_KEY"]
-# supabase = create_client(url, key)
-# ==========================================================
-# 1.5 CONEXIÓN A BASE DE DATOS (CRUCIAL PARA EL GPS)
-# ==========================================================
-# Reemplazá con tus datos de Supabase o usá st.secrets
-#if 'supabase' not in locals():
-#    try:
-#        url = st.secrets["SUPABASE_URL"]
-#        key = st.secrets["SUPABASE_KEY"]
-#        supabase = create_client(url, key)
-#    except Exception as e:
-#        st.error("❌ Error de configuración: Faltan credenciales de Supabase en Secrets.")
-# ==========================================================
-# 2. MOTOR DE UBICACIÓN Y CLIMA CIENTÍFICO (AUTÓNOMO)
-# ==========================================================
-from streamlit_js_eval import get_geolocation
 
 def obtener_clima_completo(lat, lon):
     if not lat or not lon: return None
@@ -139,121 +34,105 @@ def obtener_clima_completo(lat, lon):
         API_KEY = st.secrets["OPENWEATHER_API_KEY"]
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
         r = requests.get(url).json()
-        
         if r.get("main"):
-            t = r["main"]["temp"]
-            h = r["main"]["humidity"]
+            t, h = r["main"]["temp"], r["main"]["humidity"]
             a, b = 17.27, 237.7
             alpha = ((a * t) / (b + t)) + math.log(h/100.0)
             punto_rocio = (b * alpha) / (a - alpha)
-            
             return {
-                "temp": t,
-                "hum": h,
-                "v_vel": round(r["wind"]["speed"] * 3.6, 1),
-                "v_dir": r["wind"].get("deg", 0),
-                "rocio": round(punto_rocio, 1),
-                "presion": r["main"]["pressure"],
-                "localidad": r.get("name", "Zona Rural")
+                "temp": t, "hum": h, "v_vel": round(r["wind"]["speed"] * 3.6, 1),
+                "v_dir": r["wind"].get("deg", 0), "rocio": round(punto_rocio, 1),
+                "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural")
             }
-    except Exception as e:
-        st.error(f"Error de conexión meteorológica: {e}")
-    return None
+    except: return None
 
+# ==========================================================
+# 2. CONFIGURACIÓN Y CONEXIÓN
+# ==========================================================
+st.set_page_config(page_title="AgroGuardian Pro | Lab Terminal", layout="wide", page_icon="🛰️")
+
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    st.error("🚨 Error de configuración en Secrets.")
+    st.stop()
+
+# --- ESTILOS CSS ---
+st.markdown("""
+    <style>
+        .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
+        [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
+        iframe[title="streamlit_js_eval.streamlit_js_eval"] { display: none; }
+        h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
+        [data-testid="stMetric"] { background-color: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
+        button { background-color: #00ffc3 !important; color: #0d1117 !important; font-weight: bold !important; }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==========================================================
+# 3. SIDEBAR UNIFICADO (Logo -> Menú -> GPS)
+# ==========================================================
+with st.sidebar:
+    try:
+        st.image("logo.png", use_container_width=True)
+        st.markdown("<p style='text-align:center; color:#00ffc3; font-size:11px; opacity:0.8; letter-spacing:2px;'>PRECISION LAB v2.6</p>", unsafe_allow_html=True)
+    except:
+        st.markdown("<h2 style='color: #00ffc3; text-align: center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
+
+    st.divider()
+
+    # NAVEGACIÓN ÚNICA
+    menu = st.radio(
+        "MENÚ DE CONTROL", 
+        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+        key="menu_principal"
+    )
+
+    st.divider()
+
+    # LÓGICA GPS
+    loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
+    
+    if loc:
+        lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
+        if lat_gps and (st.session_state.get('lat') != lat_gps):
+            st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
+            try: supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+            except: pass
+            st.rerun()
+
+    if st.session_state.get('lat'):
+        st.markdown(f"""
+            <div style='background: #00ffc31a; padding: 12px; border-radius: 8px; border: 1px solid #00ffc3;'>
+                <p style='color:#00ffc3; font-size:12px; margin:0; font-family:monospace;'>🛰️ GPS ACTIVO</p>
+                <p style='color:#00ffc3; font-size:11px; margin:5px 0 0 0; font-family:monospace; opacity:0.8;'>
+                    {st.session_state.lat:.4f} | {st.session_state.lon:.4f}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("📡 Sincronizando...")
+
+# ==========================================================
+# 4. LÓGICA DE DATOS GLOBAL
+# ==========================================================
 if 'lat' not in st.session_state:
     try:
         res = supabase.table("configuracion").select("latitud", "longitud").order("created_at", desc=True).limit(1).execute()
         if res.data:
             st.session_state.lat = float(res.data[0]['latitud'])
             st.session_state.lon = float(res.data[0]['longitud'])
-    except:
-        st.session_state.lat = None
-# --- SIDEBAR Y NAVEGACIÓN 
-# --- SIDEBAR Y NAVEGACIÓN ---
-with st.sidebar:
-    # 1. LOGO (Arriba de todo)
-    try:
-        st.image("logo.png", use_container_width=True)
-        st.markdown("""
-            <div style="text-align: center; margin-top: -10px; margin-bottom: 10px;">
-                <p style="color: #00ffc3; font-size: 11px; opacity: 0.8; 
-                font-family: 'Courier New', monospace; letter-spacing: 2px;">
-                    PRECISION LAB v2.6
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-    except:
-        st.markdown("<h2 style='color: #00ffc3; text-align: center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
+    except: st.session_state.lat = None
 
-    st.divider()
-
-    # 2. MENÚ DE NAVEGACIÓN (Subió aquí para estar a mano)
-    menu = st.radio(
-        "MENÚ DE CONTROL", 
-        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
-        key="menu_principal"
-    )
-
-    st.divider()
-
-    # 3. LÓGICA DE GPS (Silenciosa, no dibuja nada todavía)
-    from streamlit_js_eval import streamlit_js_eval
-    loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
-    
-    if loc:
-        lat_gps = loc.get('latitude')
-        lon_gps = loc.get('longitude')
-        if lat_gps and (st.session_state.get('lat') != lat_gps):
-            st.session_state.lat = lat_gps
-            st.session_state.lon = lon_gps
-            try:
-                supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-            except:
-                pass
-            st.rerun()
-
-    # 4. CARTEL DEL SENSOR (Al final del sidebar)
-    if st.session_state.get('lat'):
-        st.markdown(f"""
-            <div style='background: #00ffc31a; padding: 12px; border-radius: 8px; border: 1px solid #00ffc3; margin-top: 10px;'>
-                <p style='color:#00ffc3; font-size:12px; margin:0; font-family:monospace; font-weight:bold;'>
-                    🛰️ SENSOR GPS ACTIVO
-                </p>
-                <p style='color:#00ffc3; font-size:11px; margin:5px 0 0 0; font-family:monospace; opacity:0.8;'>
-                    LAT: {st.session_state.lat:.4f}<br>
-                    LON: {st.session_state.lon:.4f}
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("📡 Sincronizando...")    
-    st.divider()
-# --- EL MENÚ DE NAVEGACIÓN EN LA BARRA LATERAL ---
-#with st.sidebar:
-    # 1. Agregamos el Logo (ajustá el nombre del archivo si es necesario)
-#    try:
-#       st.image("logo.png", use_container_width=True)
-#    except:
-#        st.error("⚠️ No se encontró el archivo logo.png")
-#    
-#    st.divider() # Una línea sutil para separar el logo del menú
-
-    # 2. Definimos el radio button (tu menú original)
-    menu = st.radio(
-        "MENÚ DE CONTROL", 
-        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
-        key="menu_principal"
-    )
-
-# --- LÓGICA DE DATOS (Se ejecuta siempre, fuera del sidebar) ---
-LAT = st.session_state.get('lat')
-LON = st.session_state.get('lon')
-
-# Obtenemos el clima usando la ubicación guardada
+LAT, LON = st.session_state.get('lat'), st.session_state.get('lon')
 clima = obtener_clima_completo(LAT, LON)
 
 if clima:
     st.session_state.clima_data = clima
+
+# --- A PARTIR DE AQUÍ SIGUEN TUS "IF MENU == ..." ---
 #==========================================================
 # 4. PÁGINAS (ESTRUCTURA INTEGRADA)
 # ==========================================================
