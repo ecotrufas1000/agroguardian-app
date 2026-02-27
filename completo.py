@@ -598,7 +598,7 @@ elif menu == "⛈️ Radar Granizo":
     else:
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
 elif menu == "❄️ Análisis de Heladas":
-    # Título con tamaño ajustado para celulares
+    # Título ajustado
     st.markdown("<h2 style='font-size: 26px;'>❄️ Heladas Agrometeorológicas</h2>", unsafe_allow_html=True)
     
     # 1. Monitoreo en Tiempo Real
@@ -614,21 +614,21 @@ elif menu == "❄️ Análisis de Heladas":
     
     st.divider()
 
-    # 2. Lógica de Base de Datos y Cálculos
+    # 2. Lógica de Base de Datos
     try:
         res_h = supabase.table("registros_heladas").select("*").execute()
         
-        # Si hay datos, los cargamos; si no, creamos un DataFrame vacío con la estructura correcta
+        # Cargamos datos respetando las mayúsculas de Supabase
         if res_h.data:
             df_h = pd.DataFrame(res_h.data)
-            df_h['fecha'] = pd.to_datetime(df_h['fecha'])
+            # Convertimos la columna 'Fecha' a formato fecha de Python
+            df_h['Fecha'] = pd.to_datetime(df_h['Fecha'])
         else:
-            df_h = pd.DataFrame(columns=['id', 'fecha', 'intensidad', 'duracion'])
+            # Si está vacía, creamos la estructura con mayúsculas
+            df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
 
-        # --- CÁLCULOS ESTADÍSTICOS (Solo si hay datos previos) ---
         # --- CÁLCULOS ESTADÍSTICOS ---
         hoy = datetime.datetime.now()
-        # Filtramos por el año en curso (Usando 'Fecha' con mayúscula)
         df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
         
         if not df_h_anio.empty:
@@ -638,10 +638,15 @@ elif menu == "❄️ Análisis de Heladas":
             dias_con_helada = (ultima - primera).days
             dias_libres = 365 - dias_con_helada
             
+            # Métricas rápidas
+            m1, m2, m3 = st.columns(3)
+            m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
+            m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
+            m3.metric("📅 Período Crítico", f"{dias_con_helada} días")
+
             # --- CUADRO DE RESUMEN ---
             st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
             
-            # Buscamos la más intensa y sumamos duración (Con Mayúsculas)
             helada_mas_fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
             horas_frio_total = df_h_anio['Duracion'].sum()
 
@@ -651,113 +656,76 @@ elif menu == "❄️ Análisis de Heladas":
             ❄️ **Helada más intensa:** {helada_mas_fuerte['Intensidad']}°C ({helada_mas_fuerte['Fecha'].strftime('%d/%m')})  
             ⏳ **Horas de frío acumuladas:** {horas_frio_total:.1f} hs
             """)
+        else:
+            st.warning(f"Aún no hay registros para el ciclo {hoy.year}")
 
-        # ... (dentro del botón de GUARDAR) ...
-        for _, row in edited_h.iterrows():
-            if pd.notnull(row['fecha']): # El nombre en el editor (Python)
-                datos = {
-                    "Fecha": row['fecha'].isoformat(), # Mapeo a Supabase
-                    "Intensidad": row['intensidad'],
-                    "Duracion": row['Duracion']
-                }
-                
-        # --- RESUMEN DE CICLO ANUAL ---
-                st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
-                
-                # Calculamos las métricas
-                # 1. Fecha media de primera y última helada
-                # (A medida que tengas más años, esto se vuelve un promedio real)
-                f_primera = primera.strftime('%d de %B')
-                f_ultima = ultima.strftime('%d de %B')
-                
-                # 2. Intensidad Máxima (La helada más fuerte es la de menor temperatura)
-                helada_mas_fuerte = df_h_anio.sort_values('intensidad').iloc[0]
-                
-                # 3. Duración Total acumulada en el año
-                horas_frio_total = df_h_anio['Duracion'].sum()
+        st.divider()
 
-                # Mostramos el resumen en un cuadro destacado
-                st.info(f"""
-                🗓 **Período con Heladas:** {dias_con_helada} días  
-                🌱 **Período Libre de Heladas:** {dias_libres} días  
-                📅 **Primera Helada:** {f_primera}  
-                📅 **Última Helada:** {f_ultima}  
-                ❄️ **Helada más intensa:** {helada_mas_fuerte['intensidad']}°C ({helada_mas_fuerte['fecha'].strftime('%d/%m')})  
-                ⏳ **Horas de frío acumuladas:** {horas_frio_total:.1f} hs
-                """)
-        # --- BITÁCORA / DATA EDITOR (ESTA PARTE SIEMPRE SE MUESTRA) ---
-        st.subheader("📝 Registro Histórico")
-        st.info("Haz clic en '+' al final de la tabla para agregar un nuevo registro.")
+        # --- BITÁCORA / DATA EDITOR ---
+        st.markdown("<h3 style='font-size: 20px;'>📝 Registro Histórico</h3>", unsafe_allow_html=True)
         
-        # Preparamos los datos para el editor
-        df_h_edit = df_h.sort_values('fecha', ascending=False) if not df_h.empty else df_h
-        
-        # Estilo para el botón
+        # Estilo del botón (Negro/Verde)
         st.markdown("""
-    <style>
-    /* Estilo para el botón de guardado: Fondo oscuro, texto verde neón */
-    div.stButton > button {
-        background-color: #0e1117 !important;
-        color: #00ffc3 !important;
-        border: 1px solid #00ffc3 !important;
-        width: 100% !important;
-        font-weight: bold !important;
-    }
-    /* Efecto al pasar el mouse o tocar */
-    div.stButton > button:hover {
-        background-color: #00ffc3 !important;
-        color: #0e1117 !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
+            <style>
+            div.stButton > button {
+                background-color: #0e1117 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #00ffc3 !important;
+                width: 100% !important;
+                font-weight: bold !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # Preparamos los datos para el editor (renombramos temporalmente para que el editor sea amigable)
+        df_h_edit = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].copy()
+        df_h_edit = df_h_edit.sort_values('Fecha', ascending=False)
 
         edited_h = st.data_editor(
-            df_h_edit[['id', 'fecha', 'intensidad', 'duracion']],
+            df_h_edit,
             key="editor_heladas",
             num_rows="dynamic",
             use_container_width=True,
             column_config={
-                "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY", required=True),
-                "intensidad": st.column_config.NumberColumn("Intensidad (°C)", format="%.1f °C", step=0.1),
-                "duracion": st.column_config.NumberColumn("Duración (hs)", format="%.1f h", step=0.5),
-                "id": None # Ocultamos el ID
+                "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY", required=True),
+                "Intensidad": st.column_config.NumberColumn("Temp (°C)", format="%.1f °C"),
+                "Duracion": st.column_config.NumberColumn("Duración (hs)", format="%.1f h"),
+                "id": None 
             }
         )
 
         # --- BOTÓN GUARDAR ---
         if st.button("💾 GUARDAR CAMBIOS EN BITÁCORA"):
             try:
-                # 1. Detectar Borrados (solo si había datos originales)
+                # 1. Borrados
                 if not df_h.empty:
                     ids_orig = set(df_h['id'].dropna().tolist())
                     ids_actuales = set(edited_h['id'].dropna().tolist())
                     for id_b in list(ids_orig - ids_actuales):
                         supabase.table("registros_heladas").delete().eq("id", id_b).execute()
 
-                # 2. Detectar Nuevos y Editados
+                # 2. Guardar/Editar
                 for _, row in edited_h.iterrows():
-                    # Validamos que la fecha no sea nula antes de intentar guardar
-                    if pd.notnull(row['fecha']):
+                    if pd.notnull(row['Fecha']):
+                        # MAPEO: "NombreSupabase": row['NombreEditor']
                         datos = {
-                            "fecha": row['fecha'].isoformat() if hasattr(row['fecha'], 'isoformat') else str(row['fecha']),
-                            "intensidad": row['intensidad'] if pd.notnull(row['intensidad']) else 0,
-                            "duracion": row['duracion'] if pd.notnull(row['duracion']) else 0
+                            "Fecha": row['Fecha'].isoformat() if hasattr(row['Fecha'], 'isoformat') else str(row['Fecha']),
+                            "Intensidad": row['Intensidad'],
+                            "Duracion": row['Duracion']
                         }
                         
                         if 'id' in row and pd.notnull(row['id']):
-                            # Actualización
                             supabase.table("registros_heladas").update(datos).eq("id", row['id']).execute()
                         else:
-                            # Inserción nueva
                             supabase.table("registros_heladas").insert(datos).execute()
                 
-                st.success("✅ ¡Datos de heladas actualizados correctamente!")
+                st.success("✅ Datos sincronizados")
                 st.rerun()
             except Exception as e_save:
                 st.error(f"Error al guardar: {e_save}")
 
     except Exception as e:
-        st.error(f"Error de conexión: {e}")
+        st.error(f"Error de conexión o datos: {e}")
 elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
     
