@@ -654,10 +654,10 @@ elif menu == "❄️ Análisis de Heladas":
 
         # ... (dentro del botón de GUARDAR) ...
         for _, row in edited_h.iterrows():
-            if pd.notnull(row['Fecha']): # El nombre en el editor (Python)
+            if pd.notnull(row['fecha']): # El nombre en el editor (Python)
                 datos = {
                     "Fecha": row['fecha'].isoformat(), # Mapeo a Supabase
-                    "Intensidad": row['Intensidad'],
+                    "Intensidad": row['intensidad'],
                     "Duracion": row['Duracion']
                 }
                 
