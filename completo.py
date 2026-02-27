@@ -651,15 +651,22 @@ elif menu == "❄️ Análisis de Heladas":
         
         # Estilo para el botón
         st.markdown("""
-            <style>
-            div.stButton > button:first-child {
-                background-color: #00ffc3 !important;
-                color: black !important;
-                font-weight: bold !important;
-                width: 100% !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+    <style>
+    /* Estilo para el botón de guardado: Fondo oscuro, texto verde neón */
+    div.stButton > button {
+        background-color: #0e1117 !important;
+        color: #00ffc3 !important;
+        border: 1px solid #00ffc3 !important;
+        width: 100% !important;
+        font-weight: bold !important;
+    }
+    /* Efecto al pasar el mouse o tocar */
+    div.stButton > button:hover {
+        background-color: #00ffc3 !important;
+        color: #0e1117 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
         edited_h = st.data_editor(
             df_h_edit[['id', 'fecha', 'intensidad', 'duracion']],
