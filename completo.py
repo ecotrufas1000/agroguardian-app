@@ -779,7 +779,7 @@ if menu == "🔍 Diagnóstico IA":
         st.divider()
 
     if st.button("💾 GUARDAR EN BITÁCORA"):
-    try:
+       try:
         st.write(f"Tamaño imagen: {len(st.session_state.img_bytes_diagnostico)} bytes")  # debug
         
         file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
