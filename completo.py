@@ -92,6 +92,10 @@ with st.sidebar:
 
     # 3. GPS automático
     loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
+    loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
+
+    # Agrega esto temporalmente para debug:
+    st.write(f"Debug loc: {loc}")
     if loc:
         lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
         if lat_gps and (st.session_state.get('lat') != lat_gps):
