@@ -760,7 +760,7 @@ if menu == "🔍 Diagnóstico IA":
                                 "tipo": "Diagnóstico IA",
                                 "detalle": f"Diagnóstico: {resultado_texto[:200]}..." # Guardamos un resumen
                             }
-                            supabase.table("bitacora").insert(data_insert).execute()
+                            supabase.table("foto").insert(data_insert).execute()
                             st.success("✅ Diagnóstico guardado en la base de datos.")
                             
                     except Exception as e:
