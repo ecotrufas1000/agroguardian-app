@@ -112,12 +112,14 @@ if loc:
 
     # Cartel de GPS
     if st.session_state.get('lat'):
-        st.markdown(f"""
-            <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#00ffc31a;'>
-                <small>🛰️ SENSOR GPS ACTIVO</small><br>
-                <code style='color:#00ffc3;'>{st.session_state.lat:.4f}, {st.session_state.lon:.4f}</code>
-            </div>
-        """, unsafe_allow_html=True)
+    localidad = st.session_state.get('clima_data', {}).get('localidad', '---')
+    st.markdown(f"""
+        <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#00ffc31a;'>
+            <small>🛰️ SENSOR GPS ACTIVO</small><br>
+            <code style='color:#00ffc3;'>{st.session_state.lat:.4f}, {st.session_state.lon:.4f}</code><br>
+            <small>📍 {localidad}</small>
+        </div>
+    """, unsafe_allow_html=True)
     else:
         st.info("📡 Sincronizando satélites...")
 
