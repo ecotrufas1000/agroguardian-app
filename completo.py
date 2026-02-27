@@ -790,47 +790,38 @@ elif menu == "📝 Bitácora":
                 st.warning("⚠️ Completá Lote y Evento.")
 
     st.divider()  
-    st.divider()
-
+    
     # --- HISTORIAL DE ACTIVIDADES (Cierre del bloque) ---
     st.divider()
-    st.subheader("📋 Historial de Actividades")
     
-    try:
-        res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
-        
-        if res.data:
-            for entry in res.data:
-                # Definimos un icono según la tarea para que sea visual
-                icon = "📝"
-                if "❄️" in entry['tarea']: icon = "❄️"
-                elif "☄️" in entry['tarea']: icon = "☄️"
-                elif "Fumigación" in entry['tarea']: icon = "🚜"
-                elif "Cosecha" in entry['tarea']: icon = "🌾"
-
-                fecha_f = pd.to_datetime(entry['fecha']).strftime('%d/%m/%Y %H:%M')
+    # Creamos UN SOLO expander para todo el historial
+    with st.expander("📂 VER HISTORIAL COMPLETO DE ACTIVIDADES"):
+        try:
+            res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
+            
+            if res.data:
+                # Si querés que adentro sea una tabla (más compacto):
+                df_bit = pd.DataFrame(res.data)
+                df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
                 
-                # Creamos el desplegable
-                with st.expander(f"{icon} {entry['tarea']} - {entry['lote']} ({fecha_f})"):
-                    col_a, col_b = st.columns([2, 1])
-                    
-                    with col_a:
-                        st.markdown(f"**Observaciones:**\n{entry['nota']}")
-                    
-                    with col_b:
-                        st.write("**Clima:**")
-                        st.caption(f"🌡️ {entry['clima_temp']}°C")
-                        st.caption(f"💨 {entry['clima_viento']} km/h")
-                        
-                    # Botón opcional por si querés borrar un error (necesitás el ID del registro)
-                    # if st.button(f"Eliminar {entry['id']}", key=entry['id']):
-                    #     supabase.table("bitacora").delete().eq("id", entry['id']).execute()
-                    #     st.rerun()
+                st.dataframe(
+                    df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']],
+                    use_container_width=True,
+                    column_config={
+                        "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
+                        "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")
+                    }
+                )
+                
+                # O si preferís las tarjetas que te pasé antes, 
+                # simplemente ponés el bucle for aquí adentro.
+                
+            else:
+                st.info("No hay registros cargados.")
+        except Exception as e:
+            st.error(f"Error al cargar: {e}")
 
-        else:
-            st.info("No hay registros en la bitácora todavía.")
-    except Exception as e:
-        st.error(f"No se pudo cargar el historial: {e}")
+# Aquí termina la Bitácora
 
 # --- FIN DEL CÓDIGO ---
 # Aquí termina el archivo. No hace falta cerrar llaves ni nada más en Python.        
