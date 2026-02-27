@@ -397,21 +397,24 @@ elif menu == "🌧️ Pluviómetro":
                 # --- EL ESTILO VA AQUÍ ---
                 st.markdown("""
                     <style>
+                    /* 1. Botón en estado normal (Fondo Verde, Letra Negra) */
                     .stDownloadButton > button {
                         background-color: #00ffc3 !important;
                         color: #0e1117 !important;
                         font-weight: bold !important;
-                        border: none !important;
+                        border: 2px solid #00ffc3 !important;
                         padding: 10px 20px !important;
                         border-radius: 8px !important;
                         width: 100% !important;
-                        box-shadow: 0px 4px 10px rgba(0, 255, 195, 0.2) !important;
-                        text-transform: uppercase;
+                        transition: all 0.3s ease !important;
                     }
-                    .stDownloadButton > button:hover {
-                        background-color: #00d4a3 !important;
-                        color: #ffffff !important;
-                        border: none !important;
+                    
+                    /* 2. Botón cuando pasas el mouse o haces click (Fondo Oscuro, Letra Verde) */
+                    .stDownloadButton > button:hover, .stDownloadButton > button:active, .stDownloadButton > button:focus {
+                        background-color: #0e1117 !important;
+                        color: #00ffc3 !important;
+                        border: 2px solid #00ffc3 !important;
+                        box-shadow: 0px 0px 15px rgba(0, 255, 195, 0.6) !important;
                     }
                     </style>
                 """, unsafe_allow_html=True)
