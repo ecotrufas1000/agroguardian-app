@@ -60,18 +60,15 @@ st.set_page_config(
     layout="wide",
     page_icon="🛰️"
 )
-
 st.markdown("""
     <style>
-        /* Estilo General */
+        /* --- ESTILO GENERAL (Lo que ya tenías) --- */
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
         [data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363d; }
         
-        /* Eliminar línea blanca y widgets de carga */
         iframe[title="streamlit_js_eval.streamlit_js_eval"] { display: none; }
         .stSpinner, [data-testid="stStatusWidget"] { display: none !important; }
 
-        /* Tipografía y Colores */
         h1, h2, h3, p, label, .stMarkdown {
             color: #00ffc3 !important;
             font-family: 'Courier New', monospace !important;
@@ -84,6 +81,36 @@ st.markdown("""
         
         .stDataFrame, [data-testid="stTable"] { background-color: #0d1117 !important; }
         footer {visibility: hidden;}
+
+        /* --- NUEVO ESTILO NEÓN PARA INPUTS Y BOTONES --- */
+        .stTextInput>div>div>input, .stNumberInput>div>div>input, .stSelectbox>div>div>select {
+            background-color: #161b22 !important;
+            color: #00ffc3 !important;
+            border: 1px solid #30363d !important;
+        }
+
+        /* Botones con efecto hover */
+        button[kind="primary"], .stButton>button {
+            background-color: #00ffc3 !important;
+            color: #0d1117 !important;
+            border: none !important;
+            transition: 0.3s all ease;
+            font-weight: bold !important;
+        }
+
+        button[kind="primary"]:hover, .stButton>button:hover {
+            box-shadow: 0px 0px 15px #00ffc3 !important;
+            transform: scale(1.02);
+            color: #0d1117 !important;
+        }
+
+        /* Tarjetas de métricas */
+        [data-testid="stMetric"] {
+            background-color: #161b22;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+        }
     </style>
 """, unsafe_allow_html=True)
 # --- INICIALIZACIÓN DE SUPABASE (Asegúrate de tener tus credenciales) ---
