@@ -219,7 +219,7 @@ if clima:
 # ==========================================================
 
 if menu == "📊 Monitoreo Total":
-    st.header("📊 Tablero de Control Integral")
+    st.header("📊 Tablero de Control")
     
     if clima:
         col1, col2, col3, col4 = st.columns(4)
