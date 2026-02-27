@@ -597,11 +597,10 @@ elif menu == "⛈️ Radar Granizo":
             """)
     else:
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
-
 elif menu == "❄️ Análisis de Heladas":
     st.header("❄️ Heladas Agrometeorológicas")
     
-    # 1. Monitoreo en Tiempo Real (Lo que ya tenías, mejorado)
+    # 1. Monitoreo en Tiempo Real
     if clima:
         c1, c2 = st.columns(2)
         with c1:
@@ -618,11 +617,15 @@ elif menu == "❄️ Análisis de Heladas":
     try:
         res_h = supabase.table("registros_heladas").select("*").execute()
         
+        # Si hay datos, los cargamos; si no, creamos un DataFrame vacío con la estructura correcta
         if res_h.data:
             df_h = pd.DataFrame(res_h.data)
             df_h['fecha'] = pd.to_datetime(df_h['fecha'])
-            
-            # --- CÁLCULOS ESTADÍSTICOS ---
+        else:
+            df_h = pd.DataFrame(columns=['id', 'fecha', 'intensidad', 'duracion'])
+
+        # --- CÁLCULOS ESTADÍSTICOS (Solo si hay datos previos) ---
+        if not df_h.empty and pd.notnull(df_h['fecha']).any():
             hoy = datetime.datetime.now()
             df_h_anio = df_h[df_h['fecha'].dt.year == hoy.year].copy()
             
@@ -630,8 +633,6 @@ elif menu == "❄️ Análisis de Heladas":
                 df_h_anio = df_h_anio.sort_values('fecha')
                 primera = df_h_anio.iloc[0]['fecha']
                 ultima = df_h_anio.iloc[-1]['fecha']
-                
-                # Período con heladas y período libre
                 dias_con_helada = (ultima - primera).days
                 dias_libres = 365 - dias_con_helada
 
@@ -639,67 +640,73 @@ elif menu == "❄️ Análisis de Heladas":
                 m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
                 m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
                 m3.metric("📅 Período Crítico", f"{dias_con_helada} días")
-                
-                st.info(f"💡 **Ciclo {hoy.year}:** Contamos con un período libre de heladas de **{dias_libres} días**.")
         
-            # --- BITÁCORA / DATA EDITOR ---
-            st.subheader("📝 Registro Histórico")
-            df_h_edit = df_h.sort_values('fecha', ascending=False)
-            
-            # Aplicamos el estilo verde neón al botón que vendrá abajo
-            st.markdown("""
-                <style>
-                div.stButton > button:first-child {
-                    background-color: #00ffc3 !important;
-                    color: black !important;
-                    font-weight: bold !important;
-                    width: 100% !important;
-                }
-                </style>
-            """, unsafe_allow_html=True)
+        # --- BITÁCORA / DATA EDITOR (ESTA PARTE SIEMPRE SE MUESTRA) ---
+        st.subheader("📝 Registro Histórico")
+        st.info("Haz clic en '+' al final de la tabla para agregar un nuevo registro.")
+        
+        # Preparamos los datos para el editor
+        df_h_edit = df_h.sort_values('fecha', ascending=False) if not df_h.empty else df_h
+        
+        # Estilo para el botón
+        st.markdown("""
+            <style>
+            div.stButton > button:first-child {
+                background-color: #00ffc3 !important;
+                color: black !important;
+                font-weight: bold !important;
+                width: 100% !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
 
-            edited_h = st.data_editor(
-                df_h_edit[['id', 'fecha', 'intensidad', 'duracion']],
-                key="editor_heladas",
-                num_rows="dynamic",
-                use_container_width=True,
-                column_config={
-                    "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
-                    "intensidad": st.column_config.NumberColumn("Intensidad (°C)", format="%.1f °C"),
-                    "duracion": st.column_config.NumberColumn("Duración (hs)", format="%.1f h"),
-                    "id": None
-                }
-            )
+        edited_h = st.data_editor(
+            df_h_edit[['id', 'fecha', 'intensidad', 'duracion']],
+            key="editor_heladas",
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY", required=True),
+                "intensidad": st.column_config.NumberColumn("Intensidad (°C)", format="%.1f °C", step=0.1),
+                "duracion": st.column_config.NumberColumn("Duración (hs)", format="%.1f h", step=0.5),
+                "id": None # Ocultamos el ID
+            }
+        )
 
-            # --- BOTÓN GUARDAR ---
-            if st.button("💾 GUARDAR CAMBIOS EN BITÁCORA"):
-                # Detectar Borrados
-                ids_orig = set(df_h['id'].tolist())
-                ids_actuales = set(edited_h['id'].dropna().tolist())
-                for id_b in list(ids_orig - ids_actuales):
-                    supabase.table("registros_heladas").delete().eq("id", id_b).execute()
+        # --- BOTÓN GUARDAR ---
+        if st.button("💾 GUARDAR CAMBIOS EN BITÁCORA"):
+            try:
+                # 1. Detectar Borrados (solo si había datos originales)
+                if not df_h.empty:
+                    ids_orig = set(df_h['id'].dropna().tolist())
+                    ids_actuales = set(edited_h['id'].dropna().tolist())
+                    for id_b in list(ids_orig - ids_actuales):
+                        supabase.table("registros_heladas").delete().eq("id", id_b).execute()
 
-                # Detectar Nuevos y Editados
+                # 2. Detectar Nuevos y Editados
                 for _, row in edited_h.iterrows():
-                    datos = {
-                        "fecha": row['fecha'].isoformat() if hasattr(row['fecha'], 'isoformat') else row['fecha'],
-                        "intensidad": row['intensidad'],
-                        "duracion": row['duracion']
-                    }
-                    if pd.notnull(row['id']):
-                        supabase.table("registros_heladas").update(datos).eq("id", row['id']).execute()
-                    else:
-                        supabase.table("registros_heladas").insert(datos).execute()
+                    # Validamos que la fecha no sea nula antes de intentar guardar
+                    if pd.notnull(row['fecha']):
+                        datos = {
+                            "fecha": row['fecha'].isoformat() if hasattr(row['fecha'], 'isoformat') else str(row['fecha']),
+                            "intensidad": row['intensidad'] if pd.notnull(row['intensidad']) else 0,
+                            "duracion": row['duracion'] if pd.notnull(row['duracion']) else 0
+                        }
+                        
+                        if 'id' in row and pd.notnull(row['id']):
+                            # Actualización
+                            supabase.table("registros_heladas").update(datos).eq("id", row['id']).execute()
+                        else:
+                            # Inserción nueva
+                            supabase.table("registros_heladas").insert(datos).execute()
                 
-                st.success("✅ Datos sincronizados")
+                st.success("✅ ¡Datos de heladas actualizados correctamente!")
                 st.rerun()
-        else:
-            st.info("❄️ No hay registros históricos. ¡Cargá la primera helada en la tabla de abajo!")
-            # Si no hay datos, mostramos un editor vacío para empezar
-            # (Aquí podrías agregar un pequeño dataframe vacío para que el editor no de error)
+            except Exception as e_save:
+                st.error(f"Error al guardar: {e_save}")
 
     except Exception as e:
-        st.error(f"Error al procesar heladas: {e}")
+        st.error(f"Error de conexión: {e}")
 elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
     
