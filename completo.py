@@ -696,16 +696,18 @@ elif menu == "❄️ Análisis de Heladas":
         df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
 
         # Usamos el editor pero solo para borrar filas si hace falta
+        # Usamos el editor configurado para que la selección sea visible
         edited_h = st.data_editor(
             df_display,
             key="visor_heladas",
-            num_rows="fixed", # No dejamos agregar desde aquí para evitar el error del teclado
+            num_rows="dynamic", # Esto habilita las casillas de selección
             use_container_width=True,
+            column_order=("id", "Fecha", "Intensidad", "Duracion"), # Forzamos el orden
             column_config={
+                "id": st.column_config.CheckboxColumn("Seleccionar", help="Marcá para borrar"),
                 "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
                 "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
                 "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
-                "id": None 
             }
         )
 
