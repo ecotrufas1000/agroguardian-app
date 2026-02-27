@@ -171,59 +171,51 @@ if 'lat' not in st.session_state:
 # --- SIDEBAR Y NAVEGACIÓN 
 # --- SIDEBAR Y NAVEGACIÓN ---
 with st.sidebar:
-    # 1. REEMPLAZO DEL TEXTO POR EL LOGO
+    # 1. LOGO (Arriba de todo)
     try:
-        # Centramos la imagen con un poco de aire (margin)
         st.image("logo.png", use_container_width=True)
-        
-        # Un subtexto sutil debajo del logo
         st.markdown("""
             <div style="text-align: center; margin-top: -10px; margin-bottom: 10px;">
-                <p style="color: #00ffc3; font-size: 12px; opacity: 0.8; 
+                <p style="color: #00ffc3; font-size: 11px; opacity: 0.8; 
                 font-family: 'Courier New', monospace; letter-spacing: 2px;">
                     PRECISION LAB v2.6
                 </p>
             </div>
         """, unsafe_allow_html=True)
     except:
-        # Si la imagen no carga, volvemos al texto para que no quede vacío
         st.markdown("<h2 style='color: #00ffc3; text-align: center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
-        st.error("⚠️ No se encontró 'logo.png' en la carpeta.")
 
     st.divider()
-    
-    # Aquí sigue tu menu = st.radio(...)
 
-    # --- GPS AUTOMÁTICO (CORREGIDO) ---
+    # 2. MENÚ DE NAVEGACIÓN (Subió aquí para estar a mano)
+    menu = st.radio(
+        "MENÚ DE CONTROL", 
+        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
+        key="menu_principal"
+    )
+
+    st.divider()
+
+    # 3. LÓGICA DE GPS (Silenciosa, no dibuja nada todavía)
     from streamlit_js_eval import streamlit_js_eval
-    
-    # Captura la ubicación automáticamente
     loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
     
     if loc:
         lat_gps = loc.get('latitude')
         lon_gps = loc.get('longitude')
-        
-        # Solo actualizamos si las coordenadas son nuevas o cambiaron
         if lat_gps and (st.session_state.get('lat') != lat_gps):
             st.session_state.lat = lat_gps
             st.session_state.lon = lon_gps
-            
-            # Intento de guardado en Supabase
             try:
-                supabase.table("configuracion").insert({
-                    "latitud": lat_gps, 
-                    "longitud": lon_gps
-                }).execute()
+                supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
             except:
-                pass # Continuar aunque falle la DB
-            
+                pass
             st.rerun()
 
-    # Diseño visual del estado del sensor
+    # 4. CARTEL DEL SENSOR (Al final del sidebar)
     if st.session_state.get('lat'):
         st.markdown(f"""
-            <div style='background: #00ffc31a; padding: 12px; border-radius: 8px; border: 1px solid #00ffc3; margin-bottom: 15px;'>
+            <div style='background: #00ffc31a; padding: 12px; border-radius: 8px; border: 1px solid #00ffc3; margin-top: 10px;'>
                 <p style='color:#00ffc3; font-size:12px; margin:0; font-family:monospace; font-weight:bold;'>
                     🛰️ SENSOR GPS ACTIVO
                 </p>
@@ -234,9 +226,7 @@ with st.sidebar:
             </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("📡 Sincronizando con satélites...")
-        st.caption("Acepta los permisos de ubicación en el navegador.")
-
+        st.info("📡 Sincronizando...")    
     st.divider()
 # --- EL MENÚ DE NAVEGACIÓN EN LA BARRA LATERAL ---
 #with st.sidebar:
