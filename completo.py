@@ -775,6 +775,6 @@ if menu == "🔍 Diagnóstico IA":
 
         st.divider()
 
-       if st.button("💾 GUARDAR EN BITÁCORA"):
-    st.warning("⭐ Solo disponible para versión Pro")
+    if st.button("💾 GUARDAR EN BITÁCORA"):
+       st.warning("⭐ Solo disponible para versión Pro")
     st.divider()      
