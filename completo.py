@@ -438,7 +438,7 @@ elif menu == "🌧️ Pluviómetro":
             # --- SECCIÓN DE GESTIÓN Y EDICIÓN (REEMPLAZA TU st.dataframe ANTERIOR) ---
             st.divider()
             st.subheader("📂 Gestión de Registros Históricos")
-            st.info("💡 Haz doble clic en los 'mm' para corregir o selecciona una fila y pulsa 'Suprimir' para borrar.")
+            st.info("💡 Hacé doble clic en los 'mm' para corregir o selecciona una fila y pulsá 'Suprimir' para borrar.")
 
             # Preparar los datos para el editor
             df_editable = df.copy().sort_values('fecha', ascending=False)
