@@ -613,28 +613,18 @@ elif menu == "❄️ Análisis de Heladas":
     try:
         # 2. Carga de datos desde Supabase
         res_h = supabase.table("registros_heladas").select("*").execute()
-        
-        # Creamos un DataFrame base para que siempre existan las columnas
         df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
 
         if res_h.data:
             df_temp = pd.DataFrame(res_h.data)
-            
-            # --- LIMPIEZA EXTREMA ---
-            # 1. Nos aseguramos de que la columna 'Fecha' exista (mayúscula como en tu DB)
             if 'Fecha' in df_temp.columns:
-                # 2. Convertimos a datetime forzadamente
                 df_temp['Fecha'] = pd.to_datetime(df_temp['Fecha'], errors='coerce')
-                # 3. ELIMINAMOS cualquier fila que no sea una fecha válida (NaT)
                 df_temp = df_temp.dropna(subset=['Fecha'])
-                # 4. Solo si después de limpiar quedaron datos, lo pasamos al df principal
                 if not df_temp.empty:
                     df_h = df_temp
             
         # 3. Cálculos de Resumen
         hoy = datetime.datetime.now()
-        
-        # Verificamos que df_h['Fecha'] sea realmente de tipo datetime antes de usar .dt
         if not df_h.empty and pd.api.types.is_datetime64_any_dtype(df_h['Fecha']):
             df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
             
@@ -649,161 +639,65 @@ elif menu == "❄️ Análisis de Heladas":
                 m3.metric("📅 Días Críticos", (ultima - primera).days)
 
                 st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
-                # Ordenamos por Intensidad para buscar la más baja
                 fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
                 
-                st.info(f"""
-                ❄️ **Helada más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')})  
-                ⏳ **Total Horas Frío:** {df_h_anio['Duracion'].sum():.1f} hs
-                """)
+                st.info(f"❄️ **Más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')}) | ⏳ **Total Horas Frío:** {df_h_anio['Duracion'].sum():.1f} hs")
             else:
                 st.warning(f"No hay registros para el año {hoy.year}")
         else:
             st.info("A la espera de los primeros registros de heladas...")
-        # 1. Formulario de Carga (Para que el teclado del celu funcione bien)
+
+        # 4. Formulario de Carga (Para teclado de celular con signo menos)
+        st.divider()
         with st.expander("➕ Registrar Nueva Helada", expanded=True):
             with st.form("form_helada", clear_on_submit=True):
                 f_col1, f_col2, f_col3 = st.columns(3)
                 with f_col1:
                     nueva_fecha = st.date_input("Fecha", value=datetime.datetime.now())
                 with f_col2:
-                    # Al ser text_input, el celular te va a mostrar el signo menos (-)
                     nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
                 with f_col3:
                     nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
                 
                 if st.form_submit_button("Añadir a Bitácora"):
                     try:
-                        # Limpiamos el texto para que acepte coma o punto y lo pasamos a número
                         val_int = float(nueva_int.replace(',', '.'))
-                        datos_nuevos = {
-                            "Fecha": nueva_fecha.isoformat(),
-                            "Intensidad": val_int,
-                            "Duracion": nueva_dur
-                        }
+                        datos_nuevos = {"Fecha": nueva_fecha.isoformat(), "Intensidad": val_int, "Duracion": nueva_dur}
                         supabase.table("registros_heladas").insert(datos_nuevos).execute()
                         st.success("✅ ¡Registrada!")
                         st.rerun()
                     except ValueError:
-                        st.error("❌ Escribí la temperatura con números y el signo menos (ej: -3.5)")
+                        st.error("❌ Escribí la temperatura con números (ej: -3.5)")
 
-        st.divider()
-
-        # 2. Tabla de Consulta (Solo para ver o borrar)
-        st.markdown("<h3 style='font-size: 20px;'>📝 Registro Histórico</h3>", unsafe_allow_html=True)
-        
-        # Preparamos los datos para mostrar
-        df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
-
-        # Usamos el editor pero solo para borrar filas si hace falta
-        # Usamos el editor configurado para que la selección sea visible
-        edited_h = st.data_editor(
-            df_display,
-            key="visor_heladas",
-            num_rows="dynamic", # Esto habilita las casillas de selección
-            use_container_width=True,
-            column_order=("id", "Fecha", "Intensidad", "Duracion"), # Forzamos el orden
-            column_config={
-                "id": st.column_config.CheckboxColumn("Seleccionar", help="Marcá para borrar"),
-                "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
-                "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
-                "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
-            }
-        )
-
-        # Lógica para borrar (si el usuario quita filas en el visor)
-        if st.button("🗑️ ELIMINAR REGISTROS SELECCIONADOS"):
-             # Aquí comparamos los IDs para ver si el usuario borró algo en el visor
-             ids_originales = set(df_h['id'].tolist())
-             ids_actuales = set(edited_h['id'].tolist())
-             ids_a_borrar = ids_originales - ids_actuales
-             for id_b in ids_a_borrar:
-                 supabase.table("registros_heladas").delete().eq("id", id_b).execute()
-             st.rerun()
-
-    except Exception as e:
-        st.error(f"Error general: {e}")    
-        st.divider()
-
-        # 4. El Editor de Datos
-        # --- REGISTRO HISTÓRICO (DESPLEGABLE) ---
-        st.divider()
-        
-        # Guardamos todo en un expander para que la pantalla no sea eterna en el celu
+        # 5. Registro Histórico (Desplegable y Borrado Automático)
         with st.expander("📋 Ver Historial de Registros", expanded=False):
-            st.info("Para borrar: Seleccioná la fila y tocá el ícono 🗑️ arriba de la tabla.")
-            
-            # Preparamos los datos ordenados por fecha (más reciente arriba)
+            st.info("Para borrar: Seleccioná la fila y tocá la papelera 🗑️ arriba de la tabla.")
             df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
 
-            # Editor con borrado nativo habilitado
             edited_h = st.data_editor(
                 df_display,
                 key="visor_heladas",
-                num_rows="dynamic", 
+                num_rows="dynamic",
                 use_container_width=True,
                 column_config={
                     "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
                     "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
                     "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
-                    "id": None # Ocultamos el ID para que quede más limpio
+                    "id": None 
                 }
             )
 
-            # LÓGICA DE BORRADO AUTOMÁTICO
-            # Detecta si borraste algo con el tachito de la tabla
+            # Lógica de Borrado Automático (Sin botones extra)
             if len(edited_h) < len(df_display):
                 ids_originales = set(df_display['id'].dropna().tolist())
                 ids_actuales = set(edited_h['id'].dropna().tolist())
                 ids_a_borrar = ids_originales - ids_actuales
-                
-                try:
-                    for id_b in ids_a_borrar:
-                        supabase.table("registros_heladas").delete().eq("id", id_b).execute()
-                    
-                    st.success("🗑️ Registro eliminado")
-                    st.rerun()
-                except Exception as e_del:
-                    st.error(f"Error al borrar: {e_del}")
-
-    except Exception as e:
-        st.error(f"Error general en el módulo: {e}")
-        # 5. Lógica del Botón Guardar (¡Esta es la parte que suele faltar!)
-        if st.button("💾 GUARDAR CAMBIOS EN BITÁCORA"):
-            try:
-                # A. Identificar Borrados
-                if not df_h.empty:
-                    ids_originales = set(df_h['id'].dropna().unique())
-                    ids_actuales = set(edited_h['id'].dropna().unique())
-                    ids_a_borrar = ids_originales - ids_actuales
-                    
-                    for id_b in ids_a_borrar:
-                        supabase.table("registros_heladas").delete().eq("id", id_b).execute()
-
-                # B. Identificar Nuevos y Editados
-                for _, row in edited_h.iterrows():
-                    if pd.notnull(row['Fecha']):
-                        # Armamos el paquete de datos con las MAYÚSCULAS de Supabase
-                        datos = {
-                            "Fecha": row['Fecha'].isoformat() if hasattr(row['Fecha'], 'isoformat') else str(row['Fecha']),
-                            "Intensidad": float(row['Intensidad']) if row['Intensidad'] else 0.0, # <--- Agregamos float()
-                            "Duracion": row['Duracion'] if pd.notnull(row['Duracion']) else 0
-                        }
-
-                        # Si tiene ID, actualizamos; si no, insertamos
-                        if 'id' in row and pd.notnull(row['id']):
-                            supabase.table("registros_heladas").update(datos).eq("id", row['id']).execute()
-                        else:
-                            supabase.table("registros_heladas").insert(datos).execute()
-                
-                st.success("✅ ¡Base de datos actualizada!")
+                for id_b in ids_a_borrar:
+                    supabase.table("registros_heladas").delete().eq("id", id_b).execute()
                 st.rerun()
-                
-            except Exception as e_db:
-                st.error(f"Error al sincronizar con Supabase: {e_db}")
 
     except Exception as e:
-        st.error(f"Error general en el módulo de heladas: {e}")        
+        st.error(f"Error en el módulo: {e}")
 elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
     
