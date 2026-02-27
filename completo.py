@@ -775,37 +775,6 @@ if menu == "🔍 Diagnóstico IA":
 
         st.divider()
 
-        if st.button("💾 GUARDAR EN BITÁCORA"):
-            try:
-                st.write(f"Tamaño imagen: {len(st.session_state.img_bytes_diagnostico)} bytes")
-
-                file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
-
-                upload_response = supabase.storage.from_("diagnosticos").upload(
-                    file_name,
-                    st.session_state.img_bytes_diagnostico,
-                    {"content-type": "image/png"}
-                )
-
-                st.write(f"Upload response: {upload_response}")
-
-                public_url = supabase.storage.from_("diagnosticos").get_public_url(file_name)
-                st.write(f"URL generada: {public_url}")
-
-                data_insert = {
-                    "fecha": str(datetime.date.today()),
-                    "tipo": "Diagnóstico IA",
-                    "detalle": st.session_state.resultado_diagnostico[:200],
-                    "imagen_url": public_url
-                }
-                supabase.table("foto").insert(data_insert).execute()
-                st.success("✅ Diagnóstico e imagen guardados correctamente.")
-                st.session_state.resultado_diagnostico = None
-                st.session_state.img_bytes_diagnostico = None
-
-            except Exception as e:
-                st.error(f"Error al guardar en Supabase: {e}")
-                import traceback
-                st.code(traceback.format_exc())
-
+       if st.button("💾 GUARDAR EN BITÁCORA"):
+    st.warning("⭐ Solo disponible para versión Pro")
     st.divider()      
