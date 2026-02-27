@@ -707,6 +707,44 @@ elif menu == "📝 Bitácora":
             st.error(f"Error al cargar: {e}")
 
 # Aquí termina la Bitácora
+# ==========================================================
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# ==========================================================
+if menu == "🔍 Diagnóstico IA":
+    st.header("🔍 Diagnóstico de Cultivos por IA")
+    st.subheader("Detectar enfermedades, plagas o deficiencias nutricionales")
 
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        img_file = st.file_uploader("Subir foto del cultivo o síntoma", type=['jpg', 'png', 'jpeg'])
+        if img_file:
+            st.image(img_file, caption="Imagen cargada para análisis", use_container_width=True)
+
+    with col2:
+        if img_file:
+            if st.button("🚀 INICIAR ESCANEO CIENTÍFICO"):
+                with st.spinner("Analizando patrones patológicos..."):
+                    # Aquí conectaremos con la API de Visión
+                    # Por ahora simulamos la respuesta para que veas la estructura:
+                    st.markdown("""
+                        <div style='background:#161b22; padding:20px; border-radius:10px; border:1px solid #00ffc3;'>
+                            <h3 style='color:#00ffc3; margin-top:0;'>📋 INFORME PRELIMINAR</h3>
+                            <p><b>Posible Diagnóstico:</b> Mancha Marrón (Septoria glycines)</p>
+                            <p><b>Confianza:</b> 88%</p>
+                            <hr style='border-color:#30363d;'>
+                            <p><b>Recomendación Técnica:</b></p>
+                            <ul>
+                                <li>Monitorear avance en estratos medios.</li>
+                                <li>Evaluar aplicación de fungicida si las condiciones de humedad persisten.</li>
+                                <li>Consultar umbrales de daño económico (UDE).</li>
+                            </ul>
+                        </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.info("👆 Por favor, sube una foto clara de la hoja, fruto o tallo afectado para comenzar.")
+
+    st.divider()
+    st.warning("⚠️ Nota: El diagnóstico por IA es una herramienta de apoyo. Siempre valide los resultados con un Ingeniero Agrónomo.")
 # --- FIN DEL CÓDIGO ---
 # Aquí termina el archivo. No hace falta cerrar llaves ni nada más en Python.        
