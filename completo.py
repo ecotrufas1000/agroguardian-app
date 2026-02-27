@@ -641,7 +641,30 @@ elif menu == "❄️ Análisis de Heladas":
                 m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
                 m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
                 m3.metric("📅 Período Crítico", f"{dias_con_helada} días")
-        
+        # --- RESUMEN DE CICLO ANUAL ---
+                st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
+                
+                # Calculamos las métricas
+                # 1. Fecha media de primera y última helada
+                # (A medida que tengas más años, esto se vuelve un promedio real)
+                f_primera = primera.strftime('%d de %B')
+                f_ultima = ultima.strftime('%d de %B')
+                
+                # 2. Intensidad Máxima (La helada más fuerte es la de menor temperatura)
+                helada_mas_fuerte = df_h_anio.sort_values('intensidad').iloc[0]
+                
+                # 3. Duración Total acumulada en el año
+                horas_frio_total = df_h_anio['duracion'].sum()
+
+                # Mostramos el resumen en un cuadro destacado
+                st.info(f"""
+                🗓 **Período con Heladas:** {dias_con_helada} días  
+                🌱 **Período Libre de Heladas:** {dias_libres} días  
+                📅 **Primera Helada:** {f_primera}  
+                📅 **Última Helada:** {f_ultima}  
+                ❄️ **Helada más intensa:** {helada_mas_fuerte['intensidad']}°C ({helada_mas_fuerte['fecha'].strftime('%d/%m')})  
+                ⏳ **Horas de frío acumuladas:** {horas_frio_total:.1f} hs
+                """)
         # --- BITÁCORA / DATA EDITOR (ESTA PARTE SIEMPRE SE MUESTRA) ---
         st.subheader("📝 Registro Histórico")
         st.info("Haz clic en '+' al final de la tabla para agregar un nuevo registro.")
