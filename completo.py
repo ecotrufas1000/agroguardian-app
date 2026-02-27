@@ -779,15 +779,15 @@ if menu == "🔍 Diagnóstico IA":
         st.divider()
 
     if st.button("💾 GUARDAR EN BITÁCORA"):
-       try:
-        st.write(f"Tamaño imagen: {len(st.session_state.img_bytes_diagnostico)} bytes")  # debug
+        try:
+            st.write(f"Tamaño imagen: {len(st.session_state.img_bytes_diagnostico)} bytes")  # debug
         
-        file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
-        
-        upload_response = supabase.storage.from_("diagnosticos").upload(
-            file_name,
-            st.session_state.img_bytes_diagnostico,
-            {"content-type": "image/png"}
+            file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
+            
+            upload_response = supabase.storage.from_("diagnosticos").upload(
+                file_name,
+                st.session_state.img_bytes_diagnostico,
+                {"content-type": "image/png"}
         )
         
         st.write(f"Upload response: {upload_response}")  # debug
