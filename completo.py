@@ -743,7 +743,22 @@ if menu == "🔍 Diagnóstico IA":
                         # Prompt especializado
                         prompt = "Actúa como un experto en fitopatología. Identifica la enfermedad o plaga en esta imagen agrícola. Da un diagnóstico corto, severidad y tratamiento sugerido. Responde de forma concisa."
                         
-                        response = model.generate_content([prompt, img])
+                        import io
+
+    # Convertir imagen a bytes
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="PNG")
+    img_bytes = img_bytes.getvalue()
+
+    response = model.generate_content([
+        prompt,
+        {
+            "mime_type": "image/png",
+            "data": img_bytes
+        }
+    )]
+
+resultado_texto = response.text
                         resultado_texto = response.text
                         
                         st.markdown(f"""
@@ -753,18 +768,32 @@ if menu == "🔍 Diagnóstico IA":
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # --- BOTÓN PARA GUARDAR EN BASE DE DATOS ---
+                        # --- BOTÓN PARA GUARDAR EN BASE DE DATOS
                         if st.button("💾 GUARDAR EN BITÁCORA"):
-                            data_insert = {
-                                "fecha": str(datetime.date.today()),
-                                "tipo": "Diagnóstico IA",
-                                "detalle": f"Diagnóstico: {resultado_texto[:200]}..." # Guardamos un resumen
-                            }
-                            supabase.table("foto").insert(data_insert).execute()
-                            st.success("✅ Diagnóstico guardado en la base de datos.")
-                            
-                    except Exception as e:
-                        st.error(f"Error en el motor de IA: {e}")
+                            try:
+                                file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
+
+                                supabase.storage.from_("diagnosticos").upload(
+                                    file_name,
+                                    img_bytes,
+                                    {"content-type": "image/png"}
+                                )
+
+                                public_url = supabase.storage.from_("diagnosticos").get_public_url(file_name)
+
+                                data_insert = {
+                                    "fecha": str(datetime.date.today()),
+                                    "tipo": "Diagnóstico IA",
+                                    "detalle": resultado_texto[:200],
+                                    "imagen_url": public_url
+                                }
+
+                                supabase.table("foto").insert(data_insert).execute()
+
+                                st.success("✅ Diagnóstico e imagen guardados correctamente.")
+
+                            except Exception as e:
+                               st.error(f"Error al guardar en Supabase: {e}")
         else:
             st.info("📌 Sube una foto de cerca y bien iluminada del problema (hojas, insectos o manchas).")
 
