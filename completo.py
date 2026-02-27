@@ -688,9 +688,21 @@ elif menu == "❄️ Análisis de Heladas":
             use_container_width=True,
             column_config={
                 "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY", required=True),
-                "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
-                "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
-                "id": None # El ID no se toca
+                "Intensidad": st.column_config.NumberColumn(
+                    "Temp (°C)", 
+                    format="%.1f °C", 
+                    min_value=-20.0,  # <-- Permite hasta 20 bajo cero
+                    max_value=5.0,    # <-- Hasta 5 sobre cero (heladas astronómicas)
+                    step=0.1          # <-- Permite decimales
+                ),
+                "Duracion": st.column_config.NumberColumn(
+                    "Horas", 
+                    format="%.1f h", 
+                    min_value=0.0, 
+                    max_value=24.0, 
+                    step=0.5
+                ),
+                "id": None 
             }
         )
 
