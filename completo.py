@@ -394,7 +394,27 @@ elif menu == "🌧️ Pluviómetro":
                         worksheet.set_column(i, i, column_len)
 
                 excel_data = output.getvalue()
-
+                # --- EL ESTILO VA AQUÍ ---
+                st.markdown("""
+                    <style>
+                    .stDownloadButton > button {
+                        background-color: #00ffc3 !important;
+                        color: #0e1117 !important;
+                        font-weight: bold !important;
+                        border: none !important;
+                        padding: 10px 20px !important;
+                        border-radius: 8px !important;
+                        width: 100% !important;
+                        box-shadow: 0px 4px 10px rgba(0, 255, 195, 0.2) !important;
+                        text-transform: uppercase;
+                    }
+                    .stDownloadButton > button:hover {
+                        background-color: #00d4a3 !important;
+                        color: #ffffff !important;
+                        border: none !important;
+                    }
+                    </style>
+                """, unsafe_allow_html=True)
                 # 3. Botón de descarga
                 st.download_button(
                     label="📥 DESCARGAR PLANILLA EXCEL (.xlsx)",
