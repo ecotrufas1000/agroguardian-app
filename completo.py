@@ -763,24 +763,29 @@ elif menu == "📝 Bitácora":
                 st.warning("⚠️ Completá Lote y Evento.")
 
     st.divider()    # 2. VISUALIZACIÓN DE REGISTROS
-    st.subheader("📋 Historial de Actividades")
-    try:
-        res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
-        if res.data:
-            df_bit = pd.DataFrame(res.data)
-            df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+    # ... (debajo de tu bloque de guardado)
+st.divider()
+st.subheader("🕒 Línea de Tiempo del Lote")
+
+try:
+    res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
+    if res.data:
+        for entry in res.data:
+            # Color dinámico según el evento
+            icon = "🚜"
+            if "❄️" in entry['tarea']: icon = "❄️"
+            if "☄️" in entry['tarea']: icon = "☄️"
             
-            # Formateamos la tabla para que sea legible
-            st.dataframe(
-                df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']],
-                use_container_width=True,
-                column_config={
-                    "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
-                    "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f"),
-                    "nota": "Observaciones"
-                }
-            )
-        else:
-            st.info("No hay registros en la bitácora todavía.")
-    except:
-        st.error("No se pudo conectar con la tabla de bitácora.")
+            fecha_f = pd.to_datetime(entry['fecha']).strftime('%d %b, %H:%M')
+            
+            with st.expander(f"{icon} {entry['tarea']} - {entry['lote']} ({fecha_f})"):
+                c1, c2 = st.columns([3, 1])
+                with c1:
+                    st.write(f"**Nota:** {entry['nota']}")
+                with c2:
+                    st.metric("Temp", f"{entry['clima_temp']}°C")
+                    st.caption(f"💨 {entry['clima_viento']} km/h")
+    else:
+        st.info("Aún no hay registros en el cuaderno digital.")
+except Exception as e:
+    st.error("Error al cargar la línea de tiempo.")
