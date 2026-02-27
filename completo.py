@@ -734,8 +734,10 @@ if menu == "🔍 Diagnóstico IA":
 
     # --- PASO 1: Subir imagen
     import io
-    img_file = st.file_uploader("Capturar o subir muestra", type=['jpg', 'png', 'jpeg'])
-
+    #img_file = st.file_uploader("Capturar o subir muestra", type=['jpg', 'png', 'jpeg'])
+    st.info("📌 Sube una foto de cerca y bien iluminada del problema (hojas, insectos o manchas).")
+if st.button("📎 Subir foto"):
+    st.warning("⭐ Solo disponible para versión Pro")
     if img_file:
         img = Image.open(img_file)
         st.image(img, caption="Evidencia cargada", use_container_width=True)
