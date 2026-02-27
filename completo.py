@@ -709,42 +709,66 @@ elif menu == "📝 Bitácora":
 # Aquí termina la Bitácora
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+import google.generativeai as genai
+from PIL import Image
+
+# ==========================================================
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # ==========================================================
 if menu == "🔍 Diagnóstico IA":
-    st.header("🔍 Diagnóstico de Cultivos por IA")
-    st.subheader("Detectar enfermedades, plagas o deficiencias nutricionales")
+    st.header("🔍 Laboratorio Móvil: Escaneo de Cultivos")
+    st.write("Detección de patologías mediante visión artificial y modelos agronómicos.")
+
+    # Configuración de Gemini
+    try:
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        model = genai.GenerativeModel('gemini-1.5-flash')
+    except:
+        st.warning("⚠️ Configura la 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
+        st.stop()
 
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        img_file = st.file_uploader("Subir foto del cultivo o síntoma", type=['jpg', 'png', 'jpeg'])
+        img_file = st.file_uploader("Capturar o subir muestra", type=['jpg', 'png', 'jpeg'])
         if img_file:
-            st.image(img_file, caption="Imagen cargada para análisis", use_container_width=True)
+            img = Image.open(img_file)
+            st.image(img, caption="Evidencia cargada", use_container_width=True)
 
     with col2:
         if img_file:
             if st.button("🚀 INICIAR ESCANEO CIENTÍFICO"):
-                with st.spinner("Analizando patrones patológicos..."):
-                    # Aquí conectaremos con la API de Visión
-                    # Por ahora simulamos la respuesta para que veas la estructura:
-                    st.markdown("""
-                        <div style='background:#161b22; padding:20px; border-radius:10px; border:1px solid #00ffc3;'>
-                            <h3 style='color:#00ffc3; margin-top:0;'>📋 INFORME PRELIMINAR</h3>
-                            <p><b>Posible Diagnóstico:</b> Mancha Marrón (Septoria glycines)</p>
-                            <p><b>Confianza:</b> 88%</p>
-                            <hr style='border-color:#30363d;'>
-                            <p><b>Recomendación Técnica:</b></p>
-                            <ul>
-                                <li>Monitorear avance en estratos medios.</li>
-                                <li>Evaluar aplicación de fungicida si las condiciones de humedad persisten.</li>
-                                <li>Consultar umbrales de daño económico (UDE).</li>
-                            </ul>
-                        </div>
-                    """, unsafe_allow_html=True)
+                with st.spinner("Procesando imagen..."):
+                    try:
+                        # Prompt especializado
+                        prompt = "Actúa como un experto en fitopatología. Identifica la enfermedad o plaga en esta imagen agrícola. Da un diagnóstico corto, severidad y tratamiento sugerido. Responde de forma concisa."
+                        
+                        response = model.generate_content([prompt, img])
+                        resultado_texto = response.text
+                        
+                        st.markdown(f"""
+                            <div style='background:#161b22; padding:15px; border-radius:10px; border:1px solid #00ffc3; color:#00ffc3;'>
+                                <h4 style='margin-top:0;'>🔬 RESULTADO DEL ANÁLISIS</h4>
+                                {resultado_texto}
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # --- BOTÓN PARA GUARDAR EN BASE DE DATOS ---
+                        if st.button("💾 GUARDAR EN BITÁCORA"):
+                            data_insert = {
+                                "fecha": str(datetime.date.today()),
+                                "tipo": "Diagnóstico IA",
+                                "detalle": f"Diagnóstico: {resultado_texto[:200]}..." # Guardamos un resumen
+                            }
+                            supabase.table("bitacora").insert(data_insert).execute()
+                            st.success("✅ Diagnóstico guardado en la base de datos.")
+                            
+                    except Exception as e:
+                        st.error(f"Error en el motor de IA: {e}")
         else:
-            st.info("👆 Por favor, sube una foto clara de la hoja, fruto o tallo afectado para comenzar.")
+            st.info("📌 Sube una foto de cerca y bien iluminada del problema (hojas, insectos o manchas).")
 
     st.divider()
-    st.warning("⚠️ Nota: El diagnóstico por IA es una herramienta de apoyo. Siempre valide los resultados con un Ingeniero Agrónomo.")
+
 # --- FIN DEL CÓDIGO ---
 # Aquí termina el archivo. No hace falta cerrar llaves ni nada más en Python.        
