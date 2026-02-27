@@ -726,45 +726,48 @@ elif menu == "❄️ Análisis de Heladas":
         st.divider()
 
         # 4. El Editor de Datos
-        st.markdown("<h3 style='font-size: 20px;'>📝 Registro Histórico</h3>", unsafe_allow_html=True)
+        # --- REGISTRO HISTÓRICO (DESPLEGABLE) ---
+        st.divider()
         
-        # Estilo del botón (Negro con borde neón)
-        st.markdown("""
-            <style>
-            div.stButton > button {
-                background-color: #0e1117 !important;
-                color: #00ffc3 !important;
-                border: 1px solid #00ffc3 !important;
-                width: 100% !important;
-                font-weight: bold !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+        # Guardamos todo en un expander para que la pantalla no sea eterna en el celu
+        with st.expander("📋 Ver Historial de Registros", expanded=False):
+            st.info("Para borrar: Seleccioná la fila y tocá el ícono 🗑️ arriba de la tabla.")
+            
+            # Preparamos los datos ordenados por fecha (más reciente arriba)
+            df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
 
-        # Preparamos los datos para el editor
-        df_editor = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
+            # Editor con borrado nativo habilitado
+            edited_h = st.data_editor(
+                df_display,
+                key="visor_heladas",
+                num_rows="dynamic", 
+                use_container_width=True,
+                column_config={
+                    "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
+                    "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
+                    "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
+                    "id": None # Ocultamos el ID para que quede más limpio
+                }
+            )
 
-        edited_h = st.data_editor(
-            df_editor,
-            key="editor_heladas",
-            num_rows="dynamic",
-            use_container_width=True,
-            column_config={
-                "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY", required=True),
-                "Intensidad": st.column_config.TextColumn(
-                    "Temp (°C)", 
-                    help="Ingresá el signo menos para heladas (ej: -2.5)",
-                    validate=r"^-?\d*\.?\d*$" # Esto valida que sea un número pero permite el signo -
-                ),
-                "Duracion": st.column_config.NumberColumn(
-                    "Horas", 
-                    format="%.1f h", 
-                    min_value=0.0, 
-                    step=0.5
-                ),
-                "id": None 
-            }
-        )
+            # LÓGICA DE BORRADO AUTOMÁTICO
+            # Detecta si borraste algo con el tachito de la tabla
+            if len(edited_h) < len(df_display):
+                ids_originales = set(df_display['id'].dropna().tolist())
+                ids_actuales = set(edited_h['id'].dropna().tolist())
+                ids_a_borrar = ids_originales - ids_actuales
+                
+                try:
+                    for id_b in ids_a_borrar:
+                        supabase.table("registros_heladas").delete().eq("id", id_b).execute()
+                    
+                    st.success("🗑️ Registro eliminado")
+                    st.rerun()
+                except Exception as e_del:
+                    st.error(f"Error al borrar: {e_del}")
+
+    except Exception as e:
+        st.error(f"Error general en el módulo: {e}")
         # 5. Lógica del Botón Guardar (¡Esta es la parte que suele faltar!)
         if st.button("💾 GUARDAR CAMBIOS EN BITÁCORA"):
             try:
