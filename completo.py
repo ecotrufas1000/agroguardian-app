@@ -239,14 +239,14 @@ with st.sidebar:
 
     st.divider()
 # --- EL MENÚ DE NAVEGACIÓN EN LA BARRA LATERAL ---
-with st.sidebar:
+#with st.sidebar:
     # 1. Agregamos el Logo (ajustá el nombre del archivo si es necesario)
-    try:
-        st.image("logo.png", use_container_width=True)
-    except:
-        st.error("⚠️ No se encontró el archivo logo.png")
-    
-    st.divider() # Una línea sutil para separar el logo del menú
+#    try:
+#       st.image("logo.png", use_container_width=True)
+#    except:
+#        st.error("⚠️ No se encontró el archivo logo.png")
+#    
+#    st.divider() # Una línea sutil para separar el logo del menú
 
     # 2. Definimos el radio button (tu menú original)
     menu = st.radio(
