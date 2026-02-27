@@ -614,39 +614,52 @@ elif menu == "❄️ Análisis de Heladas":
         # 2. Carga de datos desde Supabase
         res_h = supabase.table("registros_heladas").select("*").execute()
         
-        if res_h.data:
-            df_h = pd.DataFrame(res_h.data)
-            # Forzamos la conversión de la columna con Mayúscula
-            df_h['Fecha'] = pd.to_datetime(df_h['Fecha'], errors='coerce')
-            df_h = df_h.dropna(subset=['Fecha'])
-        else:
-            # Estructura inicial si la tabla está vacía
-            df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
+        # Creamos un DataFrame base para que siempre existan las columnas
+        df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
 
+        if res_h.data:
+            df_temp = pd.DataFrame(res_h.data)
+            
+            # --- LIMPIEZA EXTREMA ---
+            # 1. Nos aseguramos de que la columna 'Fecha' exista (mayúscula como en tu DB)
+            if 'Fecha' in df_temp.columns:
+                # 2. Convertimos a datetime forzadamente
+                df_temp['Fecha'] = pd.to_datetime(df_temp['Fecha'], errors='coerce')
+                # 3. ELIMINAMOS cualquier fila que no sea una fecha válida (NaT)
+                df_temp = df_temp.dropna(subset=['Fecha'])
+                # 4. Solo si después de limpiar quedaron datos, lo pasamos al df principal
+                if not df_temp.empty:
+                    df_h = df_temp
+            
         # 3. Cálculos de Resumen
         hoy = datetime.datetime.now()
-        df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
         
-        if not df_h_anio.empty:
-            df_h_anio = df_h_anio.sort_values('Fecha')
-            primera = df_h_anio.iloc[0]['Fecha']
-            ultima = df_h_anio.iloc[-1]['Fecha']
+        # Verificamos que df_h['Fecha'] sea realmente de tipo datetime antes de usar .dt
+        if not df_h.empty and pd.api.types.is_datetime64_any_dtype(df_h['Fecha']):
+            df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
             
-            m1, m2, m3 = st.columns(3)
-            m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
-            m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
-            m3.metric("📅 Días Críticos", (ultima - primera).days)
+            if not df_h_anio.empty:
+                df_h_anio = df_h_anio.sort_values('Fecha')
+                primera = df_h_anio.iloc[0]['Fecha']
+                ultima = df_h_anio.iloc[-1]['Fecha']
+                
+                m1, m2, m3 = st.columns(3)
+                m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
+                m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
+                m3.metric("📅 Días Críticos", (ultima - primera).days)
 
-            st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
-            fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
-            
-            st.info(f"""
-            ❄️ **Helada más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')})  
-            ⏳ **Total Horas Frío acumuladas:** {df_h_anio['Duracion'].sum():.1f} hs
-            """)
+                st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
+                # Ordenamos por Intensidad para buscar la más baja
+                fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
+                
+                st.info(f"""
+                ❄️ **Helada más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')})  
+                ⏳ **Total Horas Frío:** {df_h_anio['Duracion'].sum():.1f} hs
+                """)
+            else:
+                st.warning(f"No hay registros para el año {hoy.year}")
         else:
-            st.warning(f"No hay registros cargados para el año {hoy.year}")
-
+            st.info("A la espera de los primeros registros de heladas...")
         st.divider()
 
         # 4. El Editor de Datos
