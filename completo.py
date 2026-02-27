@@ -598,38 +598,32 @@ elif menu == "⛈️ Radar Granizo":
     else:
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
 elif menu == "❄️ Análisis de Heladas":
-    # Título ajustado
-    st.markdown("<h2 style='font-size: 26px;'>❄️ Heladas Agrometeorológicas</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 24px;'>❄️ Heladas Agrometeorológicas</h2>", unsafe_allow_html=True)
     
-    # 1. Monitoreo en Tiempo Real
+    # 1. Clima en tiempo real
     if clima:
         c1, c2 = st.columns(2)
-        with c1:
-            st.metric("Temperatura Actual", f"{clima['temp']}°C")
+        with c1: st.metric("Temp. Actual", f"{clima['temp']}°C")
         with c2:
-            if clima['temp'] < 3: 
-                st.error("⚠️ ALERTA: Riesgo de Helada")
-            else: 
-                st.success("✅ Sin riesgo inmediato")
-    
+            if clima['temp'] < 3: st.error("⚠️ Riesgo de Helada")
+            else: st.success("✅ Sin riesgo")
+
     st.divider()
 
-    # 2. Lógica de Base de Datos
     try:
+        # 2. Carga de datos desde Supabase
         res_h = supabase.table("registros_heladas").select("*").execute()
         
-        # Cargamos datos respetando las mayúsculas de Supabase
         if res_h.data:
             df_h = pd.DataFrame(res_h.data)
-            # --- CURA PARA EL ERROR .DT ---
-            # 1. Convertimos a fecha (errors='coerce' transforma lo raro en NaT/Nulo)
+            # Forzamos la conversión de la columna con Mayúscula
             df_h['Fecha'] = pd.to_datetime(df_h['Fecha'], errors='coerce')
-            # 2. Eliminamos cualquier fila que no tenga una fecha válida para que no explote abajo
             df_h = df_h.dropna(subset=['Fecha'])
         else:
-            # Si está vacía, creamos la estructura con mayúsculas
+            # Estructura inicial si la tabla está vacía
             df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
-        # --- CÁLCULOS ESTADÍSTICOS ---
+
+        # 3. Cálculos de Resumen
         hoy = datetime.datetime.now()
         df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
         
@@ -637,36 +631,28 @@ elif menu == "❄️ Análisis de Heladas":
             df_h_anio = df_h_anio.sort_values('Fecha')
             primera = df_h_anio.iloc[0]['Fecha']
             ultima = df_h_anio.iloc[-1]['Fecha']
-            dias_con_helada = (ultima - primera).days
-            dias_libres = 365 - dias_con_helada
             
-            # Métricas rápidas
             m1, m2, m3 = st.columns(3)
             m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
             m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
-            m3.metric("📅 Período Crítico", f"{dias_con_helada} días")
+            m3.metric("📅 Días Críticos", (ultima - primera).days)
 
-            # --- CUADRO DE RESUMEN ---
             st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
+            fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
             
-            helada_mas_fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
-            horas_frio_total = df_h_anio['Duracion'].sum()
-
             st.info(f"""
-            🗓 **Período con Heladas:** {dias_con_helada} días  
-            🌱 **Período Libre:** {dias_libres} días  
-            ❄️ **Helada más intensa:** {helada_mas_fuerte['Intensidad']}°C ({helada_mas_fuerte['Fecha'].strftime('%d/%m')})  
-            ⏳ **Horas de frío acumuladas:** {horas_frio_total:.1f} hs
+            ❄️ **Helada más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')})  
+            ⏳ **Total Horas Frío acumuladas:** {df_h_anio['Duracion'].sum():.1f} hs
             """)
         else:
-            st.warning(f"Aún no hay registros para el ciclo {hoy.year}")
+            st.warning(f"No hay registros cargados para el año {hoy.year}")
 
         st.divider()
 
-        # --- BITÁCORA / DATA EDITOR ---
+        # 4. El Editor de Datos
         st.markdown("<h3 style='font-size: 20px;'>📝 Registro Histórico</h3>", unsafe_allow_html=True)
         
-        # Estilo del botón (Negro/Verde)
+        # Estilo del botón (Negro con borde neón)
         st.markdown("""
             <style>
             div.stButton > button {
@@ -679,55 +665,58 @@ elif menu == "❄️ Análisis de Heladas":
             </style>
         """, unsafe_allow_html=True)
 
-        # Preparamos los datos para el editor (renombramos temporalmente para que el editor sea amigable)
-        df_h_edit = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].copy()
-        df_h_edit = df_h_edit.sort_values('Fecha', ascending=False)
+        # Preparamos los datos para el editor
+        df_editor = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
 
         edited_h = st.data_editor(
-            df_h_edit,
+            df_editor,
             key="editor_heladas",
             num_rows="dynamic",
             use_container_width=True,
             column_config={
                 "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY", required=True),
-                "Intensidad": st.column_config.NumberColumn("Temp (°C)", format="%.1f °C"),
-                "Duracion": st.column_config.NumberColumn("Duración (hs)", format="%.1f h"),
-                "id": None 
+                "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
+                "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
+                "id": None # El ID no se toca
             }
         )
 
-        # --- BOTÓN GUARDAR ---
+        # 5. Lógica del Botón Guardar (¡Esta es la parte que suele faltar!)
         if st.button("💾 GUARDAR CAMBIOS EN BITÁCORA"):
             try:
-                # 1. Borrados
+                # A. Identificar Borrados
                 if not df_h.empty:
-                    ids_orig = set(df_h['id'].dropna().tolist())
-                    ids_actuales = set(edited_h['id'].dropna().tolist())
-                    for id_b in list(ids_orig - ids_actuales):
+                    ids_originales = set(df_h['id'].dropna().unique())
+                    ids_actuales = set(edited_h['id'].dropna().unique())
+                    ids_a_borrar = ids_originales - ids_actuales
+                    
+                    for id_b in ids_a_borrar:
                         supabase.table("registros_heladas").delete().eq("id", id_b).execute()
 
-                # 2. Guardar/Editar
+                # B. Identificar Nuevos y Editados
                 for _, row in edited_h.iterrows():
                     if pd.notnull(row['Fecha']):
-                        # MAPEO: "NombreSupabase": row['NombreEditor']
+                        # Armamos el paquete de datos con las MAYÚSCULAS de Supabase
                         datos = {
                             "Fecha": row['Fecha'].isoformat() if hasattr(row['Fecha'], 'isoformat') else str(row['Fecha']),
-                            "Intensidad": row['Intensidad'],
-                            "Duracion": row['Duracion']
+                            "Intensidad": row['Intensidad'] if pd.notnull(row['Intensidad']) else 0,
+                            "Duracion": row['Duracion'] if pd.notnull(row['Duracion']) else 0
                         }
-                        
+
+                        # Si tiene ID, actualizamos; si no, insertamos
                         if 'id' in row and pd.notnull(row['id']):
                             supabase.table("registros_heladas").update(datos).eq("id", row['id']).execute()
                         else:
                             supabase.table("registros_heladas").insert(datos).execute()
                 
-                st.success("✅ Datos sincronizados")
+                st.success("✅ ¡Base de datos actualizada!")
                 st.rerun()
-            except Exception as e_save:
-                st.error(f"Error al guardar: {e_save}")
+                
+            except Exception as e_db:
+                st.error(f"Error al sincronizar con Supabase: {e_db}")
 
     except Exception as e:
-        st.error(f"Error de conexión o datos: {e}")
+        st.error(f"Error general en el módulo de heladas: {e}")        
 elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
     
