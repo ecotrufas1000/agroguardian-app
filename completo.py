@@ -714,6 +714,7 @@ from PIL import Image
 
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil: Escaneo de Cultivos")
     st.write("Detección de patologías mediante visión artificial y modelos agronómicos.")
@@ -731,15 +732,14 @@ if menu == "🔍 Diagnóstico IA":
     if "img_bytes_diagnostico" not in st.session_state:
         st.session_state.img_bytes_diagnostico = None
 
-    # --- PASO 1: Subir imagen (siempre visible)
+    # --- PASO 1: Subir imagen
+    import io
     img_file = st.file_uploader("Capturar o subir muestra", type=['jpg', 'png', 'jpeg'])
 
     if img_file:
-        import io
         img = Image.open(img_file)
         st.image(img, caption="Evidencia cargada", use_container_width=True)
 
-        # Guardar bytes
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="PNG")
         st.session_state.img_bytes_diagnostico = img_bytes.getvalue()
@@ -749,7 +749,6 @@ if menu == "🔍 Diagnóstico IA":
             with st.spinner("Analizando imagen con IA..."):
                 try:
                     prompt = "Actúa como un experto en fitopatología. Identifica la enfermedad o plaga en esta imagen agrícola. Da un diagnóstico corto, severidad y tratamiento sugerido. Responde de forma concisa."
-
                     response = model.generate_content([
                         prompt,
                         {
@@ -758,16 +757,14 @@ if menu == "🔍 Diagnóstico IA":
                         }
                     ])
                     st.session_state.resultado_diagnostico = response.text
-
                 except Exception as e:
                     st.error(f"Error al procesar la imagen: {e}")
 
     else:
-        # Limpiar resultado si se quita la imagen
         st.session_state.resultado_diagnostico = None
         st.info("📌 Sube una foto de cerca y bien iluminada del problema (hojas, insectos o manchas).")
 
-    # --- PASO 3: Mostrar resultado (fuera de columnas, persiste)
+    # --- PASO 3: Mostrar resultado
     if st.session_state.resultado_diagnostico:
         st.markdown(f"""
             <div style='background:#161b22; padding:15px; border-radius:10px; border:1px solid #00ffc3; color:#00ffc3;'>
@@ -778,39 +775,37 @@ if menu == "🔍 Diagnóstico IA":
 
         st.divider()
 
-    if st.button("💾 GUARDAR EN BITÁCORA"):
-        try:
-            st.write(f"Tamaño imagen: {len(st.session_state.img_bytes_diagnostico)} bytes")  # debug
-        
-            file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
-            
-            upload_response = supabase.storage.from_("diagnosticos").upload(
-                file_name,
-                st.session_state.img_bytes_diagnostico,
-                {"content-type": "image/png"}
-        )
-        
-        st.write(f"Upload response: {upload_response}")  # debug
-        
-        public_url = supabase.storage.from_("diagnosticos").get_public_url(file_name)
-        st.write(f"URL generada: {public_url}")  # debug
-        
-        data_insert = {
-            "fecha": str(datetime.date.today()),
-            "tipo": "Diagnóstico IA",
-            "detalle": st.session_state.resultado_diagnostico[:200],
-            "imagen_url": public_url
-        }
-        supabase.table("foto").insert(data_insert).execute()
-        st.success("✅ Diagnóstico e imagen guardados correctamente.")
-        st.session_state.resultado_diagnostico = None
-        st.session_state.img_bytes_diagnostico = None
+        if st.button("💾 GUARDAR EN BITÁCORA"):
+            try:
+                st.write(f"Tamaño imagen: {len(st.session_state.img_bytes_diagnostico)} bytes")
 
-    except Exception as e:
-        st.error(f"Error al guardar en Supabase: {e}")
-        import traceback
-        st.code(traceback.format_exc())
+                file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
 
-    st.divider()
-# --- FIN DEL CÓDIGO ---
-# Aquí termina el archivo. No hace falta cerrar llaves ni nada más en Python.        
+                upload_response = supabase.storage.from_("diagnosticos").upload(
+                    file_name,
+                    st.session_state.img_bytes_diagnostico,
+                    {"content-type": "image/png"}
+                )
+
+                st.write(f"Upload response: {upload_response}")
+
+                public_url = supabase.storage.from_("diagnosticos").get_public_url(file_name)
+                st.write(f"URL generada: {public_url}")
+
+                data_insert = {
+                    "fecha": str(datetime.date.today()),
+                    "tipo": "Diagnóstico IA",
+                    "detalle": st.session_state.resultado_diagnostico[:200],
+                    "imagen_url": public_url
+                }
+                supabase.table("foto").insert(data_insert).execute()
+                st.success("✅ Diagnóstico e imagen guardados correctamente.")
+                st.session_state.resultado_diagnostico = None
+                st.session_state.img_bytes_diagnostico = None
+
+            except Exception as e:
+                st.error(f"Error al guardar en Supabase: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+
+    st.divider()      
