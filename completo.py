@@ -102,13 +102,13 @@ with st.sidebar:
 """, key='get_loc_auto')
 
 st.write(f"Debug loc: {loc}")
-    if loc:
-        lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
-        if lat_gps and (st.session_state.get('lat') != lat_gps):
-            st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
-            try: supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-            except: pass
-            st.rerun()
+if loc:
+    lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
+    if lat_gps and (st.session_state.get('lat') != lat_gps):
+        st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
+        try: supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+        except: pass
+        st.rerun()
 
     # Cartel de GPS
     if st.session_state.get('lat'):
