@@ -714,18 +714,22 @@ from PIL import Image
 
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
-# ==========================================================
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil: Escaneo de Cultivos")
     st.write("Detección de patologías mediante visión artificial y modelos agronómicos.")
 
-    # Configuración de Gemini
     try:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         model = genai.GenerativeModel('gemini-1.5-flash')
     except:
         st.warning("⚠️ Configura la 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
         st.stop()
+
+    # Inicializar session_state
+    if "resultado_diagnostico" not in st.session_state:
+        st.session_state.resultado_diagnostico = None
+    if "img_bytes_diagnostico" not in st.session_state:
+        st.session_state.img_bytes_diagnostico = None
 
     col1, col2 = st.columns([1, 1])
 
@@ -735,61 +739,66 @@ if menu == "🔍 Diagnóstico IA":
             img = Image.open(img_file)
             st.image(img, caption="Evidencia cargada", use_container_width=True)
 
+            # Guardar bytes en session_state apenas se carga la imagen
+            import io
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format="PNG")
+            st.session_state.img_bytes_diagnostico = img_bytes.getvalue()
+
     with col2:
         if img_file:
             if st.button("🚀 INICIAR ESCANEO CIENTÍFICO"):
                 with st.spinner("Procesando imagen..."):
                     try:
-                        import io
-
-                        # Prompt especializado
                         prompt = "Actúa como un experto en fitopatología. Identifica la enfermedad o plaga en esta imagen agrícola. Da un diagnóstico corto, severidad y tratamiento sugerido. Responde de forma concisa."
-
-                        # Convertir imagen a bytes
-                        img_bytes = io.BytesIO()
-                        img.save(img_bytes, format="PNG")
-                        img_bytes = img_bytes.getvalue()
 
                         response = model.generate_content([
                             prompt,
                             {
                                 "mime_type": "image/png",
-                                "data": img_bytes
+                                "data": st.session_state.img_bytes_diagnostico
                             }
-                        ])  # <-- corregido: el paréntesis de cierre estaba mal
+                        ])
 
-                        resultado_texto = response.text  # <-- línea duplicada eliminada
-
-                        st.markdown(f"""
-                            <div style='background:#161b22; padding:15px; border-radius:10px; border:1px solid #00ffc3; color:#00ffc3;'>
-                                <h4 style='margin-top:0;'>🔬 RESULTADO DEL ANÁLISIS</h4>
-                                {resultado_texto}
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                        # --- BOTÓN PARA GUARDAR EN BASE DE DATOS
-                        if st.button("💾 GUARDAR EN BITÁCORA"):
-                            try:
-                                file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
-                                supabase.storage.from_("diagnosticos").upload(
-                                    file_name,
-                                    img_bytes,
-                                    {"content-type": "image/png"}
-                                )
-                                public_url = supabase.storage.from_("diagnosticos").get_public_url(file_name)
-                                data_insert = {
-                                    "fecha": str(datetime.date.today()),
-                                    "tipo": "Diagnóstico IA",
-                                    "detalle": resultado_texto[:200],
-                                    "imagen_url": public_url
-                                }
-                                supabase.table("foto").insert(data_insert).execute()
-                                st.success("✅ Diagnóstico e imagen guardados correctamente.")
-                            except Exception as e:
-                                st.error(f"Error al guardar en Supabase: {e}")
+                        # Guardar resultado en session_state
+                        st.session_state.resultado_diagnostico = response.text
 
                     except Exception as e:
                         st.error(f"Error al procesar la imagen: {e}")
+
+            # Mostrar resultado si existe (persiste entre reruns)
+            if st.session_state.resultado_diagnostico:
+                st.markdown(f"""
+                    <div style='background:#161b22; padding:15px; border-radius:10px; border:1px solid #00ffc3; color:#00ffc3;'>
+                        <h4 style='margin-top:0;'>🔬 RESULTADO DEL ANÁLISIS</h4>
+                        {st.session_state.resultado_diagnostico}
+                    </div>
+                """, unsafe_allow_html=True)
+
+                if st.button("💾 GUARDAR EN BITÁCORA"):
+                    try:
+                        file_name = f"diagnostico_{datetime.datetime.now().timestamp()}.png"
+                        supabase.storage.from_("diagnosticos").upload(
+                            file_name,
+                            st.session_state.img_bytes_diagnostico,
+                            {"content-type": "image/png"}
+                        )
+                        public_url = supabase.storage.from_("diagnosticos").get_public_url(file_name)
+                        data_insert = {
+                            "fecha": str(datetime.date.today()),
+                            "tipo": "Diagnóstico IA",
+                            "detalle": st.session_state.resultado_diagnostico[:200],
+                            "imagen_url": public_url
+                        }
+                        supabase.table("foto").insert(data_insert).execute()
+                        st.success("✅ Diagnóstico e imagen guardados correctamente.")
+
+                        # Limpiar después de guardar
+                        st.session_state.resultado_diagnostico = None
+                        st.session_state.img_bytes_diagnostico = None
+
+                    except Exception as e:
+                        st.error(f"Error al guardar en Supabase: {e}")
         else:
             st.info("📌 Sube una foto de cerca y bien iluminada del problema (hojas, insectos o manchas).")
 
