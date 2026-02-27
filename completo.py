@@ -171,19 +171,28 @@ if 'lat' not in st.session_state:
 # --- SIDEBAR Y NAVEGACIÓN 
 # --- SIDEBAR Y NAVEGACIÓN ---
 with st.sidebar:
-    st.markdown("""
-        <div style="text-align: center; margin-bottom: 20px; padding: 10px;">
-            <h1 style="color: #00ffc3; margin: 0; font-size: 30px; letter-spacing: 3px;
-                font-family: 'Courier New', monospace; text-shadow: 0px 0px 12px #00ffc3;">
-                AGROGUARDIAN
-            </h1>
-            <p style="color: #00ffc3; margin: 0; font-size: 13px; opacity: 0.7; font-family: 'Courier New', monospace;">
-                PRECISION LAB v2.6
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+    # 1. REEMPLAZO DEL TEXTO POR EL LOGO
+    try:
+        # Centramos la imagen con un poco de aire (margin)
+        st.image("logo.png", use_container_width=True)
+        
+        # Un subtexto sutil debajo del logo
+        st.markdown("""
+            <div style="text-align: center; margin-top: -10px; margin-bottom: 10px;">
+                <p style="color: #00ffc3; font-size: 12px; opacity: 0.8; 
+                font-family: 'Courier New', monospace; letter-spacing: 2px;">
+                    PRECISION LAB v2.6
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    except:
+        # Si la imagen no carga, volvemos al texto para que no quede vacío
+        st.markdown("<h2 style='color: #00ffc3; text-align: center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
+        st.error("⚠️ No se encontró 'logo.png' en la carpeta.")
 
     st.divider()
+    
+    # Aquí sigue tu menu = st.radio(...)
 
     # --- GPS AUTOMÁTICO (CORREGIDO) ---
     from streamlit_js_eval import streamlit_js_eval
