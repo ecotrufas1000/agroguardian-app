@@ -91,11 +91,17 @@ with st.sidebar:
     st.divider()
 
     # 3. GPS automático
-    loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
-    loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition(success => {return success.coords})', key='get_loc_auto')
+    loc = streamlit_js_eval(js_expressions="""
+    new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
+            (err) => resolve({error: err.message}),
+            {enableHighAccuracy: true, timeout: 10000}
+        )
+    })
+""", key='get_loc_auto')
 
-    # Agrega esto temporalmente para debug:
-    st.write(f"Debug loc: {loc}")
+st.write(f"Debug loc: {loc}")
     if loc:
         lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
         if lat_gps and (st.session_state.get('lat') != lat_gps):
