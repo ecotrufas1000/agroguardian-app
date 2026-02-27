@@ -101,7 +101,7 @@ with st.sidebar:
     })
 """, key='get_loc_auto')
 
-st.write(f"Debug loc: {loc}")
+#st.write(f"Debug loc: {loc}")
 if loc:
     lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
     if lat_gps and (st.session_state.get('lat') != lat_gps):
