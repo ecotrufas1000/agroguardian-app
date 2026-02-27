@@ -654,11 +654,11 @@ elif menu == "❄️ Análisis de Heladas":
 
         # ... (dentro del botón de GUARDAR) ...
         for _, row in edited_h.iterrows():
-            if pd.notnull(row['fecha']): # El nombre en el editor (Python)
+            if pd.notnull(row['Fecha']): # El nombre en el editor (Python)
                 datos = {
                     "Fecha": row['fecha'].isoformat(), # Mapeo a Supabase
-                    "Intensidad": row['intensidad'],
-                    "Duracion": row['duracion']
+                    "Intensidad": row['Intensidad'],
+                    "Duracion": row['Duracion']
                 }
                 
         # --- RESUMEN DE CICLO ANUAL ---
@@ -674,7 +674,7 @@ elif menu == "❄️ Análisis de Heladas":
                 helada_mas_fuerte = df_h_anio.sort_values('intensidad').iloc[0]
                 
                 # 3. Duración Total acumulada en el año
-                horas_frio_total = df_h_anio['duracion'].sum()
+                horas_frio_total = df_h_anio['Duracion'].sum()
 
                 # Mostramos el resumen en un cuadro destacado
                 st.info(f"""
