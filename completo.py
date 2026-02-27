@@ -229,19 +229,33 @@ with st.sidebar:
         st.caption("Acepta los permisos de ubicación en el navegador.")
 
     st.divider()
+# --- EL MENÚ DE NAVEGACIÓN EN LA BARRA LATERAL ---
+with st.sidebar:
+    # 1. Agregamos el Logo (ajustá el nombre del archivo si es necesario)
+    try:
+        st.image("logo.png", use_container_width=True)
+    except:
+        st.error("⚠️ No se encontró el archivo logo.png")
+    
+    st.divider() # Una línea sutil para separar el logo del menú
 
-    # --- EL MENÚ DE NAVEGACIÓN ---
+    # 2. Definimos el radio button (tu menú original)
     menu = st.radio(
         "MENÚ DE CONTROL", 
         ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora"],
         key="menu_principal"
     )
+
+# --- LÓGICA DE DATOS (Se ejecuta siempre, fuera del sidebar) ---
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
+
+# Obtenemos el clima usando la ubicación guardada
 clima = obtener_clima_completo(LAT, LON)
+
 if clima:
     st.session_state.clima_data = clima
-# ==========================================================
+#==========================================================
 # 4. PÁGINAS (ESTRUCTURA INTEGRADA)
 # ==========================================================
 
