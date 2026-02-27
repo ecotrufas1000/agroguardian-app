@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 from supabase import create_client
 from streamlit_folium import folium_static
 import folium
@@ -720,7 +720,7 @@ if menu == "🔍 Diagnóstico IA":
 
     try:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
     except:
         st.warning("⚠️ Configura la 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
         st.stop()
