@@ -599,7 +599,7 @@ elif menu == "⛈️ Radar Granizo":
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
 elif menu == "❄️ Análisis de Heladas":
     # Título con tamaño ajustado para celulares
-    st.markdown("<h2 style='font-size: 24px;'>❄️ Heladas Agrometeorológicas</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 26px;'>❄️ Heladas Agrometeorológicas</h2>", unsafe_allow_html=True)
     
     # 1. Monitoreo en Tiempo Real
     if clima:
