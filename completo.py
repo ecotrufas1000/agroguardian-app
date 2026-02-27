@@ -660,6 +660,67 @@ elif menu == "❄️ Análisis de Heladas":
                 st.warning(f"No hay registros para el año {hoy.year}")
         else:
             st.info("A la espera de los primeros registros de heladas...")
+        # 1. Formulario de Carga (Para que el teclado del celu funcione bien)
+        with st.expander("➕ Registrar Nueva Helada", expanded=True):
+            with st.form("form_helada", clear_on_submit=True):
+                f_col1, f_col2, f_col3 = st.columns(3)
+                with f_col1:
+                    nueva_fecha = st.date_input("Fecha", value=datetime.datetime.now())
+                with f_col2:
+                    # Al ser text_input, el celular te va a mostrar el signo menos (-)
+                    nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
+                with f_col3:
+                    nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
+                
+                if st.form_submit_button("Añadir a Bitácora"):
+                    try:
+                        # Limpiamos el texto para que acepte coma o punto y lo pasamos a número
+                        val_int = float(nueva_int.replace(',', '.'))
+                        datos_nuevos = {
+                            "Fecha": nueva_fecha.isoformat(),
+                            "Intensidad": val_int,
+                            "Duracion": nueva_dur
+                        }
+                        supabase.table("registros_heladas").insert(datos_nuevos).execute()
+                        st.success("✅ ¡Registrada!")
+                        st.rerun()
+                    except ValueError:
+                        st.error("❌ Escribí la temperatura con números y el signo menos (ej: -3.5)")
+
+        st.divider()
+
+        # 2. Tabla de Consulta (Solo para ver o borrar)
+        st.markdown("<h3 style='font-size: 20px;'>📝 Registro Histórico</h3>", unsafe_allow_html=True)
+        
+        # Preparamos los datos para mostrar
+        df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
+
+        # Usamos el editor pero solo para borrar filas si hace falta
+        edited_h = st.data_editor(
+            df_display,
+            key="visor_heladas",
+            num_rows="fixed", # No dejamos agregar desde aquí para evitar el error del teclado
+            use_container_width=True,
+            column_config={
+                "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
+                "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
+                "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
+                "id": None 
+            }
+        )
+
+        # Lógica para borrar (si el usuario quita filas en el visor)
+        if st.button("🗑️ ELIMINAR REGISTROS SELECCIONADOS"):
+             # Aquí comparamos los IDs para ver si el usuario borró algo en el visor
+             ids_originales = set(df_h['id'].tolist())
+             ids_actuales = set(edited_h['id'].tolist())
+             ids_a_borrar = ids_originales - ids_actuales
+             for id_b in ids_a_borrar:
+                 supabase.table("registros_heladas").delete().eq("id", id_b).execute()
+             st.rerun()
+
+    except Exception as e:
+        st.error(f"Error general: {e}")    
         st.divider()
 
         # 4. El Editor de Datos
