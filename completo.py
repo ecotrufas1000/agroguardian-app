@@ -789,30 +789,41 @@ elif menu == "📝 Bitácora":
             else:
                 st.warning("⚠️ Completá Lote y Evento.")
 
-    st.divider()    # 2. VISUALIZACIÓN DE REGISTROS
-    # ... (debajo de tu bloque de guardado)
-st.divider()
-st.subheader("🕒 Línea de Tiempo del Lote")
+    st.divider()  
+    st.divider()
 
-try:
-    res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
-    if res.data:
-        for entry in res.data:
-            # Color dinámico según el evento
-            icon = "🚜"
-            if "❄️" in entry['tarea']: icon = "❄️"
-            if "☄️" in entry['tarea']: icon = "☄️"
+    # --- HISTORIAL DE ACTIVIDADES (Cierre del bloque) ---
+    st.subheader("📋 Historial de Actividades")
+    try:
+        # Consultamos los datos de la tabla 'bitacora'
+        res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
+        
+        if res.data and len(res.data) > 0:
+            df_bit = pd.DataFrame(res.data)
             
-            fecha_f = pd.to_datetime(entry['fecha']).strftime('%d %b, %H:%M')
+            # Limpieza de fecha para visualización
+            df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
             
-            with st.expander(f"{icon} {entry['tarea']} - {entry['lote']} ({fecha_f})"):
-                c1, c2 = st.columns([3, 1])
-                with c1:
-                    st.write(f"**Nota:** {entry['nota']}")
-                with c2:
-                    st.metric("Temp", f"{entry['clima_temp']}°C")
-                    st.caption(f"💨 {entry['clima_viento']} km/h")
-    else:
-        st.info("Aún no hay registros en el cuaderno digital.")
-except Exception as e:
-    st.error("Error al cargar la línea de tiempo.")
+            # Mostramos la tabla con configuración profesional
+            st.data_editor(
+                df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']],
+                use_container_width=True,
+                disabled=True, # Para que sea solo lectura en esta vista
+                column_config={
+                    "fecha": "Fecha/Hora",
+                    "tarea": "Evento",
+                    "lote": "Lote",
+                    "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
+                    "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f"),
+                    "nota": "Observaciones"
+                },
+                key="tabla_historial_bitacora"
+            )
+        else:
+            st.info("ℹ️ No hay registros previos en la bitácora.")
+            
+    except Exception as e:
+        st.error(f"⚠️ Error al conectar con el historial: {e}")
+
+# --- FIN DEL CÓDIGO ---
+# Aquí termina el archivo. No hace falta cerrar llaves ni nada más en Python.        
