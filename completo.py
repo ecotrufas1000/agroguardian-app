@@ -621,12 +621,14 @@ elif menu == "❄️ Análisis de Heladas":
         # Cargamos datos respetando las mayúsculas de Supabase
         if res_h.data:
             df_h = pd.DataFrame(res_h.data)
-            # Convertimos la columna 'Fecha' a formato fecha de Python
-            df_h['Fecha'] = pd.to_datetime(df_h['Fecha'])
+            # --- CURA PARA EL ERROR .DT ---
+            # 1. Convertimos a fecha (errors='coerce' transforma lo raro en NaT/Nulo)
+            df_h['Fecha'] = pd.to_datetime(df_h['Fecha'], errors='coerce')
+            # 2. Eliminamos cualquier fila que no tenga una fecha válida para que no explote abajo
+            df_h = df_h.dropna(subset=['Fecha'])
         else:
             # Si está vacía, creamos la estructura con mayúsculas
             df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
-
         # --- CÁLCULOS ESTADÍSTICOS ---
         hoy = datetime.datetime.now()
         df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
