@@ -365,21 +365,43 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # --- BOTÓN PARA PLANILLA DE DATOS (AÑADIDO) ---
+            # --- BOTÓN PARA PLANILLA DE DATOS (AÑADIDO EXCEL) ---
+            # --- BOTÓN PARA PLANILLA DE DATOS (ACTUALIZADO A EXCEL) ---
             st.subheader("📂 Base de Datos Histórica")
-            with st.expander("VER PLANILLA DE REGISTROS COMPLETOS"):
-                # Limpiamos el DataFrame para mostrarlo lindo
+            with st.expander("🔍 VER PLANILLA Y EXPORTAR"):
+                # 1. Limpiamos y preparamos los datos
                 df_display = df.copy()
-                df_display['fecha'] = df_display['fecha'].dt.strftime('%d/%m/%Y %H:%M')
+                # Quitamos la zona horaria para que Excel no tire error al exportar
+                df_display['fecha'] = df_display['fecha'].dt.tz_localize(None)
                 df_display = df_display.sort_values('fecha', ascending=False)
                 
-                # Botón de descarga CSV
-                csv = df_display.to_csv(index=False).encode('utf-8')
+                # Mostramos una vista previa rápida en la app
+                st.dataframe(df_display[['fecha', 'lote', 'mm']], use_container_width=True)
+
+                # 2. Lógica para generar el archivo Excel en memoria
+                import io
+                output = io.BytesIO()
+                
+                # Usamos XlsxWriter como motor para darle un toque pro
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df_display.to_excel(writer, index=False, sheet_name='Registros_Lluvia')
+                    
+                    # Ajuste automático de ancho de columnas (Opcional, pero queda muy pro)
+                    workbook  = writer.book
+                    worksheet = writer.sheets['Registros_Lluvia']
+                    for i, col in enumerate(df_display.columns):
+                        column_len = max(df_display[col].astype(str).map(len).max(), len(col)) + 2
+                        worksheet.set_column(i, i, column_len)
+
+                excel_data = output.getvalue()
+
+                # 3. Botón de descarga
                 st.download_button(
-                    label="📥 Descargar datos en Excel/CSV",
-                    data=csv,
-                    file_name=f'lluvias_agroguardian_{hoy.year}.csv',
-                    mime='text/csv',
+                    label="📥 DESCARGAR PLANILLA EXCEL (.xlsx)",
+                    data=excel_data,
+                    file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    help="Haz clic para descargar el archivo compatible con Microsoft Excel"
                 )
                 
             # --- SECCIÓN DE GESTIÓN Y EDICIÓN (REEMPLAZA TU st.dataframe ANTERIOR) ---
