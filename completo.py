@@ -397,24 +397,32 @@ elif menu == "🌧️ Pluviómetro":
                 # --- EL ESTILO VA AQUÍ ---
                 st.markdown("""
                     <style>
-                    /* 1. Botón en estado normal (Fondo Verde, Letra Negra) */
-                    .stDownloadButton > button {
+                    /* ESTADO NORMAL */
+                    div.stDownloadButton > button {
                         background-color: #00ffc3 !important;
-                        color: #0e1117 !important;
-                        font-weight: bold !important;
+                        color: #000000 !important;
                         border: 2px solid #00ffc3 !important;
-                        padding: 10px 20px !important;
                         border-radius: 8px !important;
+                        padding: 10px 20px !important;
+                        font-weight: bold !important;
                         width: 100% !important;
-                        transition: all 0.3s ease !important;
                     }
                     
-                    /* 2. Botón cuando pasas el mouse o haces click (Fondo Oscuro, Letra Verde) */
-                    .stDownloadButton > button:hover, .stDownloadButton > button:active, .stDownloadButton > button:focus {
+                    /* ESTADO AL PASAR EL MOUSE Y AL HACER CLIC */
+                    /* Agregamos :active y :focus para que no cambie al clickear */
+                    div.stDownloadButton > button:hover, 
+                    div.stDownloadButton > button:active,
+                    div.stDownloadButton > button:focus {
                         background-color: #0e1117 !important;
-                        color: #00ffc3 !important;
+                        color: #00ffc3 !important; /* El texto se vuelve verde */
                         border: 2px solid #00ffc3 !important;
-                        box-shadow: 0px 0px 15px rgba(0, 255, 195, 0.6) !important;
+                    }
+
+                    /* BLOQUEO DE COLOR DE TEXTO (Para evitar el blanco del sistema) */
+                    div.stDownloadButton > button p,
+                    div.stDownloadButton > button:active p,
+                    div.stDownloadButton > button:focus p {
+                        color: inherit !important; 
                     }
                     </style>
                 """, unsafe_allow_html=True)
