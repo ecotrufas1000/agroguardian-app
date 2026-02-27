@@ -688,24 +688,20 @@ elif menu == "❄️ Análisis de Heladas":
             use_container_width=True,
             column_config={
                 "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY", required=True),
-                "Intensidad": st.column_config.NumberColumn(
+                "Intensidad": st.column_config.TextColumn(
                     "Temp (°C)", 
-                    format="%.1f °C", 
-                    min_value=-20.0,  # <-- Permite hasta 20 bajo cero
-                    max_value=5.0,    # <-- Hasta 5 sobre cero (heladas astronómicas)
-                    step=0.1          # <-- Permite decimales
+                    help="Ingresá el signo menos para heladas (ej: -2.5)",
+                    validate=r"^-?\d*\.?\d*$" # Esto valida que sea un número pero permite el signo -
                 ),
                 "Duracion": st.column_config.NumberColumn(
                     "Horas", 
                     format="%.1f h", 
                     min_value=0.0, 
-                    max_value=24.0, 
                     step=0.5
                 ),
                 "id": None 
             }
         )
-
         # 5. Lógica del Botón Guardar (¡Esta es la parte que suele faltar!)
         if st.button("💾 GUARDAR CAMBIOS EN BITÁCORA"):
             try:
@@ -724,7 +720,7 @@ elif menu == "❄️ Análisis de Heladas":
                         # Armamos el paquete de datos con las MAYÚSCULAS de Supabase
                         datos = {
                             "Fecha": row['Fecha'].isoformat() if hasattr(row['Fecha'], 'isoformat') else str(row['Fecha']),
-                            "Intensidad": row['Intensidad'] if pd.notnull(row['Intensidad']) else 0,
+                            "Intensidad": float(row['Intensidad']) if row['Intensidad'] else 0.0, # <--- Agregamos float()
                             "Duracion": row['Duracion'] if pd.notnull(row['Duracion']) else 0
                         }
 
