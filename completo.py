@@ -682,7 +682,7 @@ elif menu == "❄️ Análisis de Heladas":
                 column_config={
                     "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
                     "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
-                    "Duracion": st.column_config.NumberColumn("Horas", format="%.1f"),
+                    "Duracion": None, #st.column_config.NumberColumn("Horas", format="%.1f"),
                     "id": None 
                 }
             )
