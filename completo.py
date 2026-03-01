@@ -121,7 +121,17 @@ if loc:
                 <small style='color:#00ffc3;'>📍 {localidad}</small>
             </div>
         """, unsafe_allow_html=True)
-mientras esperamos una consulta, es posibl que el productor este en un lugar y el campo en otro como hago para poner una opcion en la que pueda cargar los datos del gps a mano
+with st.expander("📍 Ingresar ubicación manualmente"):
+    lat_manual = st.number_input("Latitud", value=-34.59, format="%.4f", step=0.0001)
+    lon_manual = st.number_input("Longitud", value=-58.50, format="%.4f", step=0.0001)
+    if st.button("✅ USAR ESTA UBICACIÓN"):
+        st.session_state.lat = lat_manual
+        st.session_state.lon = lon_manual
+        try:
+            supabase.table("configuracion").insert({"latitud": lat_manual, "longitud": lon_manual}).execute()
+        except:
+            pass
+        st.rerun()
 # Aquí termina el bloque del if (lo que sigue va sin sangría)
     else:
         st.info("📡 Sincronizando satélites...")
