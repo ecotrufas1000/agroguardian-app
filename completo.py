@@ -121,6 +121,7 @@ if loc:
                 <small style='color:#00ffc3;'>📍 {localidad}</small>
             </div>
         """, unsafe_allow_html=True)
+mientras esperamos una consulta, es posibl que el productor este en un lugar y el campo en otro como hago para poner una opcion en la que pueda cargar los datos del gps a mano
 # Aquí termina el bloque del if (lo que sigue va sin sangría)
     else:
         st.info("📡 Sincronizando satélites...")
