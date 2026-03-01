@@ -721,6 +721,147 @@ elif menu == "📝 Bitácora":
 
 # Aquí termina la Bitácora
 # ==========================================================
+elif menu == "🛰️ Índices Satelitales":
+    st.header("🛰️ Índices Satelitales en Tiempo Real")
+
+    if not LAT or not LON:
+        st.warning("📍 Vinculá el GPS para centrar los mapas en tu lote.")
+        st.stop()
+
+    # Obtener token de Sentinel Hub
+    def get_sentinel_token():
+        try:
+            r = requests.post(
+                "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": st.secrets["SENTINEL_CLIENT_ID"],
+                    "client_secret": st.secrets["SENTINEL_CLIENT_SECRET"]
+                }
+            )
+            return r.json().get("access_token")
+        except Exception as e:
+            st.error(f"Error de autenticación: {e}")
+            return None
+
+    # Función para obtener imagen de Sentinel Hub
+    def get_sentinel_image(token, evalscript, lat, lon, zoom=0.05):
+        bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
+        payload = {
+            "input": {
+                "bounds": {"bbox": bbox, "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}},
+                "data": [{"type": "sentinel-2-l2a", "dataFilter": {"mosaickingOrder": "leastCC"}}]
+            },
+            "output": {"width": 512, "height": 512, "responses": [{"identifier": "default", "format": {"type": "image/png"}}]},
+            "evalscript": evalscript
+        }
+        r = requests.post(
+            "https://services.sentinel-hub.com/api/v1/process",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json=payload
+        )
+        if r.status_code == 200:
+            return r.content
+        else:
+            st.error(f"Error Sentinel: {r.status_code} - {r.text[:200]}")
+            return None
+
+    # Evalscripts
+    evalscripts = {
+        "🌿 NDVI": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let ndvi = (s.B08 - s.B04) / (s.B08 + s.B04);
+                if (ndvi < 0) return [0.5, 0.5, 0.5];
+                else if (ndvi < 0.2) return [1, 0.9, 0.1];
+                else if (ndvi < 0.4) return [0.5, 0.8, 0.1];
+                else if (ndvi < 0.6) return [0.1, 0.6, 0.1];
+                else return [0, 0.4, 0];
+            }
+        """,
+        "💧 NDWI": """
+            //VERSION=3
+            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let ndwi = (s.B03 - s.B08) / (s.B03 + s.B08);
+                if (ndwi > 0.3) return [0, 0.2, 1];
+                else if (ndwi > 0) return [0.3, 0.6, 1];
+                else if (ndwi > -0.3) return [0.9, 0.8, 0.5];
+                else return [0.6, 0.4, 0.2];
+            }
+        """,
+        "🌡️ LST": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08","B11"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let ndvi = (s.B08 - s.B04) / (s.B08 + s.B04);
+                let lst = s.B11 * 100;
+                if (lst > 0.6) return [1, 0, 0];
+                else if (lst > 0.4) return [1, 0.5, 0];
+                else if (lst > 0.2) return [1, 1, 0];
+                else return [0, 0.5, 1];
+            }
+        """,
+        "🌾 EVI": """
+            //VERSION=3
+            function setup() { return { input: ["B02","B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let evi = 2.5 * (s.B08 - s.B04) / (s.B08 + 6*s.B04 - 7.5*s.B02 + 1);
+                if (evi < 0) return [0.5, 0.5, 0.5];
+                else if (evi < 0.2) return [1, 0.9, 0.1];
+                else if (evi < 0.4) return [0.4, 0.8, 0.2];
+                else return [0, 0.5, 0];
+            }
+        """
+    }
+
+    # Selector de índice
+    indice = st.radio("Seleccionar Índice:", list(evalscripts.keys()), horizontal=True)
+
+    # Leyendas
+    leyendas = {
+        "🌿 NDVI": "🟤 Sin vegetación → 🟡 Escasa → 🟢 Moderada → 🌲 Densa",
+        "💧 NDWI": "🟤 Seco → 🟡 Humedad baja → 🔵 Húmedo → 💧 Agua",
+        "🌡️ LST": "🔵 Frío → 🟡 Templado → 🟠 Cálido → 🔴 Muy caliente",
+        "🌾 EVI": "🟤 Sin cultivo → 🟡 Escaso → 🟢 Moderado → 🌿 Vigoroso"
+    }
+    st.caption(leyendas[indice])
+
+    if st.button("🛰️ CARGAR IMAGEN SATELITAL"):
+        with st.spinner("Descargando imagen Sentinel-2..."):
+            token = get_sentinel_token()
+            if token:
+                img_data = get_sentinel_image(token, evalscripts[indice], LAT, LON)
+                if img_data:
+                    # Mostrar en mapa Folium
+                    zoom = 0.05
+                    bbox = [LON - zoom, LAT - zoom, LON + zoom, LAT + zoom]
+
+                    m = folium.Map(location=[LAT, LON], zoom_start=13,
+                                   tiles="CartoDB dark_matter")
+
+                    # Overlay de la imagen satelital
+                    import base64
+                    img_b64 = base64.b64encode(img_data).decode()
+                    folium.raster_layers.ImageOverlay(
+                        image=f"data:image/png;base64,{img_b64}",
+                        bounds=[[LAT - zoom, LON - zoom], [LAT + zoom, LON + zoom]],
+                        opacity=0.85,
+                        name=indice
+                    ).add_to(m)
+
+                    # Marcador del lote
+                    folium.Marker(
+                        [LAT, LON],
+                        popup="📍 Tu ubicación",
+                        icon=folium.Icon(color="green", icon="leaf")
+                    ).add_to(m)
+
+                    folium.LayerControl().add_to(m)
+                    folium_static(m, height=500)
+
+                    st.success("✅ Imagen Sentinel-2 cargada correctamente.")
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 import google.generativeai as genai
 from PIL import Image
