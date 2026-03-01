@@ -844,7 +844,7 @@ elif menu == "🛰️ Índices Satelitales":
             token = get_sentinel_token()
             st.write(f"Token obtenido: {token is not None}")
         
-           if token:
+            if token:
                img_data = get_sentinel_image(token, evalscripts[indice], LAT, LON)
                st.write(f"Imagen obtenida: {img_data is not None}")
                st.write(f"LAT: {LAT}, LON: {LON}")
