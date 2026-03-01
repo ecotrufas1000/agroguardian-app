@@ -840,18 +840,17 @@ elif menu == "🛰️ Índices Satelitales":
     st.caption(leyendas[indice])
 
     if st.button("🛰️ CARGAR IMAGEN SATELITAL"):
-        with st.spinner("Descargando imagen Sentinel-2..."):
-            token = get_sentinel_token()
-            if token:
-                img_data = get_sentinel_image(token, evalscripts[indice], LAT, LON)
-                if img_data:
-                    # Mostrar en mapa Folium
-                    zoom = 0.05
-                    bbox = [LON - zoom, LAT - zoom, LON + zoom, LAT + zoom]
-
-                    m = folium.Map(location=[LAT, LON], zoom_start=13,
-                                   tiles="CartoDB dark_matter")
-
+    with st.spinner("Descargando imagen Sentinel-2..."):
+        token = get_sentinel_token()
+        st.write(f"Token obtenido: {token is not None}")
+        
+        if token:
+            img_data = get_sentinel_image(token, evalscripts[indice], LAT, LON)
+            st.write(f"Imagen obtenida: {img_data is not None}")
+            st.write(f"LAT: {LAT}, LON: {LON}")
+            
+            if img_data:
+                st.write(f"Tamaño imagen: {len(img_data)} bytes")
                     # Overlay de la imagen satelital
                     import base64
                     img_b64 = base64.b64encode(img_data).decode()
