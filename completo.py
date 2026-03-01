@@ -85,7 +85,7 @@ with st.sidebar:
     # 2. El Menú de Radio (ESTE ES EL ÚNICO QUE DEBE EXISTIR)
     menu = st.radio(
         "MENÚ DE CONTROL", 
-        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora", "🔍 Diagnóstico IA"],
+        ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora", "🛰️ Índices Satelitales", "🔍 Diagnóstico IA"],
         key="menu_principal"
     )
     st.divider()
