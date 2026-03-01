@@ -117,7 +117,6 @@ if loc:
         st.markdown(f"""
             <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#000000;'>
                 <small style='color:#00ffc3;'>🛰️ SENSOR GPS ACTIVO</small><br>
-                #<code style='color:#00ffc3;'>{st.session_state.lat:.4f}, {st.session_state.lon:.4f}</code><br>
                 <span style='color:#00ffc3; font-family:monospace;'>{st.session_state.lat:.4f}, {st.session_state.lon:.4f}</span><br>
                 <small style='color:#00ffc3;'>📍 {localidad}</small>
             </div>
