@@ -753,9 +753,9 @@ elif menu == "🛰️ Índices Satelitales":
          st.write(f"Status: {r.status_code}")
          st.write(f"Respuesta: {r.json()}")
          return r.json().get("access_token")
-      except Exception as e:
-          st.error(f"Error de autenticación: {e}")
-          return None
+     except Exception as e:
+         st.error(f"Error de autenticación: {e}")
+         return None
     # Función para obtener imagen de Sentinel Hub
     def get_sentinel_image(token, evalscript, lat, lon, zoom=0.05):
         bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
