@@ -142,79 +142,83 @@ with st.sidebar:
 # ==========================================================
 # SECCIÓN GPS: Pon esto ANTES de la lógica del Menú
 # ==========================================================
+# ==========================================================
+# SECCIÓN GPS: Prioridad Selección Manual
+# ==========================================================
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 
-# 1. Obtener ubicación automática
+# 1. Inicializar variables de estado si no existen
+if 'lat' not in st.session_state:
+    st.session_state.lat = -34.59
+if 'lon' not in st.session_state:
+    st.session_state.lon = -58.50
+if 'modo_gps' not in st.session_state:
+    st.session_state.modo_gps = True  # Por defecto empieza en automático
+
+# 2. Intentar obtener ubicación automática (siempre corre de fondo)
 loc = streamlit_js_eval(js_expressions="""
 new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
         (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
         (err) => resolve({error: err.message}),
-        {enableHighAccuracy: true, timeout: 10000}
+        {enableHighAccuracy: true, timeout: 5000}
     )
 })
 """, key='get_loc_auto')
 
-# 2. Detectar si el GPS devolvió coordenadas válidas
-gps_active = False
+# 3. Detectar si hay GPS real disponible
+gps_disponible = False
 if loc and isinstance(loc, dict) and 'latitude' in loc:
-    lat_gps = loc['latitude']
-    lon_gps = loc['longitude']
-    gps_active = True
+    lat_auto, lon_auto = loc['latitude'], loc['longitude']
+    gps_disponible = True
 else:
-    lat_gps, lon_gps = None, None
+    lat_auto, lon_auto = None, None
 
-# 3. Gestionar estados manuales (evita errores de primer inicio)
-if 'lat_manual' not in st.session_state:
-    st.session_state.lat_manual = -34.59
-if 'lon_manual' not in st.session_state:
-    st.session_state.lon_manual = -58.50
-
-# 4. Definir qué coordenadas usaremos para el resto de la app
-if gps_active:
-    st.session_state.lat = lat_gps
-    st.session_state.lon = lon_gps
-    gps_text = f"{lat_gps:.4f} | {lon_gps:.4f}"
-    manual_color, gps_color = "#222", "#00ffc3"
-    m_text_color, g_text_color = "#666", "#000"
+# 4. LÓGICA DE DECISIÓN: ¿Qué coordenadas usamos?
+if st.session_state.modo_gps and gps_disponible:
+    # Si el modo GPS está activo y hay señal, mandan los satélites
+    st.session_state.lat = lat_auto
+    st.session_state.lon = lon_auto
+    gps_color, man_color = "#00ffc3", "#222" # Verde el GPS
+    g_text, m_text = "#000", "#666"
 else:
-    st.session_state.lat = st.session_state.lat_manual
-    st.session_state.lon = st.session_state.lon_manual
-    gps_text = "Sin señal GPS"
-    manual_color, gps_color = "#00ffc3", "#222"
-    m_text_color, g_text_color = "#000", "#666"
+    # Si apagamos el GPS o no hay señal, manda lo manual guardado en lat/lon
+    gps_color, man_color = "#222", "#00ffc3" # Verde lo Manual
+    g_text, m_text = "#666", "#000"
 
 # 5. RENDER VISUAL DE PASTILLAS
 st.markdown(f"""
 <div style='display:flex; gap:12px; margin-bottom:12px;'>
-    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{gps_color}; color:{g_text_color}; flex:1; text-align:center;'>
-        🛰️ GPS Automático<br>{gps_text}
+    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{gps_color}; color:{g_text}; flex:1; text-align:center;'>
+        🛰️ GPS Automático<br>{"Activo" if gps_disponible else "Buscando..."}
     </div>
-    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{manual_color}; color:{m_text_color}; flex:1; text-align:center;'>
-        📍 Ubicación Manual<br>{st.session_state.lat_manual:.4f} | {st.session_state.lon_manual:.4f}
+    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{man_color}; color:{m_text}; flex:1; text-align:center;'>
+        📍 Ubicación Manual<br>{st.session_state.lat:.4f} | {st.session_state.lon:.4f}
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# 6. EXPANDER PARA CAMBIOS
-with st.expander("⚙️ Ajustar ubicación manual"):
+# 6. EXPANDER PARA CONTROL TOTAL
+with st.expander("⚙️ Configurar Ubicación del Lote"):
     c1, c2 = st.columns(2)
-    new_lat = c1.number_input("Latitud", value=st.session_state.lat_manual, format="%.6f")
-    new_lon = c2.number_input("Longitud", value=st.session_state.lon_manual, format="%.6f")
+    new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f")
+    new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f")
     
-    if st.button("Guardar cambios manuales"):
-        st.session_state.lat_manual = new_lat
-        st.session_state.lon_manual = new_lon
+    col_btn1, col_btn2 = st.columns(2)
+    
+    if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
+        st.session_state.modo_gps = False  # Apagamos el GPS automático
+        st.session_state.lat = new_lat
+        st.session_state.lon = new_lon
+        st.success("Prioridad cambiada a Manual")
+        st.rerun()
+        
+    if col_btn2.button("🛰️ VOLVER A GPS AUTO", use_container_width=True):
+        st.session_state.modo_gps = True   # Volvemos a encender el GPS
         st.rerun()
 
 st.divider()
-
-# ==========================================================
-# LÓGICA DE MENÚ: Ahora los elif no fallarán
-# ==========================================================
-# AQUI EMPIEZA TU: if menu == "..."
-# ==========================================================
 # 5. LÓGICA DE DATOS GLOBAL
 # ==========================================================
 LAT = st.session_state.get('lat')
