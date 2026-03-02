@@ -852,27 +852,7 @@ elif menu == "🛰️ Índices Satelitales":
                if img_data:
                    st.write(f"Tamaño imagen: {len(img_data)} bytes")
                     # Overlay de la imagen satelital
-                    import base64
-                    img_b64 = base64.b64encode(img_data).decode()
-                    folium.raster_layers.ImageOverlay(
-                        image=f"data:image/png;base64,{img_b64}",
-                        bounds=[[LAT - zoom, LON - zoom], [LAT + zoom, LON + zoom]],
-                        opacity=0.85,
-                        name=indice
-                    ).add_to(m)
-
-                    # Marcador del lote
-                    folium.Marker(
-                        [LAT, LON],
-                        popup="📍 Tu ubicación",
-                        icon=folium.Icon(color="green", icon="leaf")
-                    ).add_to(m)
-
-                    folium.LayerControl().add_to(m)
-                    folium_static(m, height=500)
-
-                    st.success("✅ Imagen Sentinel-2 cargada correctamente.")
-# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+                   # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 import google.generativeai as genai
 from PIL import Image
 
