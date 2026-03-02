@@ -732,6 +732,23 @@ elif menu == "📝 Bitácora":
 
 # Aquí termina la Bitácora
 # ==========================================================
+def get_sentinel_token():
+    client_id = st.secrets["SENTINEL_CLIENT_ID"]
+    client_secret = st.secrets["SENTINEL_CLIENT_SECRET"]
+    
+    url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret
+    }
+    
+    response = requests.post(url, data=data)
+    if response.status_code == 200:
+        return response.json().get("access_token")
+    else:
+        st.error(f"Error de Autenticación Sentinel: {response.status_code}")
+        return None
 elif menu == "🛰️ Índices Satelitales":
     st.header("🛰️ Índices Satelitales en Tiempo Real")
 
@@ -861,8 +878,8 @@ elif menu == "🛰️ Índices Satelitales":
             
                if img_data:
                    st.write(f"Tamaño imagen: {len(img_data)} bytes")
-                    # Overlay de la imagen satelital
-                   # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# Overlay de la imagen satelital
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 import google.generativeai as genai
 from PIL import Image
 
