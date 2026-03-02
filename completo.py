@@ -137,67 +137,53 @@ with st.sidebar:
 # ===============================
 # UBICACIÓN: GPS AUTOMÁTICO + MANUAL
 # ===============================
-
+# ==========================================================
+# GPS automático con fallback a ubicación manual
+# ==========================================================
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 
-# Inicializar sesión
-if "lat" not in st.session_state:
-    st.session_state.lat = None
-if "lon" not in st.session_state:
-    st.session_state.lon = None
-if "manual" not in st.session_state:
-    st.session_state.manual = False  # controla si se usó ubicación manual
+# Intentamos obtener ubicación automática
+loc = streamlit_js_eval(js_expressions="""
+new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
+        (err) => resolve({error: err.message}),
+        {enableHighAccuracy: true, timeout: 10000}
+    )
+})
+""", key='get_loc_auto')
 
-# ---- 1️⃣ Ubicación Manual ----
+# Si el GPS funciona, guardamos en session_state y en DB
+if loc and 'latitude' in loc:
+    lat_gps, lon_gps = loc['latitude'], loc['longitude']
+    st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
+
+    try:
+        supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+    except:
+        pass
+
+    st.markdown(f"""
+        <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#000000;'>
+            <small style='color:#00ffc3;'>🛰️ GPS AUTOMÁTICO DETECTADO</small><br>
+            <span style='color:#00ffc3; font-family:monospace;'>{lat_gps:.4f} | {lon_gps:.4f}</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+# Si falla el GPS o el usuario quiere cambiarlo, mostramos opción manual
 with st.expander("📍 Ubicación Manual"):
-    lat_manual = st.number_input("Latitud", value=-34.59, format="%.4f")
-    lon_manual = st.number_input("Longitud", value=-58.50, format="%.4f")
+    lat_manual = st.number_input("Latitud", value=st.session_state.get('lat', -34.59), format="%.6f")
+    lon_manual = st.number_input("Longitud", value=st.session_state.get('lon', -58.50), format="%.6f")
     if st.button("✅ ACTUALIZAR UBICACIÓN"):
         st.session_state.lat = lat_manual
         st.session_state.lon = lon_manual
-        st.session_state.manual = True
-        st.success(f"Ubicación manual establecida: {lat_manual:.4f}, {lon_manual:.4f}")
+        try:
+            supabase.table("configuracion").insert({"latitud": lat_manual, "longitud": lon_manual}).execute()
+        except:
+            pass
+        st.success("Ubicación actualizada manualmente")
         st.rerun()
-
-# ---- 2️⃣ GPS Automático ----
-if not st.session_state.manual:  # solo si no hay manual
-    with st.spinner("📡 Obteniendo ubicación automática..."):
-        loc = streamlit_js_eval(js_expressions="""
-            new Promise((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
-                    (err) => resolve({error: err.message}),
-                    {enableHighAccuracy: true, timeout: 10000}
-                )
-            })
-        """, key='get_loc_auto')
-
-        if loc and 'latitude' in loc:
-            lat_gps, lon_gps = loc['latitude'], loc['longitude']
-            if lat_gps and (st.session_state.lat != lat_gps):
-                st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
-                try:
-                    supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-                except:
-                    pass
-                st.success(f"Ubicación GPS detectada: {lat_gps:.4f}, {lon_gps:.4f}")
-                st.rerun()
-        elif loc and 'error' in loc:
-            st.warning(f"GPS no disponible: {loc['error']}")
-
-# ---- 3️⃣ Mostrar ubicación ----
-if st.session_state.lat and st.session_state.lon:
-    localidad = st.session_state.get('clima_data', {}).get('localidad', '---')
-    st.markdown(f"""
-        <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#000000;'>
-            <small style='color:#00ffc3;'>🛰️ {"GPS" if not st.session_state.manual else "Manual"}</small><br>
-            <span style='color:#00ffc3; font-family:monospace;'>{st.session_state.lat:.4f} | {st.session_state.lon:.4f}</span><br>
-            <small style='color:#00ffc3;'>📍 {localidad}</small>
-        </div>
-    """, unsafe_allow_html=True)
-else:
-    st.info("Ubicación no definida todavía...")
 # ==========================================================
 # 5. LÓGICA DE DATOS GLOBAL
 # ==========================================================
