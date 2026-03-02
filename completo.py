@@ -799,48 +799,80 @@ def get_sentinel_image(token, evalscript, lat, lon, zoom=0.01):
 # ==========================================================
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES
 # ==========================================================
+# ==========================================================
+# SECCIÓN: 🛰️ ÍNDICES SATELITALES (Sustituye todo lo anterior)
+# ==========================================================
 elif menu == "🛰️ Índices Satelitales":
     st.header("🛰️ Índices Satelitales en Tiempo Real")
     st.write("Análisis de salud de cultivos mediante Sentinel-2 L2A.")
 
+    # Recuperar coordenadas del estado de sesión
     lat_map = st.session_state.get('lat')
     lon_map = st.session_state.get('lon')
 
     if not lat_map or not lon_map:
-        st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
+        st.warning("📍 Primero vincula el GPS en el inicio para centrar el lote.")
         st.stop()
 
+    # Diccionario de Evalscripts (Fórmulas para el satélite)
     evalscripts = {
-        "🌿 NDVI (Vigor)": "//VERSION=3\nfunction setup() { return { input: ['B04','B08'], output: { bands: 3 } } }\nfunction evaluatePixel(s) { let val = (s.B08 - s.B04) / (s.B08 + s.B04); if (val < 0) return [0.5, 0.5, 0.5]; else if (val < 0.2) return [0.9, 0.1, 0.1]; else if (val < 0.5) return [1, 1, 0.2]; else return [0, 0.5, 0]; }",
-        "💧 NDWI (Humedad)": "//VERSION=3\nfunction setup() { return { input: ['B03','B08'], output: { bands: 3 } } }\nfunction evaluatePixel(s) { let val = (s.B03 - s.B08) / (s.B03 + s.B08); if (val > 0.1) return [0, 0, 1]; else if (val > 0) return [0.2, 0.5, 1]; else return [0.8, 0.7, 0.5]; }",
-        "🌡️ LST (Temperatura)": "//VERSION=3\nfunction setup() { return { input: ['B04','B08','B11'], output: { bands: 3 } } }\nfunction evaluatePixel(s) { let lst = s.B11 * 100; if (lst > 0.6) return [1, 0, 0]; else if (lst > 0.4) return [1, 0.5, 0]; else return [0, 0.5, 1]; }"
+        "🌿 NDVI (Vigor)": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
+                if (val < 0) return [0.5, 0.5, 0.5]; 
+                else if (val < 0.2) return [0.9, 0.1, 0.1]; 
+                else if (val < 0.5) return [1, 1, 0.2]; 
+                else return [0, 0.5, 0];
+            }
+        """,
+        "💧 NDWI (Humedad)": """
+            //VERSION=3
+            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
+                if (val > 0.1) return [0, 0, 1];
+                else if (val > 0) return [0.2, 0.5, 1];
+                else return [0.8, 0.7, 0.5];
+            }
+        """,
+        "🌾 EVI (Biomasa)": """
+            //VERSION=3
+            function setup() { return { input: ["B02","B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = 2.5 * ((s.B08 - s.B04) / (s.B08 + 6 * s.B04 - 7.5 * s.B02 + 1));
+                return [0, val, 0];
+            }
+        """
     }
 
     col1, col2 = st.columns([2, 1])
     
     with col2:
         indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()))
-        zoom_nivel = st.slider("Área de visualización (Zoom)", 0.005, 0.05, 0.01, format="%.3f")
-        lat_display = f"{lat_map:.4f}" if isinstance(lat_map, (int, float)) else "---"
-        lon_display = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
-        st.info(f"📍 Lote centrado en:\n{lat_display}, {lon_display}")
+        zoom_nivel = st.slider("Nivel de Zoom (Área)", 0.005, 0.05, 0.01, format="%.3f")
+        
+        # Formateo seguro de coordenadas para evitar errores de tipo None
+        lat_str = f"{lat_map:.4f}" if isinstance(lat_map, (int, float)) else "---"
+        lon_str = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
+        st.info(f"Coordenadas actuales: \n{lat_str}, {lon_str}")
 
     with col1:
         if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
-            with st.spinner("Conectando con Sentinel Hub..."):
+            with st.spinner("Descargando imagen..."):
                 token = get_sentinel_token()
                 if token:
                     img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
                     if img_data:
-                        st.image(img_data, caption=f"Capa de {indice_sel} procesada", use_container_width=True)
-                        st.success("✅ ¡Imagen cargada!")
+                        st.image(img_data, caption=f"Mapa de {indice_sel}", use_container_width=True)
+                        st.success("✅ Imagen cargada correctamente.")
                     else:
-                        st.error("❌ No se recibió imagen. Revisá nubes o coordenadas.")
+                        st.error("❌ No se pudo obtener la imagen. Prueba ajustar el zoom.")
                 else:
-                    st.error("❌ Error de Token. Verificá Secrets.")
+                    st.error("❌ Error de Token. Revisa SENTINEL_CLIENT_ID en Secrets.")
 
     st.divider()
-
     # Diccionario de Evalscripts (Fórmulas para el satélite)
     evalscripts = {
         "🌿 NDVI (Vigor)": """
