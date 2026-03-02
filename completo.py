@@ -834,7 +834,7 @@ elif menu == "🛰️ Índices Satelitales":
         st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
         st.stop()
 
-    # Diccionario de Evalscripts (ÚNICO)
+    # Diccionario de Evalscripts
     evalscripts = {
         "🌿 NDVI": """
             //VERSION=3
@@ -871,106 +871,64 @@ elif menu == "🛰️ Índices Satelitales":
     
     with col2:
         indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()), key="sel_sat")
-        zoom_nivel = st.slider("Nivel de Zoom (Área)", 0.005, 0.05, 0.01, format="%.3f")
+        # Aumentamos el rango del slider para que puedas cubrir mucho más campo
+        zoom_nivel = st.slider("Tamaño del área (Grados)", 0.005, 0.100, 0.020, format="%.3f")
         
-        lat_str = f"{lat_map:.4f}" if isinstance(lat_map, (int, float)) else "---"
-        lon_str = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
-        st.info(f"📍 Lote centrado en:\n{lat_str}, {lon_str}")
-
-    elif menu == "🛰️ Índices Satelitales":
-    st.header("🛰️ Índices Satelitales en Tiempo Real")
-    st.write("Análisis de sanidad de cultivos mediante Sentinel-2 L2A.")
-
-    lat_map = st.session_state.get('lat')
-    lon_map = st.session_state.get('lon')
-
-    if not lat_map or not lon_map:
-        st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
-        st.stop()
-
-    # Diccionario de Evalscripts (ÚNICO)
-    evalscripts = {
-        "🌿 NDVI": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0) return [0.5, 0.5, 0.5]; 
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; 
-                else if (val < 0.5) return [1, 1, 0.2]; 
-                else return [0, 0.5, 0];
-            }
-        """,
-        "💧 NDWI (Humedad)": """
-            //VERSION=3
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 1];
-                else if (val > 0) return [0.2, 0.5, 1];
-                else return [0.8, 0.7, 0.5];
-            }
-        """,
-        "🌾 EVI (Biomasa)": """
-            //VERSION=3
-            function setup() { return { input: ["B02","B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = 2.5 * ((s.B08 - s.B04) / (s.B08 + 6 * s.B04 - 7.5 * s.B02 + 1));
-                return [0, val, 0];
-            }
-        """
-    }
-
-    col1, col2 = st.columns([2, 1])
-    
-    with col2:
-        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()), key="sel_sat")
-        zoom_nivel = st.slider("Nivel de Zoom (Área)", 0.005, 0.05, 0.01, format="%.3f")
-        
-        lat_str = f"{lat_map:.4f}" if isinstance(lat_map, (int, float)) else "---"
-        lon_str = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
-        st.info(f"📍 Lote centrado en:\n{lat_str}, {lon_str}")
+        st.info(f"📍 Lote centrado en:\n{lat_map:.4f}, {lon_map:.4f}")
 
     with col1:
         if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
-            with st.spinner("Conectando con Sentinel Hub..."):
+            with st.spinner("Descargando datos de Sentinel Hub..."):
                 token = get_sentinel_token()
                 if token:
-                    # 1. Definimos la URL del servicio WMS de Sentinel Hub
-                    # Reemplaza 'TU_INSTANCE_ID' por el ID de tu configuración en el Dashboard de Sentinel Hub
-                    # Si no tienes uno, usamos la URL base de la API
-                    instance_id = "CONFIGURA_TU_INSTANCE_ID_AQUI" 
-                    wms_url = f"https://services.sentinel-hub.com/ogc/wms/{instance_id}"
-
-                    # 2. Crear el mapa base
-                    m = folium.Map(
-                        location=[st.session_state.lat, st.session_state.lon],
-                        zoom_start=14,
-                        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                        attr='Google Satellite'
-                    )
-
-                    # 3. AGREGAR CAPA WMS (Esto llena todo el mapa)
-                    folium.WmsTileLayer(
-                        url=wms_url,
-                        layers="NDVI",  # El nombre de la capa configurada en tu Dashboard
-                        name="NDVI Dinámico",
-                        fmt="image/png",
-                        transparent=True,
-                        overlay=True,
-                        opacity=0.7,
-                        show=True,
-                        token=token # Pasamos el token de seguridad
-                    ).add_to(m)
-
-                    # 4. Marcador de posición
-                    folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
-
-                    # 5. Renderizado estable
-                    import streamlit.components.v1 as components
-                    components.html(m._repr_html_(), height=500)
+                    # Traemos la imagen binaria
+                    img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
                     
-                    st.success("✅ Capa completa activada. Podés navegar por todo el campo.")
+                    if img_data:
+                        import base64
+                        import folium
+                        import streamlit.components.v1 as components
+
+                        # 1. Convertir a Base64 (Evita el error de JSON/Traceback)
+                        b64_img = base64.b64encode(img_data).decode('utf-8')
+                        img_url = f'data:image/png;base64,{b64_img}'
+
+                        # 2. Definir límites del lote
+                        bounds = [
+                            [lat_map - zoom_nivel, lon_map - zoom_nivel], 
+                            [lat_map + zoom_nivel, lon_map + zoom_nivel]
+                        ]
+
+                        # 3. Crear el mapa interactivo
+                        m = folium.Map(
+                            location=[lat_map, lon_map],
+                            zoom_start=14,
+                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                            attr='Google Satellite'
+                        )
+
+                        # 4. Superponer el índice procesado
+                        folium.raster_layers.ImageOverlay(
+                            image=img_url, 
+                            bounds=bounds,
+                            opacity=0.7,
+                            interactive=True,
+                            cross_origin=True,
+                            zindex=1
+                        ).add_to(m)
+
+                        # 5. Agregar pin de ubicación
+                        folium.Marker([lat_map, lon_map], tooltip="Centro").add_to(m)
+                        m.fit_bounds(bounds)
+
+                        # 6. Renderizado seguro para móviles y Python 3.13
+                        components.html(m._repr_html_(), height=500)
+                        
+                        st.success(f"✅ Capa {indice_sel} cargada correctamente.")
+                    else:
+                        st.error("❌ No se recibió imagen. Intentá con un área de zoom más pequeña.")
+                else:
+                    st.error("❌ Error de Token. Verificá tus credenciales.")
     st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
