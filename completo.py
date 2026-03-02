@@ -20,8 +20,8 @@ def get_sentinel_token():
         cid = st.secrets.get("SENTINEL_CLIENT_ID")
         csec = st.secrets.get("SENTINEL_CLIENT_SECRET")
 
-        st.write("CID existe:", bool(cid))
-        st.write("SECRET existe:", bool(csec))
+        #st.write("CID existe:", bool(cid))
+        #st.write("SECRET existe:", bool(csec))
 
         url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
 
@@ -31,8 +31,8 @@ def get_sentinel_token():
             auth=(cid, csec)
         )
 
-        st.write("Status code:", r.status_code)
-        st.write("Server response:", r.text)
+        #st.write("Status code:", r.status_code)
+        #st.write("Server response:", r.text)
 
         if r.status_code == 200:
             return r.json()["access_token"]
