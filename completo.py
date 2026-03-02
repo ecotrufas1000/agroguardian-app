@@ -791,7 +791,10 @@ elif menu == "🛰️ Índices Satelitales":
     with col2:
         indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()))
         zoom_nivel = st.slider("Área de visualización (Zoom)", 0.005, 0.05, 0.01, format="%.3f")
-        st.info(f"📍 Lote centrado en:\n{lat_map:.4f}, {lon_map:.4f}")
+        # Versión segura para evitar el error de formateo
+        lat_display = f"{lat_map:.4f}" if isinstance(lat_map, (int, float)) else "---"
+        lon_display = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
+        st.info(f"📍 Lote centrado en:\n{lat_display}, {lon_display}")
 
     with col1:
         if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
