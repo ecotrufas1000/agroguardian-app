@@ -829,7 +829,7 @@ elif menu == "🛰️ Índices Satelitales":
 from streamlit_folium import st_folium
 from datetime import date
 
-INSTANCE_ID = "TU_INSTANCE_ID_AQUI"
+INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
 
 # Selector dinámico
 indice_sel = st.selectbox(
