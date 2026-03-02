@@ -919,24 +919,28 @@ elif menu == "🛰️ Índices Satelitales":
                             zindex=1
                         ).add_to(m)
 
+                        # ... (Todo el código anterior de límites y ImageOverlay igual) ...
+
                         # 6. Agregamos marcador y ajustamos vista
-                        folium.Marker([st.session_state.lat, st.session_state.lon], tooltip="Tu posición").add_to(m)
+                        folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
                         m.fit_bounds(limites)
 
-                        # 7. Renderizado SEGURO
-                        # Usamos use_container_width=True en lugar de width=None
-                        st_folium(
-                            m, 
-                            key="mapa_satelital",
-                            width=700, 
-                            height=500, 
-                            scrolling=False,
-                            returned_objects=[] # Esto acelera el mapa y evita errores de recarga
-                        )
+                        # 7. RENDERIZADO SEGURO (Copia esta parte exacta)
+                        from streamlit_folium import st_folium
                         
-                        st.success("✅ ¡Mapa interactivo listo!")
-                    else:
-                        st.error("❌ No se pudo obtener la imagen.")
+                        try:
+                            st_folium(
+                                m,
+                                key="mapa_final",
+                                width=700,
+                                height=500,
+                                returned_objects=[] 
+                            )
+                            st.success("✅ ¡Mapa interactivo listo!")
+                        except Exception as e:
+                            # Si st_folium falla, usamos el plan B: HTML puro
+                            st.warning("⚠️ Usando modo de compatibilidad...")
+                            st.components.v1.html(m._repr_html_(), height=500)
     st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
