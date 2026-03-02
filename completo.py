@@ -143,7 +143,7 @@ with st.sidebar:
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 
-# Intentamos obtener ubicación automática
+# Obtener ubicación automática
 loc = streamlit_js_eval(js_expressions="""
 new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
@@ -154,36 +154,71 @@ new Promise((resolve) => {
 })
 """, key='get_loc_auto')
 
-# Si el GPS funciona, guardamos en session_state y en DB
+# Variables para guardar ubicaciones
+gps_active = False
+
 if loc and 'latitude' in loc:
     lat_gps, lon_gps = loc['latitude'], loc['longitude']
-    st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
+    gps_active = True
+else:
+    lat_gps = lon_gps = None
 
-    try:
-        supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-    except:
-        pass
+# Ubicación manual en session_state (o valores default)
+lat_manual = st.session_state.get('lat_manual', -34.59)
+lon_manual = st.session_state.get('lon_manual', -58.50)
 
-    st.markdown(f"""
-        <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#000000;'>
-            <small style='color:#00ffc3;'>🛰️ GPS AUTOMÁTICO DETECTADO</small><br>
-            <span style='color:#00ffc3; font-family:monospace;'>{lat_gps:.4f} | {lon_gps:.4f}</span>
-        </div>
-    """, unsafe_allow_html=True)
+# Mostrar las "pastillas" con estilos
+st.markdown(f"""
+<div style='display:flex; gap:12px; margin-bottom:12px;'>
+    <div style='
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-weight: bold;
+        background: {"#00ffc3" if gps_active else "#222"};
+        color: {"#000" if gps_active else "#666"};
+        cursor:pointer;
+        flex:1;
+        text-align:center;
+    '>
+        🛰️ GPS Automático<br>
+        {lat_gps:.4f} | {lon_gps:.4f} 
+    </div>
 
-# Si falla el GPS o el usuario quiere cambiarlo, mostramos opción manual
-with st.expander("📍 Ubicación Manual"):
-    lat_manual = st.number_input("Latitud", value=st.session_state.get('lat', -34.59), format="%.6f")
-    lon_manual = st.number_input("Longitud", value=st.session_state.get('lon', -58.50), format="%.6f")
-    if st.button("✅ ACTUALIZAR UBICACIÓN"):
-        st.session_state.lat = lat_manual
-        st.session_state.lon = lon_manual
-        try:
-            supabase.table("configuracion").insert({"latitud": lat_manual, "longitud": lon_manual}).execute()
-        except:
-            pass
-        st.success("Ubicación actualizada manualmente")
-        st.rerun()
+    <div style='
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-weight: bold;
+        background: {"#00ffc3" if not gps_active else "#222"};
+        color: {"#000" if not gps_active else "#666"};
+        cursor:pointer;
+        flex:1;
+        text-align:center;
+    '>
+        📍 Manual<br>
+        {lat_manual:.4f} | {lon_manual:.4f}
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Si el GPS falla o si el usuario quiere cambiar, opción manual expandible
+with st.expander("Actualizar Ubicación Manual"):
+    lat_manual_input = st.number_input("Latitud manual", value=lat_manual, format="%.6f")
+    lon_manual_input = st.number_input("Longitud manual", value=lon_manual, format="%.6f")
+    if st.button("Actualizar Ubicación Manual"):
+        st.session_state.lat_manual = lat_manual_input
+        st.session_state.lon_manual = lon_manual_input
+        # Actualiza ubicación "oficial" a la manual al apretar botón
+        st.session_state.lat = lat_manual_input
+        st.session_state.lon = lon_manual_input
+        st.experimental_rerun()
+
+# Ubicación oficial para datos y mapa prioriza GPS, si no gps toma manual
+if gps_active:
+    st.session_state.lat = lat_gps
+    st.session_state.lon = lon_gps
+else:
+    st.session_state.lat = lat_manual
+    st.session_state.lon = lon_manual
 # ==========================================================
 # 5. LÓGICA DE DATOS GLOBAL
 # ==========================================================
