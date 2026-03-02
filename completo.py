@@ -1,4 +1,20 @@
 import streamlit as st
+import requests  # <--- IMPORTANTE: Subí esto aquí
+import json
+import os
+import math
+import datetime
+import pandas as pd
+import plotly.express as px
+import urllib.parse
+from supabase import create_client
+from streamlit_folium import folium_static
+import folium
+from streamlit_js_eval import streamlit_js_eval
+
+# ==========================================================
+# FUNCIONES DE APOYO (Ahora sí, debajo de los imports)
+# ==========================================================
 def get_sentinel_token():
     try:
         cid = st.secrets["SENTINEL_CLIENT_ID"]
@@ -26,19 +42,6 @@ def get_sentinel_image(token, evalscript, lat, lon, zoom=0.01):
     headers = {"Authorization": f"Bearer {token}", "Accept": "image/png"}
     r = requests.post(url, headers=headers, json=payload)
     return r.content if r.status_code == 200 else None
-from supabase import create_client
-from streamlit_folium import folium_static
-import folium
-import requests
-import json
-import os
-import math
-import datetime
-import pandas as pd
-import plotly.express as px
-from streamlit_js_eval import streamlit_js_eval
-import urllib.parse
-
 # ==========================================================
 # 1. FUNCIONES DE APOYO (Calculos y Clima)
 # ==========================================================
