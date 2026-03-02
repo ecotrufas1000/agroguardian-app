@@ -823,27 +823,34 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (shapefile sin DBF)
 # ==========================================================
+# SECCIÓN: 🛰️ ÍNDICES SATELITALES (GADM con DBF)
+# ==========================================================
 elif menu == "🛰️ Índices Satelitales":
 
     import folium
     from streamlit_folium import st_folium
     from datetime import date
     import geopandas as gpd
-    from shapely.geometry import Polygon, MultiPolygon
 
     # ---------------------------
-    # Cargar shapefile
+    # Cargar shapefile nivel 2 (partidos/localidades)
     # ---------------------------
-    shapefile_path = "shapefiles/gadm41_AG_2.shp"  # <-- tu ruta
+    shapefile_path = "shapefiles/gadm41_AGR_2.shp"  # <-- tu ruta
     gdf = gpd.read_file(shapefile_path)
 
     # ---------------------------
-    # Selector por índice de polígono
+    # Selector de provincia
     # ---------------------------
-    indices = list(range(len(gdf)))
-    idx = st.selectbox("Seleccionar localidad/partido por índice:", indices)
+    provincias = gdf['NAME_1'].sort_values().unique()
+    provincia = st.selectbox("Seleccionar provincia:", provincias)
 
-    geom = gdf.geometry.values[idx]
+    # Filtrar localidades según la provincia seleccionada
+    gdf_prov = gdf[gdf['NAME_1'] == provincia]
+    localidades = gdf_prov['NAME_2'].sort_values().unique()
+    localidad = st.selectbox("Seleccionar localidad/partido:", localidades)
+
+    # Obtener geometría y centroid para centrar el mapa
+    geom = gdf_prov[gdf_prov['NAME_2'] == localidad].geometry.values[0]
     centroid = geom.centroid
     lat_map, lon_map = centroid.y, centroid.x
 
@@ -877,23 +884,15 @@ elif menu == "🛰️ Índices Satelitales":
     ).add_to(m)
 
     # ---------------------------
-    # Dibujar polígono seleccionado
+    # Dibujar polígono de la localidad seleccionada
     # ---------------------------
-    if isinstance(geom, Polygon):
-        folium.GeoJson(geom, name=f"Polígono {idx}", style_function=lambda x: {
+    if geom.geom_type == 'Polygon' or geom.geom_type == 'MultiPolygon':
+        folium.GeoJson(geom, name=localidad, style_function=lambda x: {
             'fillColor': 'blue',
             'color': 'blue',
             'weight': 2,
             'fillOpacity': 0.2
         }).add_to(m)
-    elif isinstance(geom, MultiPolygon):
-        for poly in geom:
-            folium.GeoJson(poly, name=f"Polígono {idx}", style_function=lambda x: {
-                'fillColor': 'blue',
-                'color': 'blue',
-                'weight': 2,
-                'fillOpacity': 0.2
-            }).add_to(m)
 
     # ---------------------------
     # Agregar índice Sentinel si se seleccionó
