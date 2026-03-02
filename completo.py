@@ -921,26 +921,22 @@ elif menu == "🛰️ Índices Satelitales":
 
                         # ... (Todo el código anterior de límites y ImageOverlay igual) ...
 
+                        # ... (Todo tu código anterior de límites y ImageOverlay queda igual) ...
+
                         # 6. Agregamos marcador y ajustamos vista
                         folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
                         m.fit_bounds(limites)
 
-                        # 7. RENDERIZADO SEGURO (Copia esta parte exacta)
-                        from streamlit_folium import st_folium
+                        # 7. RENDERIZADO POR COMPONENTE HTML (A prueba de errores)
+                        import streamlit.components.v1 as components
                         
-                        try:
-                            st_folium(
-                                m,
-                                key="mapa_final",
-                                width=700,
-                                height=500,
-                                returned_objects=[] 
-                            )
-                            st.success("✅ ¡Mapa interactivo listo!")
-                        except Exception as e:
-                            # Si st_folium falla, usamos el plan B: HTML puro
-                            st.warning("⚠️ Usando modo de compatibilidad...")
-                            st.components.v1.html(m._repr_html_(), height=500)
+                        # Convertimos el mapa de Folium a HTML puro
+                        mapa_html = m._repr_html_()
+                        
+                        # Lo mostramos como un componente de Streamlit
+                        components.html(mapa_html, height=500, scrolling=False)
+                        
+                        st.success("✅ Mapa cargado en modo de alta compatibilidad.")
     st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
