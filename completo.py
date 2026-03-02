@@ -825,34 +825,67 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
 
+    import streamlit as st
+    import geopandas as gpd
     import folium
     from streamlit_folium import st_folium
     from datetime import date
 
     st.header("🛰️ Índices Satelitales en Tiempo Real")
 
-    # Obtener coordenadas del GPS
-    lat_map = st.session_state.get("lat")
-    lon_map = st.session_state.get("lon")
+    # --------------------------------------------------
+    # 1️⃣ Cargar shapefile GADM (Level 2 - Partidos)
+    # --------------------------------------------------
+    @st.cache_data
+    def load_gadm():
+        return gpd.read_file("gadm41_ARG_2.shp")
 
-    if lat_map is None or lon_map is None:
-        st.warning("📍 Vinculá el GPS en la pestaña Inicio.")
-        st.stop()
+    gdf = load_gadm()
 
-    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
+    # --------------------------------------------------
+    # 2️⃣ Selectores Provincia + Partido
+    # --------------------------------------------------
+    prov_sel = st.selectbox(
+        "Provincia",
+        sorted(gdf["NAME_1"].unique())
+    )
 
-    # Selector
+    gdf_prov = gdf[gdf["NAME_1"] == prov_sel]
+
+    part_sel = st.selectbox(
+        "Partido / Departamento",
+        sorted(gdf_prov["NAME_2"].unique())
+    )
+
+    gdf_part = gdf_prov[gdf_prov["NAME_2"] == part_sel]
+
+    # --------------------------------------------------
+    # 3️⃣ Calcular centroide automático
+    # --------------------------------------------------
+    centroid = gdf_part.geometry.centroid.iloc[0]
+    lat_map = centroid.y
+    lon_map = centroid.x
+
+    # --------------------------------------------------
+    # 4️⃣ Selector de índice
+    # --------------------------------------------------
     indice_sel = st.selectbox(
         "Índice:",
         ["NDVI", "NDWI", "EVI"]
     )
 
+    # Fecha dinámica amplia
     hoy = date.today().strftime("%Y-%m-%d")
 
-    # Crear mapa
+    # ⚠️ Reemplazá con tu Instance ID real
+    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
+
+    # --------------------------------------------------
+    # 5️⃣ Crear mapa
+    # --------------------------------------------------
     m = folium.Map(
         location=[lat_map, lon_map],
-        zoom_start=14,
+        zoom_start=9,
         tiles=None
     )
 
@@ -863,7 +896,9 @@ elif menu == "🛰️ Índices Satelitales":
         name="Google Satellite"
     ).add_to(m)
 
-    # Capa WMTS Sentinel
+    # --------------------------------------------------
+    # 6️⃣ Capa Sentinel WMTS dinámica
+    # --------------------------------------------------
     folium.raster_layers.TileLayer(
         tiles=(
             f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
@@ -880,9 +915,25 @@ elif menu == "🛰️ Índices Satelitales":
         control=True
     ).add_to(m)
 
+    # --------------------------------------------------
+    # 7️⃣ Dibujar límite del partido
+    # --------------------------------------------------
+    folium.GeoJson(
+        gdf_part.__geo_interface__,
+        name="Límite seleccionado",
+        style_function=lambda x: {
+            "fillColor": "transparent",
+            "color": "yellow",
+            "weight": 2
+        }
+    ).add_to(m)
+
     folium.LayerControl().add_to(m)
 
-    st_folium(m, height=600)
+    # --------------------------------------------------
+    # 8️⃣ Renderizar mapa
+    # --------------------------------------------------
+    st_folium(m, height=650)
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
