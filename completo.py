@@ -882,23 +882,22 @@ elif menu == "🛰️ Índices Satelitales":
             with st.spinner("Conectando con Sentinel Hub..."):
                 token = get_sentinel_token()
                 if token:
-                    img_data = get_sentinel_image(token, evalscripts[indice_sel], st.session_state.lat, st.session_state.lon, zoom_nivel)
+                    # 1. Descargamos los datos binarios del satélite
+                    datos_binarios = get_sentinel_image(token, evalscripts[indice_sel], st.session_state.lat, st.session_state.lon, zoom_nivel)
                     
-                    if img_data:
+                    if datos_binarios:
                         import base64
-                        # --- CORRECCIÓN CRÍTICA PARA QUE NO DÉ ERROR ---
-                        encoded = base64.b64encode(img_data).decode('utf-8')
-                        img_url = f'data:image/png;base64,{encoded}'
-                        # -----------------------------------------------
+                        # --- PASO CLAVE: Convertimos binario a texto Base64 ---
+                        b64_img = base64.b64encode(datos_binarios).decode('utf-8')
+                        url_final = f'data:image/png;base64,{b64_img}'
+                        # ----------------------------------------------------
 
-                        # 1. Definir los límites del mapa
                         offset = zoom_nivel 
-                        bounds = [
+                        limites = [
                             [st.session_state.lat - offset, st.session_state.lon - offset], 
                             [st.session_state.lat + offset, st.session_state.lon + offset]
                         ]
 
-                        # 2. Crear el mapa interactivo de Folium
                         m = folium.Map(
                             location=[st.session_state.lat, st.session_state.lon],
                             zoom_start=14,
@@ -907,29 +906,26 @@ elif menu == "🛰️ Índices Satelitales":
                             attr='Google Satellite'
                         )
 
-                        # 3. Superponer la imagen corregida
+                        # AQUÍ ESTABA EL ERROR: Usamos url_final, NO datos_binarios
                         folium.raster_layers.ImageOverlay(
-                            image=img_url, # <--- Usamos la versión convertida
-                            bounds=bounds,
-                            opacity=0.8,
+                            image=url_final, 
+                            bounds=limites,
+                            opacity=0.7,
                             interactive=True,
                             cross_origin=True,
                             zindex=1
                         ).add_to(m)
 
-                        # 4. Ajustar la vista automáticamente
-                        m.fit_bounds(bounds)
-                        
-                        # Marcador para no perder el centro
+                        m.fit_bounds(limites)
                         folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
 
-                        # 5. Mostrar el mapa en Streamlit
                         from streamlit_folium import st_folium
                         st_folium(m, width=None, height=500, scrolling=False)
                         
-                        st.success("✅ Mapa interactivo listo. Podés navegar con los dedos.")
+                        st.success("✅ ¡Mapa interactivo listo!")
                     else:
-                        st.error("❌ No se pudo obtener la imagen.")    st.divider()
+                        st.error("❌ No se pudo obtener la imagen.")
+    st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
