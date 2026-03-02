@@ -826,66 +826,55 @@ elif menu == "📝 Bitácora":
 elif menu == "🛰️ Índices Satelitales":
 
     import folium
-    from streamlit_folium import st_folium
+from streamlit_folium import st_folium
+from datetime import date
 
-    st.header("🛰️ Índices Satelitales Dinámicos")
-    st.write("Monitoreo agrícola en tiempo real - Sentinel-2 L2A")
+INSTANCE_ID = "TU_INSTANCE_ID_AQUI"
 
-    lat_map = st.session_state.get('lat')
-    lon_map = st.session_state.get('lon')
+# Selector dinámico
+indice_sel = st.selectbox(
+    "Índice:",
+    ["NDVI", "NDWI", "EVI"],
+    key="indice_wmts"
+)
 
-    if not lat_map or not lon_map:
-        st.warning("📍 Vinculá el GPS en la pestaña Inicio.")
-        st.stop()
+# Fecha dinámica
+hoy = date.today().strftime("%Y-%m-%d")
 
-    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
+# Crear mapa
+m = folium.Map(
+    location=[lat_map, lon_map],
+    zoom_start=14,
+    tiles=None
+)
 
-    # Selector de índice
-    indice_sel = st.selectbox(
-        "Seleccionar índice:",
-        ["NDVI", "NDWI", "EVI"],
-        key="indice_wmts"
-    )
+# Base Google Satellite
+folium.TileLayer(
+    tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+    attr="Google Satellite",
+    name="Google Satellite"
+).add_to(m)
 
-    # Crear mapa base
-    m = folium.Map(
-        location=[lat_map, lon_map],
-        zoom_start=14,
-        tiles=None
-    )
-
-    # Google Satellite base
-    folium.TileLayer(
-        tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-        attr="Google Satellite",
-        name="Google Satellite"
-    ).add_to(m)
-
-    # WMTS dinámico Sentinel Hub
-    wmts_url = (
+# Capa Sentinel WMTS dinámica
+folium.raster_layers.TileLayer(
+    tiles=(
         f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
-        f"?SERVICE=WMTS"
-        f"&REQUEST=GetTile"
-        f"&VERSION=1.0.0"
+        f"?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
         f"&LAYER={indice_sel}"
         f"&TILEMATRIXSET=PopularWebMercator256"
-        f"&TILEMATRIX={{z}}"
-        f"&TILEROW={{y}}"
-        f"&TILECOL={{x}}"
+        f"&TILEMATRIX={{z}}&TILEROW={{y}}&TILECOL={{x}}"
         f"&FORMAT=image/png"
-    )
+        f"&TIME=2024-01-01/{hoy}"
+    ),
+    attr="Sentinel Hub",
+    name=indice_sel,
+    overlay=True,
+    control=True
+).add_to(m)
 
-    folium.raster_layers.TileLayer(
-        tiles=wmts_url,
-        attr="Sentinel Hub",
-        name=indice_sel,
-        overlay=True,
-        control=True
-    ).add_to(m)
+folium.LayerControl().add_to(m)
 
-    folium.LayerControl().add_to(m)
-
-    st_folium(m, height=600)
+st_folium(m, height=600)
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
