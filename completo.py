@@ -1,4 +1,4 @@
-mport streamlit as st
+import streamlit as st
 import requests  # <--- IMPORTANTE: Subí esto aquí
 import json
 import os
