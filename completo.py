@@ -796,7 +796,7 @@ elif menu == "🛰️ Índices Satelitales":
 
     # Diccionario de Evalscripts (ÚNICO)
     evalscripts = {
-        "🌿 NDVI (Vigor)": """
+        "🌿 NDVI": """
             //VERSION=3
             function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
