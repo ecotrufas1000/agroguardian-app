@@ -740,22 +740,31 @@ elif menu == "🛰️ Índices Satelitales":
         st.stop()
 
     # Obtener token de Sentinel Hub
-    def get_sentinel_token():
-        try:
-            r = requests.post(
-                "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",
-                data={
-                    "grant_type": "client_credentials",
-                    "client_id": st.secrets["SENTINEL_CLIENT_ID"],
-                    "client_secret": st.secrets["SENTINEL_CLIENT_SECRET"]
-                }
-            )
-            st.write(f"Status: {r.status_code}")
-            st.write(f"Respuesta: {r.json()}")
-            return r.json().get("access_token")
-        except Exception as e:
-            st.error(f"Error de autenticación: {e}")
-            return None
+    def get_sentinel_image(token, evalscript, lat, lon, zoom=0.05):
+        bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
+        payload = {
+            "input": {
+                "bounds": {"bbox": bbox, "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}},
+                "data": [{"type": "sentinel-2-l2a", "dataFilter": {"mosaickingOrder": "leastCC"}}]
+        },
+        "output": {"width": 512, "height": 512, "responses": [{"identifier": "default", "format": {"type": "image/png"}}]},
+        "evalscript": evalscript
+    }
+    r = requests.post(
+        "https://sh.dataspace.copernicus.eu/api/v1/process",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "image/png"
+        },
+        json=payload
+    )
+    st.write(f"Status imagen: {r.status_code}")
+    if r.status_code == 200:
+        return r.content
+    else:
+        st.error(f"Error Sentinel: {r.status_code} - {r.text[:300]}")
+        return None
     # Función para obtener imagen de Sentinel Hub
     def get_sentinel_image(token, evalscript, lat, lon, zoom=0.05):
         bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
