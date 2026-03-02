@@ -1,4 +1,4 @@
-import streamlit as st
+mport streamlit as st
 import requests  # <--- IMPORTANTE: Subí esto aquí
 import json
 import os
@@ -257,13 +257,7 @@ clima = obtener_clima_completo(LAT, LON)
 
 if clima:
     st.session_state.clima_data = clima
-# --- DESDE AQUÍ EMPIEZAN TUS IF MENU ---
-# if menu == "📊 Monitoreo Total":
-# ...
-# --- A PARTIR DE AQUÍ SIGUEN TUS "IF MENU == ..." ---
-#==========================================================
-# 4. PÁGINAS (ESTRUCTURA INTEGRADA)
-# ==========================================================
+
 
 if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control")
