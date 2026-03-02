@@ -785,7 +785,7 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
     st.header("🛰️ Índices Satelitales en Tiempo Real")
-    st.write("Análisis de salud de cultivos mediante Sentinel-2 L2A.")
+    st.write("Análisis de sanidad de cultivos mediante Sentinel-2 L2A.")
 
     lat_map = st.session_state.get('lat')
     lon_map = st.session_state.get('lon')
