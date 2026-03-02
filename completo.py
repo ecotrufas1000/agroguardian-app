@@ -16,26 +16,27 @@ from streamlit_js_eval import streamlit_js_eval
 # FUNCIONES DE APOYO (Ahora sí, debajo de los imports)
 # ==========================================================
 def get_sentinel_token():
-    try:
-        cid = st.secrets["SENTINEL_CLIENT_ID"]
-        csec = st.secrets["SENTINEL_CLIENT_SECRET"]
+    cid = st.secrets.get("SENTINEL_CLIENT_ID")
+    csec = st.secrets.get("SENTINEL_CLIENT_SECRET")
 
-        url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
+    st.write("CID existe:", bool(cid))
+    st.write("SECRET existe:", bool(csec))
 
-        r = requests.post(
-            url,
-            data={"grant_type": "client_credentials"},
-            auth=(cid, csec)  # ← Cambio importante
-        )
+    url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
 
-        st.write("Status:", r.status_code)
-        st.write("Response:", r.text)
+    r = requests.post(
+        url,
+        data={"grant_type": "client_credentials"},
+        auth=(cid, csec)
+    )
 
-        if r.status_code == 200:
-            return r.json()["access_token"]
+    st.write("Status code:", r.status_code)
+    st.write("Server response:", r.text)
 
-        return None
+    if r.status_code == 200:
+        return r.json()["access_token"]
 
+    return None
     except Exception as e:
         st.error(f"Error interno: {e}")
         return None
