@@ -824,160 +824,68 @@ elif menu == "📝 Bitácora":
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (Sustituye todo lo anterior)
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
-    st.header("🛰️ Índices Satelitales en Tiempo Real")
-    st.write("Análisis de sanidad de cultivos mediante Sentinel-2 L2A.")
+
+    import folium
+    from streamlit_folium import st_folium
+
+    st.header("🛰️ Índices Satelitales Dinámicos")
+    st.write("Monitoreo agrícola en tiempo real - Sentinel-2 L2A")
 
     lat_map = st.session_state.get('lat')
     lon_map = st.session_state.get('lon')
 
     if not lat_map or not lon_map:
-        st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
+        st.warning("📍 Vinculá el GPS en la pestaña Inicio.")
         st.stop()
 
-    # Diccionario de Evalscripts
-    evalscripts = {
-        "🌿 NDVI": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0) return [0.5, 0.5, 0.5]; 
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; 
-                else if (val < 0.5) return [1, 1, 0.2]; 
-                else return [0, 0.5, 0];
-            }
-        """,
-        "💧 NDWI (Humedad)": """
-            //VERSION=3
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 1];
-                else if (val > 0) return [0.2, 0.5, 1];
-                else return [0.8, 0.7, 0.5];
-            }
-        """,
-        "🌾 EVI (Biomasa)": """
-            //VERSION=3
-            function setup() { return { input: ["B02","B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = 2.5 * ((s.B08 - s.B04) / (s.B08 + 6 * s.B04 - 7.5 * s.B02 + 1));
-                return [0, val, 0];
-            }
-        """
-    }
+    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
 
-    col1, col2 = st.columns([2, 1])
-    
-    with col2:
-        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()), key="sel_sat")
-        # Aumentamos el rango del slider para que puedas cubrir mucho más campo
-        zoom_nivel = st.slider("Tamaño del área (Grados)", 0.005, 0.100, 0.020, format="%.3f")
-        
-        st.info(f"📍 Lote centrado en:\n{lat_map:.4f}, {lon_map:.4f}")
+    # Selector de índice
+    indice_sel = st.selectbox(
+        "Seleccionar índice:",
+        ["NDVI", "NDWI", "EVI"],
+        key="indice_wmts"
+    )
 
-    with col1:
-        if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
-            with st.spinner("Procesando lote completo..."):
-                token = get_sentinel_token()
-                if token:
-                    # FORZAMOS un área más grande para que no sea un cuadradito
-                    # Multiplicamos el zoom_nivel para que la imagen sea extensa
-                    area_grande = zoom_nivel * 3 
-                    
-                    import folium
-from streamlit_folium import st_folium
+    # Crear mapa base
+    m = folium.Map(
+        location=[lat_map, lon_map],
+        zoom_start=14,
+        tiles=None
+    )
 
-INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
+    # Google Satellite base
+    folium.TileLayer(
+        tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+        attr="Google Satellite",
+        name="Google Satellite"
+    ).add_to(m)
 
-# Selector dinámico
-indice_sel = st.selectbox(
-    "Índice:",
-    ["NDVI", "NDWI", "EVI"],
-    key="indice_wmts"
-)
+    # WMTS dinámico Sentinel Hub
+    wmts_url = (
+        f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
+        f"?SERVICE=WMTS"
+        f"&REQUEST=GetTile"
+        f"&VERSION=1.0.0"
+        f"&LAYER={indice_sel}"
+        f"&TILEMATRIXSET=PopularWebMercator256"
+        f"&TILEMATRIX={{z}}"
+        f"&TILEROW={{y}}"
+        f"&TILECOL={{x}}"
+        f"&FORMAT=image/png"
+    )
 
-# Crear mapa base
-m = folium.Map(
-    location=[lat_map, lon_map],
-    zoom_start=14,
-    tiles=None
-)
+    folium.raster_layers.TileLayer(
+        tiles=wmts_url,
+        attr="Sentinel Hub",
+        name=indice_sel,
+        overlay=True,
+        control=True
+    ).add_to(m)
 
-# Google Satellite base
-folium.TileLayer(
-    tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-    attr="Google Satellite",
-    name="Google Satellite"
-).add_to(m)
+    folium.LayerControl().add_to(m)
 
-# Capa dinámica Sentinel WMTS
-folium.raster_layers.TileLayer(
-    tiles=f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
-          f"?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
-          f"&LAYER={indice_sel}"
-          f"&TILEMATRIXSET=PopularWebMercator256"
-          f"&TILEMATRIX={{z}}&TILEROW={{y}}&TILECOL={{x}}"
-          f"&FORMAT=image/png",
-    attr="Sentinel Hub",
-    name=indice_sel,
-    overlay=True,
-    control=True
-).add_to(m)
-
-folium.LayerControl().add_to(m)
-
-st_folium(m, height=600)
-                        # 1. Preparar imagen
-                        b64_img = base64.b64encode(img_data).decode('utf-8')
-                        img_url = f'data:image/png;base64,{b64_img}'
-
-                        # 2. Definir límites (usando el área expandida)
-                        bounds = [
-                            [lat_map - area_grande, lon_map - area_grande], 
-                            [lat_map + area_grande, lon_map + area_grande]
-                        ]
-
-                        # 3. Crear Mapa con controles de pantalla completa
-                        m = folium.Map(
-                            location=[lat_map, lon_map],
-                            zoom_start=15,
-                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                            attr='Google Satellite',
-                            zoom_control=True
-                        )
-
-                        # 4. Superponer la capa (con menos opacidad para que se vea natural)
-                        folium.raster_layers.ImageOverlay(
-                            image=img_url, 
-                            bounds=bounds,
-                            opacity=0.6,
-                            interactive=True,
-                            cross_origin=True,
-                            zindex=1
-                        ).add_to(m)
-
-                        # 5. Agregar un marcador discreto
-                        folium.CircleMarker(
-                            [lat_map, lon_map],
-                            radius=5,
-                            color="white",
-                            fill=True,
-                            fill_color="blue"
-                        ).add_to(m)
-
-                        # Ajustar el zoom automáticamente al área descargada
-                        m.fit_bounds(bounds)
-
-                        # 6. Renderizar con ANCHO COMPLETO
-                        # Usamos width="100%" para que no quede el hueco gris a los costados
-                        mapa_html = m._repr_html_()
-                        components.html(mapa_html, height=600)
-                        
-                        st.caption("💡 Tip: Podés pellizcar el mapa para navegar. El NDVI cubre el área procesada.")
-                    else:
-                        st.error("❌ Error al traer la imagen.")
-        st.divider()
+    st_folium(m, height=600)
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
