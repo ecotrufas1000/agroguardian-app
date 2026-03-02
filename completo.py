@@ -877,6 +877,60 @@ elif menu == "🛰️ Índices Satelitales":
         lon_str = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
         st.info(f"📍 Lote centrado en:\n{lat_str}, {lon_str}")
 
+    elif menu == "🛰️ Índices Satelitales":
+    st.header("🛰️ Índices Satelitales en Tiempo Real")
+    st.write("Análisis de sanidad de cultivos mediante Sentinel-2 L2A.")
+
+    lat_map = st.session_state.get('lat')
+    lon_map = st.session_state.get('lon')
+
+    if not lat_map or not lon_map:
+        st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
+        st.stop()
+
+    # Diccionario de Evalscripts (ÚNICO)
+    evalscripts = {
+        "🌿 NDVI": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
+                if (val < 0) return [0.5, 0.5, 0.5]; 
+                else if (val < 0.2) return [0.9, 0.1, 0.1]; 
+                else if (val < 0.5) return [1, 1, 0.2]; 
+                else return [0, 0.5, 0];
+            }
+        """,
+        "💧 NDWI (Humedad)": """
+            //VERSION=3
+            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
+                if (val > 0.1) return [0, 0, 1];
+                else if (val > 0) return [0.2, 0.5, 1];
+                else return [0.8, 0.7, 0.5];
+            }
+        """,
+        "🌾 EVI (Biomasa)": """
+            //VERSION=3
+            function setup() { return { input: ["B02","B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = 2.5 * ((s.B08 - s.B04) / (s.B08 + 6 * s.B04 - 7.5 * s.B02 + 1));
+                return [0, val, 0];
+            }
+        """
+    }
+
+    col1, col2 = st.columns([2, 1])
+    
+    with col2:
+        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()), key="sel_sat")
+        zoom_nivel = st.slider("Nivel de Zoom (Área)", 0.005, 0.05, 0.01, format="%.3f")
+        
+        lat_str = f"{lat_map:.4f}" if isinstance(lat_map, (int, float)) else "---"
+        lon_str = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
+        st.info(f"📍 Lote centrado en:\n{lat_str}, {lon_str}")
+
     with col1:
         if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
             with st.spinner("Conectando con Sentinel Hub..."):
