@@ -16,31 +16,32 @@ from streamlit_js_eval import streamlit_js_eval
 # FUNCIONES DE APOYO (Ahora sí, debajo de los imports)
 # ==========================================================
 def get_sentinel_token():
-    cid = st.secrets.get("SENTINEL_CLIENT_ID")
-    csec = st.secrets.get("SENTINEL_CLIENT_SECRET")
+    try:
+        cid = st.secrets.get("SENTINEL_CLIENT_ID")
+        csec = st.secrets.get("SENTINEL_CLIENT_SECRET")
 
-    st.write("CID existe:", bool(cid))
-    st.write("SECRET existe:", bool(csec))
+        st.write("CID existe:", bool(cid))
+        st.write("SECRET existe:", bool(csec))
 
-    url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
+        url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
 
-    r = requests.post(
-        url,
-        data={"grant_type": "client_credentials"},
-        auth=(cid, csec)
-    )
+        r = requests.post(
+            url,
+            data={"grant_type": "client_credentials"},
+            auth=(cid, csec)
+        )
 
-    st.write("Status code:", r.status_code)
-    st.write("Server response:", r.text)
+        st.write("Status code:", r.status_code)
+        st.write("Server response:", r.text)
 
-    if r.status_code == 200:
-        return r.json()["access_token"]
+        if r.status_code == 200:
+            return r.json()["access_token"]
+        else:
+            return None
 
-    return None
     except Exception as e:
         st.error(f"Error interno: {e}")
         return None
-
 def get_sentinel_image(token, evalscript, lat, lon, zoom=0.01):
     url = "https://services.sentinel-hub.com/api/v1/process"
     bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
