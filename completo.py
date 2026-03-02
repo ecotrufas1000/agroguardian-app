@@ -821,37 +821,31 @@ elif menu == "📝 Bitácora":
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES
 # ==========================================================
 # ==========================================================
-# SECCIÓN: 🛰️ ÍNDICES SATELITALES (con provincia y partido)
+# SECCIÓN: 🛰️ ÍNDICES SATELITALES (shapefile sin DBF)
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
 
     import folium
     from streamlit_folium import st_folium
     from datetime import date
+    import geopandas as gpd
+    from shapely.geometry import Polygon, MultiPolygon
 
     # ---------------------------
-    # Diccionarios de ejemplo
+    # Cargar shapefile
     # ---------------------------
-    coordenadas = {
-        "Buenos Aires": {"La Plata": [-34.9214, -57.9544], "Avellaneda": [-34.6667, -58.3667], "Morón": [-34.6519, -58.6193]},
-        "Córdoba": {"Córdoba Capital": [-31.4201, -64.1888], "Río Cuarto": [-33.1283, -64.3495], "Villa María": [-32.4093, -63.2406]},
-        "Santa Fe": {"Rosario": [-32.9442, -60.6505], "Santa Fe": [-31.6333, -60.7000], "Rafaela": [-31.2606, -61.4994]}
-    }
+    shapefile_path = "shapefiles/gadm41_AG_2.shp"  # <-- tu ruta
+    gdf = gpd.read_file(shapefile_path)
 
     # ---------------------------
-    # Selectores de ubicación
+    # Selector por índice de polígono
     # ---------------------------
-    provincia = st.selectbox(
-        "Seleccionar provincia:",
-        list(coordenadas.keys())
-    )
+    indices = list(range(len(gdf)))
+    idx = st.selectbox("Seleccionar localidad/partido por índice:", indices)
 
-    partido = st.selectbox(
-        "Seleccionar partido:",
-        list(coordenadas[provincia].keys())
-    )
-
-    lat_map, lon_map = coordenadas[provincia][partido]
+    geom = gdf.geometry.values[idx]
+    centroid = geom.centroid
+    lat_map, lon_map = centroid.y, centroid.x
 
     # ---------------------------
     # Selector de capa satelital
@@ -869,7 +863,7 @@ elif menu == "🛰️ Índices Satelitales":
     # ---------------------------
     m = folium.Map(
         location=[lat_map, lon_map],
-        zoom_start=14,
+        zoom_start=12,
         tiles=None,
         control_scale=True
     )
@@ -881,6 +875,25 @@ elif menu == "🛰️ Índices Satelitales":
         name="Satelital",
         overlay=False
     ).add_to(m)
+
+    # ---------------------------
+    # Dibujar polígono seleccionado
+    # ---------------------------
+    if isinstance(geom, Polygon):
+        folium.GeoJson(geom, name=f"Polígono {idx}", style_function=lambda x: {
+            'fillColor': 'blue',
+            'color': 'blue',
+            'weight': 2,
+            'fillOpacity': 0.2
+        }).add_to(m)
+    elif isinstance(geom, MultiPolygon):
+        for poly in geom:
+            folium.GeoJson(poly, name=f"Polígono {idx}", style_function=lambda x: {
+                'fillColor': 'blue',
+                'color': 'blue',
+                'weight': 2,
+                'fillOpacity': 0.2
+            }).add_to(m)
 
     # ---------------------------
     # Agregar índice Sentinel si se seleccionó
