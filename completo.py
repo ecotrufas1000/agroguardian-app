@@ -885,7 +885,7 @@ elif menu == "🛰️ Índices Satelitales":
     # --------------------------------------------------
     m = folium.Map(
         location=[lat_map, lon_map],
-        zoom_start=9,
+        zoom_start=12,
         tiles=None
     )
 
@@ -893,7 +893,7 @@ elif menu == "🛰️ Índices Satelitales":
     folium.TileLayer(
         tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
         attr="Google Satellite",
-        name="Google Satellite"
+        name="VGoogle Satellite"
     ).add_to(m)
 
     # --------------------------------------------------
