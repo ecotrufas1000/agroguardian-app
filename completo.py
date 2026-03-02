@@ -121,6 +121,7 @@ with st.sidebar:
     st.divider()
 
     # 3. GPS automático
+    # 3. GPS automático
     loc = streamlit_js_eval(js_expressions="""
     new Promise((resolve) => {
         navigator.geolocation.getCurrentPosition(
@@ -129,42 +130,36 @@ with st.sidebar:
             {enableHighAccuracy: true, timeout: 10000}
         )
     })
-""", key='get_loc_auto')
+    """, key='get_loc_auto')
 
-#st.write(f"Debug loc: {loc}")
-if loc:
-    lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
-    if lat_gps and (st.session_state.get('lat') != lat_gps):
-        st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
-        try: supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
-        except: pass
-        st.rerun()
+    if loc and 'latitude' in loc:
+        lat_gps, lon_gps = loc.get('latitude'), loc.get('longitude')
+        if lat_gps and (st.session_state.get('lat') != lat_gps):
+            st.session_state.lat, st.session_state.lon = lat_gps, lon_gps
+            try: supabase.table("configuracion").insert({"latitud": lat_gps, "longitud": lon_gps}).execute()
+            except: pass
+            st.rerun()
 
-    # Cartel de GPS
-    # Cartel de GPS
-    if st.session_state.get('lat'):
-        localidad = st.session_state.get('clima_data', {}).get('localidad', '---')
-        st.markdown(f"""
-            <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#000000;'>
-                <small style='color:#00ffc3;'>🛰️ SENSOR GPS ACTIVO</small><br>
-                <span style='color:#00ffc3; font-family:monospace;'>{st.session_state.lat:.2f} | {st.session_state.lon:.2f}</span><br>
-                <small style='color:#00ffc3;'>📍 {localidad}</small>
-            </div>
-        """, unsafe_allow_html=True)
-with st.expander("📍 Ingresar ubicación manualmente"):
-    lat_manual = st.number_input("Latitud", value=-34.59, format="%.4f", step=0.0001)
-    lon_manual = st.number_input("Longitud", value=-58.50, format="%.4f", step=0.0001)
-    if st.button("✅ USAR ESTA UBICACIÓN"):
-        st.session_state.lat = lat_manual
-        st.session_state.lon = lon_manual
-        try:
-            supabase.table("configuracion").insert({"latitud": lat_manual, "longitud": lon_manual}).execute()
-        except:
-            pass
-        st.rerun()
-# Aquí termina el bloque del if (lo que sigue va sin sangría)
+        # Cartel de GPS
+        if st.session_state.get('lat'):
+            localidad = st.session_state.get('clima_data', {}).get('localidad', '---')
+            st.markdown(f"""
+                <div style='border: 1px solid #00ffc3; padding:10px; border-radius:5px; background:#000000;'>
+                    <small style='color:#00ffc3;'>🛰️ SENSOR GPS ACTIVO</small><br>
+                    <span style='color:#00ffc3; font-family:monospace;'>{st.session_state.lat:.2f} | {st.session_state.lon:.2f}</span><br>
+                    <small style='color:#00ffc3;'>📍 {localidad}</small>
+                </div>
+            """, unsafe_allow_html=True)
     else:
-        st.info("📡 Sincronizando satélites...")
+        st.info("📡 Buscando señal satelital...")
+
+    with st.expander("📍 Ubicación Manual"):
+        lat_manual = st.number_input("Latitud", value=-34.59, format="%.4f")
+        lon_manual = st.number_input("Longitud", value=-58.50, format="%.4f")
+        if st.button("✅ ACTUALIZAR UBICACIÓN"):
+            st.session_state.lat = lat_manual
+            st.session_state.lon = lon_manual
+            st.rerun()
 
 # ==========================================================
 # 5. LÓGICA DE DATOS GLOBAL
@@ -175,7 +170,6 @@ clima = obtener_clima_completo(LAT, LON)
 
 if clima:
     st.session_state.clima_data = clima
-
 # --- DESDE AQUÍ EMPIEZAN TUS IF MENU ---
 # if menu == "📊 Monitoreo Total":
 # ...
@@ -806,15 +800,14 @@ elif menu == "🛰️ Índices Satelitales":
     st.header("🛰️ Índices Satelitales en Tiempo Real")
     st.write("Análisis de salud de cultivos mediante Sentinel-2 L2A.")
 
-    # Recuperar coordenadas del estado de sesión
     lat_map = st.session_state.get('lat')
     lon_map = st.session_state.get('lon')
 
     if not lat_map or not lon_map:
-        st.warning("📍 Primero vincula el GPS en el inicio para centrar el lote.")
+        st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
         st.stop()
 
-    # Diccionario de Evalscripts (Fórmulas para el satélite)
+    # Diccionario de Evalscripts (ÚNICO)
     evalscripts = {
         "🌿 NDVI (Vigor)": """
             //VERSION=3
@@ -850,84 +843,26 @@ elif menu == "🛰️ Índices Satelitales":
     col1, col2 = st.columns([2, 1])
     
     with col2:
-        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()))
+        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()), key="sel_sat")
         zoom_nivel = st.slider("Nivel de Zoom (Área)", 0.005, 0.05, 0.01, format="%.3f")
         
-        # Formateo seguro de coordenadas para evitar errores de tipo None
         lat_str = f"{lat_map:.4f}" if isinstance(lat_map, (int, float)) else "---"
         lon_str = f"{lon_map:.4f}" if isinstance(lon_map, (int, float)) else "---"
-        st.info(f"Coordenadas actuales: \n{lat_str}, {lon_str}")
-
-    with col1:
-        if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
-            with st.spinner("Descargando imagen..."):
-                token = get_sentinel_token()
-                if token:
-                    img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
-                    if img_data:
-                        st.image(img_data, caption=f"Mapa de {indice_sel}", use_container_width=True)
-                        st.success("✅ Imagen cargada correctamente.")
-                    else:
-                        st.error("❌ No se pudo obtener la imagen. Prueba ajustar el zoom.")
-                else:
-                    st.error("❌ Error de Token. Revisa SENTINEL_CLIENT_ID en Secrets.")
-
-    st.divider()
-    # Diccionario de Evalscripts (Fórmulas para el satélite)
-    evalscripts = {
-        "🌿 NDVI (Vigor)": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0) return [0.5, 0.5, 0.5]; 
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; 
-                else if (val < 0.5) return [1, 1, 0.2]; 
-                else return [0, 0.5, 0];
-            }
-        """,
-        "💧 NDWI (Humedad)": """
-            //VERSION=3
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 1];
-                else if (val > 0) return [0.2, 0.5, 1];
-                else return [0.8, 0.7, 0.5];
-            }
-        """,
-        "🌾 EVI (Biomasa)": """
-            //VERSION=3
-            function setup() { return { input: ["B02","B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = 2.5 * ((s.B08 - s.B04) / (s.B08 + 6 * s.B04 - 7.5 * s.B02 + 1));
-                return [0, val, 0];
-            }
-        """
-    }
-
-    col1, col2 = st.columns([2, 1])
-    
-    with col2:
-        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()))
-        zoom_nivel = st.slider("Nivel de Zoom (Área)", 0.005, 0.05, 0.01, format="%.3f")
-        st.info(f"Coordenadas actuales: \n{lat_map:.4f}, {lon_map:.4f}")
+        st.info(f"📍 Lote centrado en:\n{lat_str}, {lon_str}")
 
     with col1:
         if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
             with st.spinner("Conectando con Sentinel Hub..."):
                 token = get_sentinel_token()
                 if token:
-                    # Llamada a la función que ya tienes definida arriba
                     img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
-                    
                     if img_data:
-                        st.image(img_data, caption=f"Mapa de {indice_sel}", use_container_width=True)
-                        st.success("✅ Imagen actualizada con éxito.")
+                        st.image(img_data, caption=f"Capa de {indice_sel} procesada", use_container_width=True)
+                        st.success("✅ ¡Imagen cargada!")
                     else:
-                        st.error("❌ Error al recibir datos del satélite. Reintenta.")
+                        st.error("❌ No se recibió imagen. Revisá nubes o coordenadas.")
                 else:
-                    st.error("❌ Error de Token. Revisa SENTINEL_CLIENT_ID en Secrets.")
+                    st.error("❌ Error de Token. Verificá Secrets.")
 
     st.divider()
 # ==========================================================
