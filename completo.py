@@ -10,6 +10,7 @@ import urllib.parse
 from supabase import create_client
 from streamlit_folium import folium_static
 import folium
+from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
 
 # ==========================================================
@@ -881,13 +882,40 @@ elif menu == "🛰️ Índices Satelitales":
                 if token:
                     img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
                     if img_data:
-                        st.image(img_data, caption=f"Capa de {indice_sel} procesada", use_container_width=True)
-                        st.success("✅ ¡Imagen cargada!")
-                    else:
-                        st.error("❌ No se recibió imagen. Revisá nubes o coordenadas.")
-                else:
-                    st.error("❌ Error de Token. Verificá Secrets.")
+                        if img_data:
+    # 1. Definir los límites del mapa basándonos en tu ubicación y el zoom
+    # Creamos un recuadro (Bounds) para que la imagen encaje justo
+    offset = zoom_nivel 
+    bounds = [
+        [st.session_state.lat - offset, st.session_state.lon - offset], # Esquina inferior izquierda
+        [st.session_state.lat + offset, st.session_state.lon + offset]  # Esquina superior derecha
+    ]
 
+    # 2. Crear el mapa interactivo de Folium
+    m = folium.Map(
+        location=[st.session_state.lat, st.session_state.lon],
+        zoom_start=14,
+        control_scale=True
+    )
+
+    # 3. Superponer la imagen satelital sobre el mapa
+    # Esto permite que la imagen se mueva y escale con el mapa
+    folium.raster_layers.ImageOverlay(
+        image=img_data,
+        bounds=bounds,
+        opacity=0.8,
+        interactive=True,
+        cross_origin=True,
+        zindex=1
+    ).add_to(m)
+
+    # 4. Ajustar la vista automáticamente a la imagen
+    m.fit_bounds(bounds)
+
+    # 5. Mostrar el mapa en Streamlit (¡Táctil!)
+    st_folium(m, width=700, height=500, scrolling=False)
+    
+    st.success("✅ Mapa interactivo listo. Podés usar los dedos para hacer zoom.")
     st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
