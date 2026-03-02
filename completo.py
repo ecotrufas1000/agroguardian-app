@@ -741,11 +741,11 @@ elif menu == "🛰️ Índices Satelitales":
 
     # Obtener token de Sentinel Hub
     def get_sentinel_image(token, evalscript, lat, lon, zoom=0.05):
-        bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
-        payload = {
-            "input": {
-                "bounds": {"bbox": bbox, "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}},
-                "data": [{"type": "sentinel-2-l2a", "dataFilter": {"mosaickingOrder": "leastCC"}}]
+    bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
+    payload = {
+        "input": {
+            "bounds": {"bbox": bbox, "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}},
+            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"mosaickingOrder": "leastCC"}}]
         },
         "output": {"width": 512, "height": 512, "responses": [{"identifier": "default", "format": {"type": "image/png"}}]},
         "evalscript": evalscript
