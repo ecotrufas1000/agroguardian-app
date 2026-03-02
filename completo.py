@@ -835,6 +835,9 @@ elif menu == "🛰️ Índices Satelitales":
     # ---------------------------
     # Cargar shapefile nivel 2 (partidos/localidades)
     # ---------------------------
+    import os
+    shapefile_path = os.path.join(os.getcwd(), "gadm41_AGR_2.shp")
+    gdf = gpd.read_file(shapefile_path)
     shapefile_path = "gadm41_AGR_2.shp"
     gdf = gpd.read_file(shapefile_path)
 
