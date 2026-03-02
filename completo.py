@@ -140,13 +140,12 @@ with st.sidebar:
 # ==========================================================
 # GPS automático con fallback a ubicación manual
 # ==========================================================
-# ==========================================================
-# GPS automático con fallback a ubicación manual
+# SECCIÓN GPS: Pon esto ANTES de la lógica del Menú
 # ==========================================================
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 
-# Obtener ubicación automática
+# 1. Obtener ubicación automática
 loc = streamlit_js_eval(js_expressions="""
 new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
@@ -157,97 +156,64 @@ new Promise((resolve) => {
 })
 """, key='get_loc_auto')
 
-# ----------------------------------------------------------
-# Detectar GPS
-# ----------------------------------------------------------
+# 2. Detectar si el GPS devolvió coordenadas válidas
 gps_active = False
-
 if loc and isinstance(loc, dict) and 'latitude' in loc:
     lat_gps = loc['latitude']
     lon_gps = loc['longitude']
     gps_active = True
 else:
-    lat_gps = None
-    lon_gps = None
+    lat_gps, lon_gps = None, None
 
-# ----------------------------------------------------------
-# Ubicación manual (session_state o default)
-# ----------------------------------------------------------
-lat_manual = st.session_state.get('lat_manual', -34.59)
-lon_manual = st.session_state.get('lon_manual', -58.50)
+# 3. Gestionar estados manuales (evita errores de primer inicio)
+if 'lat_manual' not in st.session_state:
+    st.session_state.lat_manual = -34.59
+if 'lon_manual' not in st.session_state:
+    st.session_state.lon_manual = -58.50
 
-# ----------------------------------------------------------
-# Textos seguros (evita error None:.4f)
-# ----------------------------------------------------------
-gps_text = f"{lat_gps:.4f} | {lon_gps:.4f}" if gps_active else "Sin señal GPS"
-manual_text = f"{lat_manual:.4f} | {lon_manual:.4f}"
-
-# ----------------------------------------------------------
-# Mostrar tarjetas estilo "pastillas"
-# ----------------------------------------------------------
-st.markdown(f"""
-<div style='display:flex; gap:12px; margin-bottom:12px;'>
-
-    <div style='
-        padding: 10px;
-        border-radius: 14px;
-        font-weight: bold;
-        background: {"#00ffc3" if gps_active else "#222"};
-        color: {"#000" if gps_active else "#666"};
-        flex:1;
-        text-align:center;
-    '>
-        🛰️ GPS Automático<br>
-        {gps_text}
-    </div>
-
-    <div style='
-        padding: 10px;
-        border-radius: 14px;
-        font-weight: bold;
-        background: {"#00ffc3" if not gps_active else "#222"};
-        color: {"#000" if not gps_active else "#666"};
-        flex:1;
-        text-align:center;
-    '>
-        📍 Manual<br>
-        {manual_text}
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
-# ----------------------------------------------------------
-# Expander para actualizar manual
-# ----------------------------------------------------------
-with st.expander("Actualizar Ubicación Manual"):
-    lat_manual_input = st.number_input(
-        "Latitud manual",
-        value=lat_manual,
-        format="%.6f"
-    )
-    lon_manual_input = st.number_input(
-        "Longitud manual",
-        value=lon_manual,
-        format="%.6f"
-    )
-
-    if st.button("Actualizar Ubicación Manual"):
-        st.session_state.lat_manual = lat_manual_input
-        st.session_state.lon_manual = lon_manual_input
-        st.session_state.lat = lat_manual_input
-        st.session_state.lon = lon_manual_input
-        st.rerun()
-
-# ----------------------------------------------------------
-# Ubicación oficial (prioriza GPS)
-# ----------------------------------------------------------
+# 4. Definir qué coordenadas usaremos para el resto de la app
 if gps_active:
     st.session_state.lat = lat_gps
     st.session_state.lon = lon_gps
+    gps_text = f"{lat_gps:.4f} | {lon_gps:.4f}"
+    manual_color, gps_color = "#222", "#00ffc3"
+    m_text_color, g_text_color = "#666", "#000"
 else:
-    st.session_state.lat = lat_manual
-    st.session_state.lon = lon_manual
+    st.session_state.lat = st.session_state.lat_manual
+    st.session_state.lon = st.session_state.lon_manual
+    gps_text = "Sin señal GPS"
+    manual_color, gps_color = "#00ffc3", "#222"
+    m_text_color, g_text_color = "#000", "#666"
+
+# 5. RENDER VISUAL DE PASTILLAS
+st.markdown(f"""
+<div style='display:flex; gap:12px; margin-bottom:12px;'>
+    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{gps_color}; color:{g_text_color}; flex:1; text-align:center;'>
+        🛰️ GPS Automático<br>{gps_text}
+    </div>
+    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{manual_color}; color:{m_text_color}; flex:1; text-align:center;'>
+        📍 Ubicación Manual<br>{st.session_state.lat_manual:.4f} | {st.session_state.lon_manual:.4f}
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# 6. EXPANDER PARA CAMBIOS
+with st.expander("⚙️ Ajustar ubicación manual"):
+    c1, c2 = st.columns(2)
+    new_lat = c1.number_input("Latitud", value=st.session_state.lat_manual, format="%.6f")
+    new_lon = c2.number_input("Longitud", value=st.session_state.lon_manual, format="%.6f")
+    
+    if st.button("Guardar cambios manuales"):
+        st.session_state.lat_manual = new_lat
+        st.session_state.lon_manual = new_lon
+        st.rerun()
+
+st.divider()
+
+# ==========================================================
+# LÓGICA DE MENÚ: Ahora los elif no fallarán
+# ==========================================================
+# AQUI EMPIEZA TU: if menu == "..."
 # ==========================================================
 # 5. LÓGICA DE DATOS GLOBAL
 # ==========================================================
