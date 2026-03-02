@@ -7,6 +7,8 @@ import datetime
 import pandas as pd
 import plotly.express as px
 import urllib.parse
+import base64
+from io import BytesIO
 from supabase import create_client
 from streamlit_folium import folium_static
 import folium
@@ -883,7 +885,13 @@ elif menu == "🛰️ Índices Satelitales":
                     img_data = get_sentinel_image(token, evalscripts[indice_sel], st.session_state.lat, st.session_state.lon, zoom_nivel)
                     
                     if img_data:
-                        # 1. Definir los límites del mapa basándonos en tu ubicación y el zoom
+                        import base64
+                        # --- CORRECCIÓN CRÍTICA PARA QUE NO DÉ ERROR ---
+                        encoded = base64.b64encode(img_data).decode('utf-8')
+                        img_url = f'data:image/png;base64,{encoded}'
+                        # -----------------------------------------------
+
+                        # 1. Definir los límites del mapa
                         offset = zoom_nivel 
                         bounds = [
                             [st.session_state.lat - offset, st.session_state.lon - offset], 
@@ -895,13 +903,13 @@ elif menu == "🛰️ Índices Satelitales":
                             location=[st.session_state.lat, st.session_state.lon],
                             zoom_start=14,
                             control_scale=True,
-                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', # Agrega satélite de fondo
+                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                             attr='Google Satellite'
                         )
 
-                        # 3. Superponer la imagen satelital sobre el mapa
+                        # 3. Superponer la imagen corregida
                         folium.raster_layers.ImageOverlay(
-                            image=img_data,
+                            image=img_url, # <--- Usamos la versión convertida
                             bounds=bounds,
                             opacity=0.8,
                             interactive=True,
@@ -909,17 +917,19 @@ elif menu == "🛰️ Índices Satelitales":
                             zindex=1
                         ).add_to(m)
 
-                        # 4. Ajustar la vista automáticamente a la imagen
+                        # 4. Ajustar la vista automáticamente
                         m.fit_bounds(bounds)
+                        
+                        # Marcador para no perder el centro
+                        folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
 
-                        # 5. Mostrar el mapa en Streamlit (¡Táctil!)
+                        # 5. Mostrar el mapa en Streamlit
                         from streamlit_folium import st_folium
                         st_folium(m, width=None, height=500, scrolling=False)
                         
-                        st.success("✅ Mapa interactivo listo. Podés usar los dedos para hacer zoom.")
+                        st.success("✅ Mapa interactivo listo. Podés navegar con los dedos.")
                     else:
-                        st.error("❌ No se pudo obtener la imagen.")
-    st.divider()
+                        st.error("❌ No se pudo obtener la imagen.")    st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
