@@ -12,3 +12,8 @@ flask
 python-dotenv
 streamlit-js-eval
 xlsxwriter
+geopandas
+shapely
+fiona
+pyproj
+
