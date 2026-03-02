@@ -880,42 +880,45 @@ elif menu == "🛰️ Índices Satelitales":
             with st.spinner("Conectando con Sentinel Hub..."):
                 token = get_sentinel_token()
                 if token:
-                    img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
+                    img_data = get_sentinel_image(token, evalscripts[indice_sel], st.session_state.lat, st.session_state.lon, zoom_nivel)
+                    
                     if img_data:
-                        if img_data:
-    # 1. Definir los límites del mapa basándonos en tu ubicación y el zoom
-    # Creamos un recuadro (Bounds) para que la imagen encaje justo
-    offset = zoom_nivel 
-    bounds = [
-        [st.session_state.lat - offset, st.session_state.lon - offset], # Esquina inferior izquierda
-        [st.session_state.lat + offset, st.session_state.lon + offset]  # Esquina superior derecha
-    ]
+                        # 1. Definir los límites del mapa basándonos en tu ubicación y el zoom
+                        offset = zoom_nivel 
+                        bounds = [
+                            [st.session_state.lat - offset, st.session_state.lon - offset], 
+                            [st.session_state.lat + offset, st.session_state.lon + offset]
+                        ]
 
-    # 2. Crear el mapa interactivo de Folium
-    m = folium.Map(
-        location=[st.session_state.lat, st.session_state.lon],
-        zoom_start=14,
-        control_scale=True
-    )
+                        # 2. Crear el mapa interactivo de Folium
+                        m = folium.Map(
+                            location=[st.session_state.lat, st.session_state.lon],
+                            zoom_start=14,
+                            control_scale=True,
+                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', # Agrega satélite de fondo
+                            attr='Google Satellite'
+                        )
 
-    # 3. Superponer la imagen satelital sobre el mapa
-    # Esto permite que la imagen se mueva y escale con el mapa
-    folium.raster_layers.ImageOverlay(
-        image=img_data,
-        bounds=bounds,
-        opacity=0.8,
-        interactive=True,
-        cross_origin=True,
-        zindex=1
-    ).add_to(m)
+                        # 3. Superponer la imagen satelital sobre el mapa
+                        folium.raster_layers.ImageOverlay(
+                            image=img_data,
+                            bounds=bounds,
+                            opacity=0.8,
+                            interactive=True,
+                            cross_origin=True,
+                            zindex=1
+                        ).add_to(m)
 
-    # 4. Ajustar la vista automáticamente a la imagen
-    m.fit_bounds(bounds)
+                        # 4. Ajustar la vista automáticamente a la imagen
+                        m.fit_bounds(bounds)
 
-    # 5. Mostrar el mapa en Streamlit (¡Táctil!)
-    st_folium(m, width=700, height=500, scrolling=False)
-    
-    st.success("✅ Mapa interactivo listo. Podés usar los dedos para hacer zoom.")
+                        # 5. Mostrar el mapa en Streamlit (¡Táctil!)
+                        from streamlit_folium import st_folium
+                        st_folium(m, width=None, height=500, scrolling=False)
+                        
+                        st.success("✅ Mapa interactivo listo. Podés usar los dedos para hacer zoom.")
+                    else:
+                        st.error("❌ No se pudo obtener la imagen.")
     st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
