@@ -878,58 +878,76 @@ elif menu == "🛰️ Índices Satelitales":
 
     with col1:
         if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
-            with st.spinner("Descargando datos de Sentinel Hub..."):
+            with st.spinner("Procesando lote completo..."):
                 token = get_sentinel_token()
                 if token:
-                    # Traemos la imagen binaria
-                    img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
+                    # FORZAMOS un área más grande para que no sea un cuadradito
+                    # Multiplicamos el zoom_nivel para que la imagen sea extensa
+                    area_grande = zoom_nivel * 3 
+                    
+                    img_data = get_sentinel_image(
+                        token, 
+                        evalscripts[indice_sel], 
+                        lat_map, 
+                        lon_map, 
+                        area_grande # Usamos el área expandida
+                    )
                     
                     if img_data:
                         import base64
                         import folium
                         import streamlit.components.v1 as components
 
-                        # 1. Convertir a Base64 (Evita el error de JSON/Traceback)
+                        # 1. Preparar imagen
                         b64_img = base64.b64encode(img_data).decode('utf-8')
                         img_url = f'data:image/png;base64,{b64_img}'
 
-                        # 2. Definir límites del lote
+                        # 2. Definir límites (usando el área expandida)
                         bounds = [
-                            [lat_map - zoom_nivel, lon_map - zoom_nivel], 
-                            [lat_map + zoom_nivel, lon_map + zoom_nivel]
+                            [lat_map - area_grande, lon_map - area_grande], 
+                            [lat_map + area_grande, lon_map + area_grande]
                         ]
 
-                        # 3. Crear el mapa interactivo
+                        # 3. Crear Mapa con controles de pantalla completa
                         m = folium.Map(
                             location=[lat_map, lon_map],
-                            zoom_start=14,
+                            zoom_start=15,
                             tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                            attr='Google Satellite'
+                            attr='Google Satellite',
+                            zoom_control=True
                         )
 
-                        # 4. Superponer el índice procesado
+                        # 4. Superponer la capa (con menos opacidad para que se vea natural)
                         folium.raster_layers.ImageOverlay(
                             image=img_url, 
                             bounds=bounds,
-                            opacity=0.7,
+                            opacity=0.6,
                             interactive=True,
                             cross_origin=True,
                             zindex=1
                         ).add_to(m)
 
-                        # 5. Agregar pin de ubicación
-                        folium.Marker([lat_map, lon_map], tooltip="Centro").add_to(m)
+                        # 5. Agregar un marcador discreto
+                        folium.CircleMarker(
+                            [lat_map, lon_map],
+                            radius=5,
+                            color="white",
+                            fill=True,
+                            fill_color="blue"
+                        ).add_to(m)
+
+                        # Ajustar el zoom automáticamente al área descargada
                         m.fit_bounds(bounds)
 
-                        # 6. Renderizado seguro para móviles y Python 3.13
-                        components.html(m._repr_html_(), height=500)
+                        # 6. Renderizar con ANCHO COMPLETO
+                        # Usamos width="100%" para que no quede el hueco gris a los costados
+                        mapa_html = m._repr_html_()
+                        components.html(mapa_html, height=600)
                         
-                        st.success(f"✅ Capa {indice_sel} cargada correctamente.")
+                        st.caption("💡 Tip: Podés pellizcar el mapa para navegar. El NDVI cubre el área procesada.")
                     else:
-                        st.error("❌ No se recibió imagen. Intentá con un área de zoom más pequeña.")
-                else:
-                    st.error("❌ Error de Token. Verificá tus credenciales.")
-    st.divider()
+                        st.error("❌ Error al traer la imagen.")
+        st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
