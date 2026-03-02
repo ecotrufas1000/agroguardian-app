@@ -821,7 +821,7 @@ elif menu == "📝 Bitácora":
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES
 # ==========================================================
 # ==========================================================
-# SECCIÓN: 🛰️ ÍNDICES SATELITALES (Sustituye todo lo anterior)
+# SECCIÓN: 🛰️ ÍNDICES SATELITALES (con provincia y partido)
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
 
@@ -829,24 +829,44 @@ elif menu == "🛰️ Índices Satelitales":
     from streamlit_folium import st_folium
     from datetime import date
 
-    lat_map = st.session_state.get('lat')
-    lon_map = st.session_state.get('lon')
+    # ---------------------------
+    # Diccionarios de ejemplo
+    # ---------------------------
+    coordenadas = {
+        "Buenos Aires": {"La Plata": [-34.9214, -57.9544], "Avellaneda": [-34.6667, -58.3667], "Morón": [-34.6519, -58.6193]},
+        "Córdoba": {"Córdoba Capital": [-31.4201, -64.1888], "Río Cuarto": [-33.1283, -64.3495], "Villa María": [-32.4093, -63.2406]},
+        "Santa Fe": {"Rosario": [-32.9442, -60.6505], "Santa Fe": [-31.6333, -60.7000], "Rafaela": [-31.2606, -61.4994]}
+    }
 
-    if not lat_map or not lon_map:
-        st.warning("📍 Vinculá el GPS en la pestaña de Inicio.")
-        st.stop()
+    # ---------------------------
+    # Selectores de ubicación
+    # ---------------------------
+    provincia = st.selectbox(
+        "Seleccionar provincia:",
+        list(coordenadas.keys())
+    )
 
-    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
+    partido = st.selectbox(
+        "Seleccionar partido:",
+        list(coordenadas[provincia].keys())
+    )
 
-    # Selector con 4 opciones
+    lat_map, lon_map = coordenadas[provincia][partido]
+
+    # ---------------------------
+    # Selector de capa satelital
+    # ---------------------------
     modo = st.selectbox(
         "Seleccionar capa:",
         ["🛰 Satelital", "🌿 NDVI", "💧 NDWI", "🌾 EVI"]
     )
 
     hoy = date.today().strftime("%Y-%m-%d")
+    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
 
-    # Crear mapa base vacío
+    # ---------------------------
+    # Crear mapa base
+    # ---------------------------
     m = folium.Map(
         location=[lat_map, lon_map],
         zoom_start=14,
@@ -854,7 +874,7 @@ elif menu == "🛰️ Índices Satelitales":
         control_scale=True
     )
 
-    # Base satelital (Esri recomendado para producción)
+    # Capa satelital base (Esri)
     folium.TileLayer(
         tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         attr="Esri World Imagery",
@@ -862,17 +882,12 @@ elif menu == "🛰️ Índices Satelitales":
         overlay=False
     ).add_to(m)
 
-    # Si el usuario eligió un índice → agregamos Sentinel encima
+    # ---------------------------
+    # Agregar índice Sentinel si se seleccionó
+    # ---------------------------
     if modo != "🛰 Satelital":
-
-        # Convertimos el texto al nombre exacto del layer
-        layer_map = {
-            "🌿 NDVI": "NDVI",
-            "💧 NDWI": "NDWI",
-            "🌾 EVI": "EVI"
-        }
-
-        layer_name = layer_map.get(modo)
+        layer_map = {"🌿 NDVI": "NDVI", "💧 NDWI": "NDWI", "🌾 EVI": "EVI"}
+        layer_name = layer_map[modo]
 
         folium.raster_layers.TileLayer(
             tiles=(
@@ -893,6 +908,7 @@ elif menu == "🛰️ Índices Satelitales":
 
     folium.LayerControl().add_to(m)
 
+    # Mostrar mapa
     st_folium(m, height=600)
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
