@@ -835,18 +835,15 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
 
     st.header("🛰️ Índices Satelitales en Tiempo Real")
-    st.write("Análisis de sanidad de cultivos y límites catastrales de Argentina.")
+    st.write("Seleccioná tu ubicación administrativa y procesá el índice satelital.")
 
-    # --- 1. CONFIGURACIÓN DE DATOS (GPKG) ---
+    # --- 1. FUNCIÓN DE CARGA CACHEADA ---
     @st.cache_data
     def cargar_limites_argentina():
-        ruta_gpkg = "gadm41_ARG_2.gpkg" # Asegúrate que el nombre en tu PC/GitHub sea idéntico
+        ruta_gpkg = "gadm41_ARG_2.gpkg"
         if os.path.exists(ruta_gpkg):
             try:
-                # Usamos pyogrio para máxima velocidad
                 gdf = gpd.read_file(ruta_gpkg, engine="pyogrio")
-                # Simplificamos un poco las líneas para que el mapa no sea pesado al navegar
-                gdf['geometry'] = gdf['geometry'].simplify(0.001, preserve_topology=True)
                 return gdf
             except Exception as e:
                 st.error(f"Error al leer GPKG: {e}")
@@ -855,15 +852,40 @@ elif menu == "🛰️ Índices Satelitales":
 
     gdf_argentina = cargar_limites_argentina()
 
-    # --- 2. VERIFICACIÓN DE GPS ---
+    # --- 2. SELECTORES DE PROVINCIA Y LOCALIDAD ---
+    provincia_sel = "Todas"
+    depto_sel = "Todos"
+    gdf_filtrado = gdf_argentina
+
+    if gdf_argentina is not None:
+        col_pro1, col_pro2 = st.columns(2)
+        
+        with col_pro1:
+            provincias = sorted(gdf_argentina['NAME_1'].unique())
+            provincia_sel = st.selectbox("📍 Seleccioná Provincia:", ["Todas"] + provincias)
+
+        with col_pro2:
+            if provincia_sel != "Todas":
+                deptos = sorted(gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]['NAME_2'].unique())
+                depto_sel = st.selectbox("🏘️ Seleccioná Departamento:", ["Todos"] + deptos)
+            else:
+                st.selectbox("🏘️ Seleccioná Departamento:", ["Todos"], disabled=True)
+
+        # Aplicar filtros al GeoDataFrame
+        if provincia_sel != "Todas":
+            gdf_filtrado = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
+            if depto_sel != "Todos":
+                gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_2'] == depto_sel]
+
+    # --- 3. VERIFICACIÓN DE GPS ---
     lat_map = st.session_state.get('lat')
     lon_map = st.session_state.get('lon')
 
     if not lat_map or not lon_map:
-        st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
+        st.warning("⚠️ Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
         st.stop()
 
-    # --- 3. DICCIONARIO DE EVALSCRIPTS ---
+    # --- 4. DICCIONARIO DE EVALSCRIPTS ---
     evalscripts = {
         "🌿 NDVI (Vegetación)": """
             //VERSION=3
@@ -885,87 +907,53 @@ elif menu == "🛰️ Índices Satelitales":
                 else if (val > 0) return [0.2, 0.5, 1];
                 else return [0.8, 0.7, 0.5];
             }
-        """,
-        "🌾 EVI (Biomasa)": """
-            //VERSION=3
-            function setup() { return { input: ["B02","B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = 2.5 * ((s.B08 - s.B04) / (s.B08 + 6 * s.B04 - 7.5 * s.B02 + 1));
-                return [0, val, 0];
-            }
         """
     }
 
-    # --- 4. INTERFAZ DE USUARIO (COLUMNA DERECHA) ---
+    # --- 5. INTERFAZ DE PROCESAMIENTO ---
     col1, col2 = st.columns([3, 1])
     
     with col2:
-        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()), key="sel_sat")
-        zoom_slider = st.slider("Tamaño del área (Grados)", 0.005, 0.080, 0.020, format="%.3f")
-        st.info(f"📍 Centro:\n{lat_map:.4f}, {lon_map:.4f}")
-        if gdf_argentina is not None:
-            st.success("✅ Límites de Argentina cargados.")
+        indice_sel = st.selectbox("Índice:", list(evalscripts.keys()), key="sel_sat")
+        zoom_slider = st.slider("Área de captura", 0.005, 0.080, 0.020, format="%.3f")
+        st.metric("Latitud", f"{lat_map:.4f}")
+        st.metric("Longitud", f"{lon_map:.4f}")
 
-    # --- 5. PROCESAMIENTO Y MAPA (COLUMNA IZQUIERDA) ---
     with col1:
         if st.button("🛰️ GENERAR MAPA SATELITAL", use_container_width=True):
-            with st.spinner("Conectando con satélite Sentinel-2..."):
+            with st.spinner("Procesando datos..."):
                 token = get_sentinel_token()
                 if token:
-                    # Pedimos un área un poco más grande para que el mapa se vea completo
-                    radio_lote = zoom_slider * 2 
+                    radio_lote = zoom_slider * 2
                     img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, radio_lote)
                     
                     if img_data:
-                        # Preparar imagen en Base64
                         b64_img = base64.b64encode(img_data).decode('utf-8')
                         img_url = f'data:image/png;base64,{b64_img}'
                         bounds = [[lat_map - radio_lote, lon_map - radio_lote], [lat_map + radio_lote, lon_map + radio_lote]]
 
-                        # Crear Mapa Base
-                        m = folium.Map(
-                            location=[lat_map, lon_map],
-                            zoom_start=15,
-                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                            attr='Google Satellite'
-                        )
+                        m = folium.Map(location=[lat_map, lon_map], zoom_start=14, 
+                                       tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
+                                       attr='Google Satellite')
 
-                        # A. AGREGAR LÍMITES GPKG (Debajo del NDVI)
-                        if gdf_argentina is not None:
+                        # A. DIBUJAR SOLO EL FILTRADO (Provincia o Depto)
+                        if gdf_filtrado is not None:
                             folium.GeoJson(
-                                gdf_argentina,
-                                name="Límites Catastrales",
+                                gdf_filtrado,
+                                name="Límites Seleccionados",
                                 style_function=lambda x: {
-                                    'fillColor': 'transparent',
-                                    'color': '#FFFFFF', # Líneas blancas
-                                    'weight': 1,
-                                    'dashArray': '5, 5'
+                                    'fillColor': 'transparent', 'color': 'cyan', 'weight': 2, 'dashArray': '3, 3'
                                 },
-                                tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Provincia:', 'Dpto:'])
+                                tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
                             ).add_to(m)
 
-                        # B. SUPERPONER NDVI/NDWI (Encima de todo)
-                        folium.raster_layers.ImageOverlay(
-                            image=img_url, 
-                            bounds=bounds,
-                            opacity=0.6,
-                            interactive=True,
-                            zindex=10
-                        ).add_to(m)
-
-                        # C. MARCADOR
-                        folium.Marker([lat_map, lon_map], icon=folium.Icon(color='red')).add_to(m)
+                        # B. CAPA SATELITAL NDVI
+                        folium.raster_layers.ImageOverlay(image=img_url, bounds=bounds, opacity=0.7, zindex=10).add_to(m)
+                        folium.Marker([lat_map, lon_map], icon=folium.Icon(color='red', icon='screenshot')).add_to(m)
+                        
                         m.fit_bounds(bounds)
-
-                        # D. RENDERIZADO FINAL
-                        st.markdown("<style>iframe {width: 100% !important; border-radius: 10px;}</style>", unsafe_allow_html=True)
-                        components.html(m._repr_html_(), height=650)
-                        st.success(f"Analizado con éxito: {indice_sel}")
-                    else:
-                        st.error("No se pudo obtener la imagen satelital.")
-                else:
-                    st.error("Error de autenticación con Sentinel Hub.")
-# ==========================================================
+                        components.html(m._repr_html_(), height=600)
+                        st.success(f"Capa de {provincia_sel} - {depto_sel} cargada.")# ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
