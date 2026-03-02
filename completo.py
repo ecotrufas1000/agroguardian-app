@@ -735,18 +735,83 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (VERSIÓN FINAL CORREGIDA)
 # ==========================================================
+# --- COLOCAR ESTO ARRIBA DE LOS "IF MENU" ---
+def get_sentinel_token():
+    try:
+        cid = st.secrets["SENTINEL_CLIENT_ID"]
+        csec = st.secrets["SENTINEL_CLIENT_SECRET"]
+        url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
+        data = {"grant_type": "client_credentials", "client_id": cid, "client_secret": csec}
+        r = requests.post(url, data=data)
+        if r.status_code == 200:
+            return r.json().get("access_token")
+        return None
+    except Exception as e:
+        return None
+
+def get_sentinel_image(token, evalscript, lat, lon, zoom=0.01):
+    url = "https://services.sentinel-hub.com/api/v1/process"
+    bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
+    payload = {
+        "input": {
+            "bounds": {"bbox": bbox, "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}},
+            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"mosaickingOrder": "leastCC"}}]
+        },
+        "output": {"width": 512, "height": 512, "responses": [{"identifier": "default", "format": {"type": "image/png"}}]},
+        "evalscript": evalscript
+    }
+    headers = {"Authorization": f"Bearer {token}", "Accept": "image/png"}
+    r = requests.post(url, headers=headers, json=payload)
+    return r.content if r.status_code == 200 else None
+# ==========================================================
+# SECCIÓN: 🛰️ ÍNDICES SATELITALES (BLOQUE FINAL)
+# ==========================================================
 elif menu == "🛰️ Índices Satelitales":
     st.header("🛰️ Índices Satelitales en Tiempo Real")
     st.write("Análisis de salud de cultivos mediante Sentinel-2 L2A.")
 
-    # Usamos LAT y LON del estado de sesión o variables globales
-    # Asegúrate de que LAT y LON existan antes de esto
+    # Traemos las coordenadas que guardó el sensor GPS
     lat_map = st.session_state.get('lat')
     lon_map = st.session_state.get('lon')
 
     if not lat_map or not lon_map:
-        st.warning("📍 Primero vincula el GPS en el inicio para centrar el lote.")
+        st.warning("📍 Vinculá el GPS en la pestaña de Inicio para centrar el lote.")
         st.stop()
+
+    # Definimos los Evalscripts (Fórmulas para el satélite)
+    evalscripts = {
+        "🌿 NDVI (Vigor)": "//VERSION=3\nfunction setup() { return { input: ['B04','B08'], output: { bands: 3 } } }\nfunction evaluatePixel(s) { let val = (s.B08 - s.B04) / (s.B08 + s.B04); if (val < 0) return [0.5, 0.5, 0.5]; else if (val < 0.2) return [0.9, 0.1, 0.1]; else if (val < 0.5) return [1, 1, 0.2]; else return [0, 0.5, 0]; }",
+        "💧 NDWI (Humedad)": "//VERSION=3\nfunction setup() { return { input: ['B03','B08'], output: { bands: 3 } } }\nfunction evaluatePixel(s) { let val = (s.B03 - s.B08) / (s.B03 + s.B08); if (val > 0.1) return [0, 0, 1]; else if (val > 0) return [0.2, 0.5, 1]; else return [0.8, 0.7, 0.5]; }",
+        "🌡️ LST (Temperatura)": "//VERSION=3\nfunction setup() { return { input: ['B04','B08','B11'], output: { bands: 3 } } }\nfunction evaluatePixel(s) { let lst = s.B11 * 100; if (lst > 0.6) return [1, 0, 0]; else if (lst > 0.4) return [1, 0.5, 0]; else return [0, 0.5, 1]; }"
+    }
+
+    # Interfaz de usuario
+    col1, col2 = st.columns([2, 1])
+    
+    with col2:
+        indice_sel = st.selectbox("Índice a procesar:", list(evalscripts.keys()))
+        zoom_nivel = st.slider("Área de visualización (Zoom)", 0.005, 0.05, 0.01, format="%.3f")
+        st.info(f"📍 Lote centrado en:\n{lat_map:.4f}, {lon_map:.4f}")
+
+    with col1:
+        if st.button("🛰️ DESCARGAR Y PROCESAR CAPA", use_container_width=True):
+            with st.spinner("Conectando con Sentinel Hub..."):
+                # Llamamos a la función de la "llave"
+                token = get_sentinel_token()
+                
+                if token:
+                    # Llamamos a la función de la "imagen"
+                    img_data = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, zoom_nivel)
+                    
+                    if img_data:
+                        st.image(img_data, caption=f"Capa de {indice_sel} procesada", use_container_width=True)
+                        st.success("✅ ¡Imagen cargada!")
+                    else:
+                        st.error("❌ No se recibió imagen. Puede que el satélite no haya pasado recientemente o las nubes cubran la zona.")
+                else:
+                    st.error("❌ Error de Token. Verificá tus credenciales en Secrets.")
+
+    st.divider()
 
     # Diccionario de Evalscripts (Fórmulas para el satélite)
     evalscripts = {
