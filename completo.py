@@ -837,7 +837,7 @@ elif menu == "🛰️ Índices Satelitales":
     # ---------------------------
     import os
     shapefile_path = os.path.join(os.getcwd(), "gadm41_AGR_2.shp")
-    gdf = gpd.read_file(shapefile_path)
+    gdf = gpd.read_file(shapefile_path, engine="fiona")
     shapefile_path = "gadm41_AGR_2.shp"
     gdf = gpd.read_file(shapefile_path)
 
