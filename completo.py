@@ -886,7 +886,9 @@ elif menu == "🛰️ Índices Satelitales":
     m = folium.Map(
         location=[lat_map, lon_map],
         zoom_start=12,
-        tiles=None
+         min_zoom=8,     # 👈 AGREGAR ESTO
+         max_zoom=18,
+         tiles=None
     )
 
     # Base Google Satellite
