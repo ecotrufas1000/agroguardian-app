@@ -825,21 +825,32 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (GADM con DBF)
 # ==========================================================
+# SECCIÓN: 🛰️ ÍNDICES SATELITALES (GeoPackage)
+# ==========================================================
 elif menu == "🛰️ Índices Satelitales":
 
+    import os
     import folium
     from streamlit_folium import st_folium
     from datetime import date
     import geopandas as gpd
 
     # ---------------------------
-    # Cargar shapefile nivel 2 (partidos/localidades)
+    # Ruta del GeoPackage
     # ---------------------------
-    import os
-    shapefile_path = os.path.join(os.getcwd(), "gadm41_AGR_2.shp")
-    gdf = gpd.read_file(shapefile_path, engine="fiona")
-    shapefile_path = "gadm41_AGR_2.shp"
-    gdf = gpd.read_file(shapefile_path)
+    shapefile_path = os.path.join(os.getcwd(), "gadm41_AGR_2.gpkg")  # GeoPackage en la raíz del repo
+
+    # Verificar que exista
+    if not os.path.exists(shapefile_path):
+        st.error(f"❌ No se encontró el archivo {shapefile_path}. Asegurate de tenerlo en la raíz del repo.")
+        st.stop()
+
+    # Leer GeoPackage
+    try:
+        gdf = gpd.read_file(shapefile_path)
+    except Exception as e:
+        st.error(f"❌ Error al leer el GeoPackage: {e}")
+        st.stop()
 
     # ---------------------------
     # Selector de provincia
@@ -889,13 +900,16 @@ elif menu == "🛰️ Índices Satelitales":
     # ---------------------------
     # Dibujar polígono de la localidad seleccionada
     # ---------------------------
-    if geom.geom_type == 'Polygon' or geom.geom_type == 'MultiPolygon':
-        folium.GeoJson(geom, name=localidad, style_function=lambda x: {
+    folium.GeoJson(
+        geom,
+        name=localidad,
+        style_function=lambda x: {
             'fillColor': 'blue',
             'color': 'blue',
             'weight': 2,
             'fillOpacity': 0.2
-        }).add_to(m)
+        }
+    ).add_to(m)
 
     # ---------------------------
     # Agregar índice Sentinel si se seleccionó
