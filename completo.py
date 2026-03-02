@@ -825,118 +825,75 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
 
-    import streamlit as st
-    import geopandas as gpd
     import folium
     from streamlit_folium import st_folium
     from datetime import date
 
-    st.header("🛰️ Índices Satelitales en Tiempo Real")
+    lat_map = st.session_state.get('lat')
+    lon_map = st.session_state.get('lon')
 
-    # --------------------------------------------------
-    # 1️⃣ Cargar shapefile GADM (Level 2 - Partidos)
-    # --------------------------------------------------
-    @st.cache_data
-    def load_gadm():
-        return gpd.read_file("gadm41_ARG_2.shp")
+    if not lat_map or not lon_map:
+        st.warning("📍 Vinculá el GPS en la pestaña de Inicio.")
+        st.stop()
 
-    gdf = load_gadm()
-
-    # --------------------------------------------------
-    # 2️⃣ Selectores Provincia + Partido
-    # --------------------------------------------------
-    prov_sel = st.selectbox(
-        "Provincia",
-        sorted(gdf["NAME_1"].unique())
-    )
-
-    gdf_prov = gdf[gdf["NAME_1"] == prov_sel]
-
-    part_sel = st.selectbox(
-        "Partido / Departamento",
-        sorted(gdf_prov["NAME_2"].unique())
-    )
-
-    gdf_part = gdf_prov[gdf_prov["NAME_2"] == part_sel]
-
-    # --------------------------------------------------
-    # 3️⃣ Calcular centroide automático
-    # --------------------------------------------------
-    centroid = gdf_part.geometry.centroid.iloc[0]
-    lat_map = centroid.y
-    lon_map = centroid.x
-
-    # --------------------------------------------------
-    # 4️⃣ Selector de índice
-    # --------------------------------------------------
-    indice_sel = st.selectbox(
-        "Índice:",
-        ["NDVI", "NDWI", "EVI"]
-    )
-
-    # Fecha dinámica amplia
-    hoy = date.today().strftime("%Y-%m-%d")
-
-    # ⚠️ Reemplazá con tu Instance ID real
     INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
 
-    # --------------------------------------------------
-    # 5️⃣ Crear mapa
-    # --------------------------------------------------
+    # Selector con 4 opciones
+    modo = st.selectbox(
+        "Seleccionar capa:",
+        ["🛰 Satelital", "🌿 NDVI", "💧 NDWI", "🌾 EVI"]
+    )
+
+    hoy = date.today().strftime("%Y-%m-%d")
+
+    # Crear mapa base vacío
     m = folium.Map(
         location=[lat_map, lon_map],
-        zoom_start=13,
-        min_zoom=9,
-        max_zoom=18,
+        zoom_start=14,
         tiles=None,
         control_scale=True
     )
 
-    # Base Google Satellite
+    # Base satelital (Esri recomendado para producción)
     folium.TileLayer(
-        tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-        attr="Google Satellite",
-        name="VGoogle Satellite"
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attr="Esri World Imagery",
+        name="Satelital",
+        overlay=False
     ).add_to(m)
 
-    # --------------------------------------------------
-    # 6️⃣ Capa Sentinel WMTS dinámica
-    # --------------------------------------------------
-    folium.raster_layers.TileLayer(
-        tiles=(
-            f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
-            f"?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
-            f"&LAYER={indice_sel}"
-            f"&TILEMATRIXSET=PopularWebMercator256"
-            f"&TILEMATRIX={{z}}&TILEROW={{y}}&TILECOL={{x}}"
-            f"&FORMAT=image/png"
-            f"&TIME=2024-01-01/{hoy}"
-        ),
-        attr="Sentinel Hub",
-        name=indice_sel,
-        overlay=True,
-        control=True
-    ).add_to(m)
+    # Si el usuario eligió un índice → agregamos Sentinel encima
+    if modo != "🛰 Satelital":
 
-    # --------------------------------------------------
-    # 7️⃣ Dibujar límite del partido
-    # --------------------------------------------------
-    folium.GeoJson(
-        gdf_part.__geo_interface__,
-        name="Límite seleccionado",
-        style_function=lambda x: {
-            "fillColor": "transparent",
-            "color": "yellow",
-            "weight": 2
+        # Convertimos el texto al nombre exacto del layer
+        layer_map = {
+            "🌿 NDVI": "NDVI",
+            "💧 NDWI": "NDWI",
+            "🌾 EVI": "EVI"
         }
-    ).add_to(m)
+
+        layer_name = layer_map.get(modo)
+
+        folium.raster_layers.TileLayer(
+            tiles=(
+                f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
+                f"?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
+                f"&LAYER={layer_name}"
+                f"&TILEMATRIXSET=PopularWebMercator256"
+                f"&TILEMATRIX={{z}}&TILEROW={{y}}&TILECOL={{x}}"
+                f"&FORMAT=image/png"
+                f"&TIME=2024-01-01/{hoy}"
+            ),
+            attr="Sentinel Hub",
+            name=layer_name,
+            overlay=True,
+            control=True,
+            opacity=0.7
+        ).add_to(m)
 
     folium.LayerControl().add_to(m)
 
-    # --------------------------------------------------
-    # 8️⃣ Renderizar mapa
-    # --------------------------------------------------
-    st_folium(m, height=650)
+    st_folium(m, height=600)
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
