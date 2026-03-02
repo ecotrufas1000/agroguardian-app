@@ -741,21 +741,21 @@ elif menu == "🛰️ Índices Satelitales":
 
     # Obtener token de Sentinel Hub
     def get_sentinel_token():
-    try:
-        r = requests.post(
-            "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",
-            data={
-                "grant_type": "client_credentials",
-                "client_id": st.secrets["SENTINEL_CLIENT_ID"],
-                "client_secret": st.secrets["SENTINEL_CLIENT_SECRET"]
-            }
-        )
-        st.write(f"Status: {r.status_code}")
-        st.write(f"Respuesta: {r.json()}")
-        return r.json().get("access_token")
-    except Exception as e:
-        st.error(f"Error de autenticación: {e}")
-        return None
+        try:
+            r = requests.post(
+                "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",
+                 data={
+                     "grant_type": "client_credentials",
+                     "client_id": st.secrets["SENTINEL_CLIENT_ID"],
+                     "client_secret": st.secrets["SENTINEL_CLIENT_SECRET"]
+                 }
+         )
+         st.write(f"Status: {r.status_code}")
+         st.write(f"Respuesta: {r.json()}")
+         return r.json().get("access_token")
+      except Exception as e:
+          st.error(f"Error de autenticación: {e}")
+          return None
     # Función para obtener imagen de Sentinel Hub
     def get_sentinel_image(token, evalscript, lat, lon, zoom=0.05):
         bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
