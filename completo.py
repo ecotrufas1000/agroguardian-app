@@ -882,22 +882,25 @@ elif menu == "🛰️ Índices Satelitales":
             with st.spinner("Conectando con Sentinel Hub..."):
                 token = get_sentinel_token()
                 if token:
-                    # 1. Descargamos los datos binarios del satélite
+                    # 1. Obtenemos los datos binarios
                     datos_binarios = get_sentinel_image(token, evalscripts[indice_sel], st.session_state.lat, st.session_state.lon, zoom_nivel)
                     
                     if datos_binarios:
                         import base64
-                        # --- PASO CLAVE: Convertimos binario a texto Base64 ---
+                        from streamlit_folium import st_folium
+                        
+                        # 2. Convertimos a Base64 (Texto)
                         b64_img = base64.b64encode(datos_binarios).decode('utf-8')
                         url_final = f'data:image/png;base64,{b64_img}'
-                        # ----------------------------------------------------
 
+                        # 3. Definimos los límites
                         offset = zoom_nivel 
                         limites = [
                             [st.session_state.lat - offset, st.session_state.lon - offset], 
                             [st.session_state.lat + offset, st.session_state.lon + offset]
                         ]
 
+                        # 4. Creamos el mapa con Google Satellite
                         m = folium.Map(
                             location=[st.session_state.lat, st.session_state.lon],
                             zoom_start=14,
@@ -906,7 +909,7 @@ elif menu == "🛰️ Índices Satelitales":
                             attr='Google Satellite'
                         )
 
-                        # AQUÍ ESTABA EL ERROR: Usamos url_final, NO datos_binarios
+                        # 5. Agregamos la capa satelital procesada (NDVI/etc)
                         folium.raster_layers.ImageOverlay(
                             image=url_final, 
                             bounds=limites,
@@ -916,11 +919,20 @@ elif menu == "🛰️ Índices Satelitales":
                             zindex=1
                         ).add_to(m)
 
+                        # 6. Agregamos marcador y ajustamos vista
+                        folium.Marker([st.session_state.lat, st.session_state.lon], tooltip="Tu posición").add_to(m)
                         m.fit_bounds(limites)
-                        folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
 
-                        from streamlit_folium import st_folium
-                        st_folium(m, width=None, height=500, scrolling=False)
+                        # 7. Renderizado SEGURO
+                        # Usamos use_container_width=True en lugar de width=None
+                        st_folium(
+                            m, 
+                            key="mapa_satelital",
+                            width=700, 
+                            height=500, 
+                            scrolling=False,
+                            returned_objects=[] # Esto acelera el mapa y evita errores de recarga
+                        )
                         
                         st.success("✅ ¡Mapa interactivo listo!")
                     else:
