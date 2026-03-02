@@ -885,19 +885,49 @@ elif menu == "🛰️ Índices Satelitales":
                     # Multiplicamos el zoom_nivel para que la imagen sea extensa
                     area_grande = zoom_nivel * 3 
                     
-                    img_data = get_sentinel_image(
-                        token, 
-                        evalscripts[indice_sel], 
-                        lat_map, 
-                        lon_map, 
-                        area_grande # Usamos el área expandida
-                    )
-                    
-                    if img_data:
-                        import base64
-                        import folium
-                        import streamlit.components.v1 as components
+                    import folium
+from streamlit_folium import st_folium
 
+INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
+
+# Selector dinámico
+indice_sel = st.selectbox(
+    "Índice:",
+    ["NDVI", "NDWI", "EVI"],
+    key="indice_wmts"
+)
+
+# Crear mapa base
+m = folium.Map(
+    location=[lat_map, lon_map],
+    zoom_start=14,
+    tiles=None
+)
+
+# Google Satellite base
+folium.TileLayer(
+    tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+    attr="Google Satellite",
+    name="Google Satellite"
+).add_to(m)
+
+# Capa dinámica Sentinel WMTS
+folium.raster_layers.TileLayer(
+    tiles=f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
+          f"?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
+          f"&LAYER={indice_sel}"
+          f"&TILEMATRIXSET=PopularWebMercator256"
+          f"&TILEMATRIX={{z}}&TILEROW={{y}}&TILECOL={{x}}"
+          f"&FORMAT=image/png",
+    attr="Sentinel Hub",
+    name=indice_sel,
+    overlay=True,
+    control=True
+).add_to(m)
+
+folium.LayerControl().add_to(m)
+
+st_folium(m, height=600)
                         # 1. Preparar imagen
                         b64_img = base64.b64encode(img_data).decode('utf-8')
                         img_url = f'data:image/png;base64,{b64_img}'
