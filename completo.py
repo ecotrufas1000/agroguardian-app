@@ -882,61 +882,41 @@ elif menu == "🛰️ Índices Satelitales":
             with st.spinner("Conectando con Sentinel Hub..."):
                 token = get_sentinel_token()
                 if token:
-                    # 1. Obtenemos los datos binarios
-                    datos_binarios = get_sentinel_image(token, evalscripts[indice_sel], st.session_state.lat, st.session_state.lon, zoom_nivel)
+                    # 1. Definimos la URL del servicio WMS de Sentinel Hub
+                    # Reemplaza 'TU_INSTANCE_ID' por el ID de tu configuración en el Dashboard de Sentinel Hub
+                    # Si no tienes uno, usamos la URL base de la API
+                    instance_id = "CONFIGURA_TU_INSTANCE_ID_AQUI" 
+                    wms_url = f"https://services.sentinel-hub.com/ogc/wms/{instance_id}"
+
+                    # 2. Crear el mapa base
+                    m = folium.Map(
+                        location=[st.session_state.lat, st.session_state.lon],
+                        zoom_start=14,
+                        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                        attr='Google Satellite'
+                    )
+
+                    # 3. AGREGAR CAPA WMS (Esto llena todo el mapa)
+                    folium.WmsTileLayer(
+                        url=wms_url,
+                        layers="NDVI",  # El nombre de la capa configurada en tu Dashboard
+                        name="NDVI Dinámico",
+                        fmt="image/png",
+                        transparent=True,
+                        overlay=True,
+                        opacity=0.7,
+                        show=True,
+                        token=token # Pasamos el token de seguridad
+                    ).add_to(m)
+
+                    # 4. Marcador de posición
+                    folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
+
+                    # 5. Renderizado estable
+                    import streamlit.components.v1 as components
+                    components.html(m._repr_html_(), height=500)
                     
-                    if datos_binarios:
-                        import base64
-                        from streamlit_folium import st_folium
-                        
-                        # 2. Convertimos a Base64 (Texto)
-                        b64_img = base64.b64encode(datos_binarios).decode('utf-8')
-                        url_final = f'data:image/png;base64,{b64_img}'
-
-                        # 3. Definimos los límites
-                        offset = zoom_nivel 
-                        limites = [
-                            [st.session_state.lat - offset, st.session_state.lon - offset], 
-                            [st.session_state.lat + offset, st.session_state.lon + offset]
-                        ]
-
-                        # 4. Creamos el mapa con Google Satellite
-                        m = folium.Map(
-                            location=[st.session_state.lat, st.session_state.lon],
-                            zoom_start=14,
-                            control_scale=True,
-                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                            attr='Google Satellite'
-                        )
-
-                        # 5. Agregamos la capa satelital procesada (NDVI/etc)
-                        folium.raster_layers.ImageOverlay(
-                            image=url_final, 
-                            bounds=limites,
-                            opacity=0.7,
-                            interactive=True,
-                            cross_origin=True,
-                            zindex=1
-                        ).add_to(m)
-
-                        # ... (Todo el código anterior de límites y ImageOverlay igual) ...
-
-                        # ... (Todo tu código anterior de límites y ImageOverlay queda igual) ...
-
-                        # 6. Agregamos marcador y ajustamos vista
-                        folium.Marker([st.session_state.lat, st.session_state.lon]).add_to(m)
-                        m.fit_bounds(limites)
-
-                        # 7. RENDERIZADO POR COMPONENTE HTML (A prueba de errores)
-                        import streamlit.components.v1 as components
-                        
-                        # Convertimos el mapa de Folium a HTML puro
-                        mapa_html = m._repr_html_()
-                        
-                        # Lo mostramos como un componente de Streamlit
-                        components.html(mapa_html, height=500, scrolling=False)
-                        
-                        st.success("✅ Mapa cargado en modo de alta compatibilidad.")
+                    st.success("✅ Capa completa activada. Podés navegar por todo el campo.")
     st.divider()
 # ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
