@@ -851,30 +851,26 @@ elif menu == "🛰️ Índices Satelitales":
 
     gdf_argentina = cargar_limites_argentina()
 
-    # --- 2. SELECTORES DE UBICACIÓN (SIEMPRE VISIBLES) ---
-    provincia_sel = "Todas"
-    depto_sel = "Todos"
+    # --- 2. SELECTORES DE UBICACIÓN (SIEMPRE VISIBLES) ---]
+if gdf_argentina is not None:
+    c1, c2 = st.columns(2)
+    with c1:
+        lista_provincias = sorted(gdf_argentina['NAME_1'].unique())
+        provincia_sel = st.selectbox("📍 Provincia:", ["Todas"] + lista_provincias)
+    
+    with c2:
+        if provincia_sel == "Todas":
+            depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
+        else:
+            lista_deptos = sorted(gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]['NAME_2'].unique())
+            depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + lista_deptos)
+    
+    # Aplicar filtro
     gdf_filtrado = gdf_argentina
-
-    if gdf_argentina is not None:
-        # Ponemos los selectores en una fila arriba del mapa
-        c1, c2 = st.columns(2)
-        with c1:
-            lista_provincias = sorted(gdf_argentina['NAME_1'].unique())
-            provincia_sel = st.selectbox("📍 Provincia:", ["Todas"] + lista_provincias)
-        with c2:
-            if provincia_sel != "Todas":
-                lista_deptos = sorted(gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]['NAME_2'].unique())
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + lista_deptos)
-            else:
-                st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
-
-        # Aplicar el filtro al mapa
-        if provincia_sel != "Todas":
-            gdf_filtrado = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
-            if depto_sel != "Todos":
-                gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_2'] == depto_sel]
-
+    if provincia_sel != "Todas":
+        gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_1'] == provincia_sel]
+        if depto_sel != "Todos":
+            gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_2'] == depto_sel]
     st.divider()
 
     # --- 3. VERIFICACIÓN DE GPS ---
