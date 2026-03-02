@@ -760,33 +760,6 @@ elif menu == "📝 Bitácora":
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (VERSIÓN FINAL CORREGIDA)
 # ==========================================================
 # --- COLOCAR ESTO ARRIBA DE LOS "IF MENU" ---
-def get_sentinel_token():
-    try:
-        cid = st.secrets["SENTINEL_CLIENT_ID"]
-        csec = st.secrets["SENTINEL_CLIENT_SECRET"]
-        url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
-        data = {"grant_type": "client_credentials", "client_id": cid, "client_secret": csec}
-        r = requests.post(url, data=data)
-        if r.status_code == 200:
-            return r.json().get("access_token")
-        return None
-    except Exception as e:
-        return None
-
-def get_sentinel_image(token, evalscript, lat, lon, zoom=0.01):
-    url = "https://services.sentinel-hub.com/api/v1/process"
-    bbox = [lon - zoom, lat - zoom, lon + zoom, lat + zoom]
-    payload = {
-        "input": {
-            "bounds": {"bbox": bbox, "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}},
-            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"mosaickingOrder": "leastCC"}}]
-        },
-        "output": {"width": 512, "height": 512, "responses": [{"identifier": "default", "format": {"type": "image/png"}}]},
-        "evalscript": evalscript
-    }
-    headers = {"Authorization": f"Bearer {token}", "Accept": "image/png"}
-    r = requests.post(url, headers=headers, json=payload)
-    return r.content if r.status_code == 200 else None
 # ==========================================================
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (BLOQUE FINAL)
 # ==========================================================
