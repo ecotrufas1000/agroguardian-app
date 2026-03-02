@@ -19,13 +19,25 @@ def get_sentinel_token():
     try:
         cid = st.secrets["SENTINEL_CLIENT_ID"]
         csec = st.secrets["SENTINEL_CLIENT_SECRET"]
+
         url = "https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token"
-        data = {"grant_type": "client_credentials", "client_id": cid, "client_secret": csec}
-        r = requests.post(url, data=data)
+
+        r = requests.post(
+            url,
+            data={"grant_type": "client_credentials"},
+            auth=(cid, csec)  # ← Cambio importante
+        )
+
+        st.write("Status:", r.status_code)
+        st.write("Response:", r.text)
+
         if r.status_code == 200:
-            return r.json().get("access_token")
+            return r.json()["access_token"]
+
         return None
-    except Exception:
+
+    except Exception as e:
+        st.error(f"Error interno: {e}")
         return None
 
 def get_sentinel_image(token, evalscript, lat, lon, zoom=0.01):
