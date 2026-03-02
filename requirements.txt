@@ -12,8 +12,8 @@ flask
 python-dotenv
 streamlit-js-eval
 xlsxwriter
-geopandas
 shapely
-fiona
 pyproj
+geopandas>=0.13
+fiona>=1.9
 
