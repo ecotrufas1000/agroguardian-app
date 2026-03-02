@@ -831,20 +831,20 @@ elif menu == "🛰️ Índices Satelitales":
 
     st.header("🛰️ Índices Satelitales en Tiempo Real")
 
+    # Obtener coordenadas del GPS
     lat_map = st.session_state.get("lat")
     lon_map = st.session_state.get("lon")
 
-    if not lat_map or not lon_map:
+    if lat_map is None or lon_map is None:
         st.warning("📍 Vinculá el GPS en la pestaña Inicio.")
         st.stop()
 
     INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"
 
-    # Selector dinámico
+    # Selector
     indice_sel = st.selectbox(
         "Índice:",
-        ["NDVI", "NDWI", "EVI"],
-        key="indice_wmts"
+        ["NDVI", "NDWI", "EVI"]
     )
 
     hoy = date.today().strftime("%Y-%m-%d")
@@ -863,7 +863,7 @@ elif menu == "🛰️ Índices Satelitales":
         name="Google Satellite"
     ).add_to(m)
 
-    # Capa Sentinel WMTS
+    # Capa WMTS Sentinel
     folium.raster_layers.TileLayer(
         tiles=(
             f"https://services.sentinel-hub.com/ogc/wmts/{INSTANCE_ID}"
