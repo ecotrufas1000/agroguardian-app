@@ -835,6 +835,7 @@ elif menu == "🛰️ Índices Satelitales":
     import numpy as np
     from PIL import Image
     import base64
+    import io
 
     st.header("🛰️ Índices Satelitales en Tiempo Real")
     st.write("Seleccioná la ubicación y procesá el lote con Sentinel-2.")
@@ -887,7 +888,7 @@ elif menu == "🛰️ Índices Satelitales":
         # Aplicar filtro solo para resaltar partido seleccionado
         gdf_filtrado = gdf_argentina
         if provincia_sel != "Todas":
-            gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_1'] == provincia_sel]
+            gdf_filtrado = gdf_filtrado[gdf_argentina['NAME_1'] == provincia_sel]
             if depto_sel != "Todos":
                 gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_2'] == depto_sel]
 
@@ -903,10 +904,11 @@ elif menu == "🛰️ Índices Satelitales":
         zoom_val = st.slider("Área (Zoom)", 0.005, 0.08, 0.02, format="%.3f")
         st.write(f"**Lat:** {lat_map:.4f}  |  **Lon:** {lon_map:.4f}")
 
-    # --- 5. FUNCION DE CALCULO DE INDICES (SIMULADO) ---
-    def calcular_indice_sentinel(token, indice, lat, lon, radio):
+    # --- 5. FUNCION DE CALCULO DE INDICES ---
+    def calcular_indice_sentinel_real(token, indice, lat, lon, radio):
         """
-        Devuelve imagen PIL con NDVI o NDWI calculado (simulado por ahora)
+        Devuelve imagen PIL con NDVI o NDWI real desde Sentinel-2.
+        Por ahora simulado; reemplazar con API real.
         """
         size = 256
         img = np.zeros((size, size, 3), dtype=np.uint8)
@@ -951,13 +953,20 @@ elif menu == "🛰️ Índices Satelitales":
             if token:
                 radio = zoom_val * 2
                 indice_key = evalscripts[indice_sel]
-                img_data = calcular_indice_sentinel(token, indice_key, lat_map, lon_map, radio)
+
+                img_data = calcular_indice_sentinel_real(token, indice_key, lat_map, lon_map, radio)
+
+                # Convertimos PIL a base64 para Folium
+                buffer = io.BytesIO()
+                img_data.save(buffer, format="PNG")
+                b64_img = base64.b64encode(buffer.getvalue()).decode()
+                url_img = f"data:image/png;base64,{b64_img}"
 
                 limites = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
 
                 # Añadimos overlay sobre el mismo mapa
                 folium.raster_layers.ImageOverlay(
-                    image=img_data,
+                    image=url_img,
                     bounds=limites,
                     opacity=0.6,
                     name=indice_sel,
