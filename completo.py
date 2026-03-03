@@ -967,7 +967,7 @@ elif menu == "🛰️ Índices Satelitales":
         components.html(m._repr_html_(), height=650)
         
         st.info(f"💡 El mapa se está pintando con {indice_sel}. Podés desplazarte para analizar otros lotes cercanos.")
-    else:
+        else:
         st.error("No se encontró el archivo de límites (gadm41_AGR_2.gpkg).")
     #    except Exception as e:
     #        st.error(f"❌ Error técnico: {e}")
