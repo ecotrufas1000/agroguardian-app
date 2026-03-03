@@ -829,136 +829,135 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
+    import base64
 
-    st.header("🗺️ Configuración de Límites Administrativos")
+    st.header("🛰️ Análisis Satelital Optimizado")
 
-    # --- 1. CARGA CON NOMBRE CORREGIDO ---
-    # Usamos AGR porque así se ve en tu carpeta de archivos
-    ruta_gpkg = "gadm41_AGR_2.gpkg" 
-    
-    if not os.path.exists(ruta_gpkg):
-        st.error(f"❌ ARCHIVO NO ENCONTRADO: El archivo se llama '{ruta_gpkg}' en tu carpeta, verificá que el código tenga ese nombre exacto.")
-    else:
-        try:
-            gdf = gpd.read_file(ruta_gpkg, engine="pyogrio")
-            st.success(f"✅ ¡CONECTADO! Se cargaron {len(gdf)} áreas de Argentina.")
-            
-            # --- 2. SELECTORES ---
-            columnas = gdf.columns.tolist()
-            col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
-            col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
+    # --- 1. CARGA OPTIMIZADA (Simplificación de puntos) ---
+    @st.cache_data
+    def cargar_limites_argentina():
+        ruta_gpkg = "gadm41_AGR_2.gpkg" 
+        if os.path.exists(ruta_gpkg):
+            try:
+                gdf = gpd.read_file(ruta_gpkg, engine="pyogrio")
+                # Simplificamos la geometría para que el mapa cargue 10 veces más rápido
+                gdf['geometry'] = gdf['geometry'].simplify(0.005, preserve_topology=True)
+                return gdf
+            except Exception as e:
+                st.error(f"Error al cargar GPKG: {e}")
+                return None
+        return None
 
-            c1, c2 = st.columns(2)
-            with c1:
-                provincias = sorted(gdf[col_prov].unique())
-                prov_sel = st.selectbox("Seleccioná Provincia:", ["Todas"] + provincias)
-            with c2:
-                if prov_sel != "Todas":
-                    deptos = sorted(gdf[gdf[col_prov] == prov_sel][col_depto].unique())
-                    depto_sel = st.selectbox("Seleccioná Departamento:", ["Todos"] + deptos)
-                else:
-                    depto_sel = st.selectbox("Seleccioná Departamento:", ["Todos"], disabled=True)
+    gdf_argentina = cargar_limites_argentina()
 
-            # --- 3. CREACIÓN DEL MAPA ---
-            lat_map = st.session_state.get('lat', -34.61)
-            lon_map = st.session_state.get('lon', -58.38)
+    # --- 2. SELECTORES ---
+    lat_map = st.session_state.get('lat', -34.61)
+    lon_map = st.session_state.get('lon', -58.38)
 
-            m = folium.Map(location=[lat_map, lon_map], zoom_start=5, 
-                           tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
-                           attr='Google Satellite')
+    if gdf_argentina is not None:
+        columnas = gdf_argentina.columns.tolist()
+        col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
+        col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
 
-            # --- 4. DIBUJO DE LÍMITES CON JERARQUÍA ---
-            
-            # A. LÍMITES DEPARTAMENTALES (GRIS MUY FINO) 
-            # Se dibujan primero para que queden al fondo
-            folium.GeoJson(
-                gdf,
-                name="Departamentos",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#D3D3D3', 'weight': 0.5, 'opacity': 0.4},
-                interactive=False
-            ).add_to(m)
-
-            # B. LÍMITES PROVINCIALES (NARANJA - Grosor medio)
-            gdf_provincias = gdf.dissolve(by=col_prov)
-            folium.GeoJson(
-                gdf_provincias,
-                name="Límites Provinciales",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2.5},
-                interactive=False
-            ).add_to(m)
-
-            # C. FRONTERA NACIONAL (AZUL ELÉCTRICO)
-            # La dibujamos al final para que pise cualquier otro color en los bordes
-            folium.GeoJson(
-                gdf.dissolve(),
-                name="Frontera Nacional",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 2.5},
-                interactive=False
-            ).add_to(m)
-
-            # D. RESALTADO SELECCIÓN (CIAN BRILLANTE)
+        c1, c2 = st.columns(2)
+        with c1:
+            provincias = sorted(gdf_argentina[col_prov].unique())
+            prov_sel = st.selectbox("📍 Provincia:", ["Todas"] + provincias)
+        with c2:
             if prov_sel != "Todas":
-                gdf_res = gdf[gdf[col_prov] == prov_sel]
-                if depto_sel != "Todos":
-                    gdf_res = gdf_res[gdf_res[col_depto] == depto_sel]
-                
-                folium.GeoJson(
-                    gdf_res,
-                    style_function=lambda x: {
-                        'fillColor': '#00FFFF', 
-                        'fillOpacity': 0.1, 
-                        'color': '#00FFFF', 
-                        'weight': 2.5,
-                        'dashArray': '5, 5'
-                    },
-                    tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto], aliases=["Prov:", "Dpto:"])
-                ).add_to(m)
-                
-                # Auto-zoom
-                b = gdf_res.total_bounds.tolist()
-                m.fit_bounds([[b[1], b[0]], [b[3], b[2]]])
+                deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + deptos)
+            else:
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
 
-            # --- 5. BOTÓN DE PROCESAMIENTO (DEBAJO DEL MAPA) ---
-            st.divider()
-            col_btn1, col_btn2 = st.columns([2, 1])
+    # --- 3. MAPA BASE ---
+    m = folium.Map(location=[lat_map, lon_map], zoom_start=5, 
+                   tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
+                   attr='Google Satellite')
+
+    if gdf_argentina is not None:
+        # A. LÍMITES PROVINCIALES (NARANJA - Siempre visibles)
+        gdf_provincias = gdf_argentina.dissolve(by=col_prov)
+        folium.GeoJson(
+            gdf_provincias,
+            style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2},
+            interactive=False
+        ).add_to(m)
+
+        # B. LÍMITES DEPARTAMENTALES (SOLO SI HAY PROVINCIA ELEGIDA)
+        # Esto ahorra muchísima memoria y tiempo de carga
+        if prov_sel != "Todas":
+            gdf_deptos_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+            folium.GeoJson(
+                gdf_deptos_prov,
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#D3D3D3', 'weight': 0.5, 'opacity': 0.5},
+                tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto])
+            ).add_to(m)
+
+        # C. FRONTERA NACIONAL (AZUL - Al final para que pise todo)
+        folium.GeoJson(
+            gdf_argentina.dissolve(),
+            style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 2.5},
+            interactive=False
+        ).add_to(m)
+
+        # D. RESALTADO CIAN (Selección específica)
+        if prov_sel != "Todas":
+            gdf_res = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+            if depto_sel != "Todos":
+                gdf_res = gdf_res[gdf_res[col_depto] == depto_sel]
             
-            with col_btn2:
-                # El botón ahora está bien visible y separado
-                ejecutar = st.button("🛰️ PROCESAR NDVI/NDWI", use_container_width=True)
+            folium.GeoJson(
+                gdf_res,
+                style_function=lambda x: {'fillColor': '#00FFFF', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 2.5}
+            ).add_to(m)
             
-            with col_btn1:
-                st.info(f"📍 Analizando: {depto_sel}, {prov_sel}")
+            # Zoom automático suave
+            b = gdf_res.total_bounds.tolist()
+            m.fit_bounds([[b[1], b[0]], [b[3], b[2]]])
 
-            # --- 6. LÓGICA DE SENTINEL ---
-            if ejecutar:
-                with st.spinner("Descargando imagen Sentinel-2..."):
-                    token = get_sentinel_token()
-                    if token:
-                        radio = zoom_val * 2
-                        img_raw = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, radio)
-                        
-                        if img_raw:
-                            b64_img = base64.b64encode(img_raw).decode()
-                            url_img = f"data:image/png;base64,{b64_img}"
-                            limites_img = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
+    # --- 4. CONTROLES DE ÍNDICE (Dentro de un Formulario para no recargar el mapa al tocar cada cosa) ---
+    st.divider()
+    with st.form("panel_control"):
+        c_i1, c_i2, c_i3 = st.columns([2, 2, 1])
+        with c_i1:
+            indice_sel = st.selectbox("Elegí el Índice:", ["🌿 NDVI (Vegetación)", "💧 NDWI (Humedad)"])
+        with c_i2:
+            zoom_val = st.slider("Tamaño del Área (Zoom)", 0.005, 0.08, 0.02, format="%.3f")
+        with c_i3:
+            st.write("") # Espacio
+            ejecutar = st.form_submit_button("🛰️ PROCESAR")
 
-                            # Capa satelital
-                            folium.raster_layers.ImageOverlay(
-                                image=url_img,
-                                bounds=limites_img,
-                                opacity=0.7,
-                                zindex=10 # Por encima de los límites para ver el lote claro
-                            ).add_to(m)
-                            st.success("Capa satelital aplicada correctamente.")
+    # --- 5. EJECUCIÓN (Solo si se pulsa Procesar) ---
+    if ejecutar:
+        token = get_sentinel_token()
+        if token:
+            with st.spinner("Analizando lote..."):
+                radio = zoom_val * 2
+                # Aquí iría el script de colores largo que definimos antes
+                script_actual = evalscripts[indice_sel] 
+                img_raw = get_sentinel_image(token, script_actual, lat_map, lon_map, radio)
+                
+                if img_raw:
+                    b64_img = base64.b64encode(img_raw).decode()
+                    url_img = f"data:image/png;base64,{b64_img}"
+                    limites_img = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
 
-            # Renderizado
-            components.html(m._repr_html_(), height=650)
+                    folium.raster_layers.ImageOverlay(
+                        image=url_img, bounds=limites_img, opacity=0.7, zindex=10
+                    ).add_to(m)
+                    st.success(f"✅ Imagen procesada con éxito.")
+
+    # Renderizado Final
+    folium.Marker([lat_map, lon_map], tooltip="Tu Lote").add_to(m)
+    components.html(m._repr_html_(), height=650)
         except Exception as e:
             st.error(f"❌ Error técnico: {e}")
 #==========================================================
