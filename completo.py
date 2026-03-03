@@ -874,32 +874,32 @@ elif menu == "🛰️ Índices Satelitales":
                            attr='Google Satellite')
 
             # --- 4. DIBUJO DE LÍMITES CON JERARQUÍA ---
-
-            # A. CONTORNO PAÍS (AZUL ELÉCTRICO - Muy grueso)
+            
+            # A. LÍMITES DEPARTAMENTALES (GRIS MUY FINO) 
+            # Se dibujan primero para que queden al fondo
             folium.GeoJson(
-                gdf.dissolve(),
-                name="Frontera Nacional",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 6},
+                gdf,
+                name="Departamentos",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#D3D3D3', 'weight': 0.5, 'opacity': 0.4},
                 interactive=False
             ).add_to(m)
 
-            # B. LÍMITES PROVINCIALES (NARANJA FUERTE - Grosor medio)
-            # Disolvemos por provincia para dibujar solo sus bordes
+            # B. LÍMITES PROVINCIALES (NARANJA - Grosor medio)
             gdf_provincias = gdf.dissolve(by=col_prov)
             folium.GeoJson(
                 gdf_provincias,
                 name="Límites Provinciales",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 3},
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2.5},
                 interactive=False
             ).add_to(m)
 
-            # C. LÍMITES DEPARTAMENTALES (GRIS CLARO - Muy fino)
-            # Estos son los que antes eran amarillos y hacían ruido
+            # C. FRONTERA NACIONAL (AZUL ELÉCTRICO)
+            # La dibujamos al final para que pise cualquier otro color en los bordes
             folium.GeoJson(
-                gdf,
-                name="Departamentos",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#D3D3D3', 'weight': 0.8, 'opacity': 0.5},
-                tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto], aliases=["Prov:", "Dpto:"])
+                gdf.dissolve(),
+                name="Frontera Nacional",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4},
+                interactive=False
             ).add_to(m)
 
             # D. RESALTADO SELECCIÓN (CIAN BRILLANTE)
@@ -912,17 +912,52 @@ elif menu == "🛰️ Índices Satelitales":
                     gdf_res,
                     style_function=lambda x: {
                         'fillColor': '#00FFFF', 
-                        'fillOpacity': 0.15, 
+                        'fillOpacity': 0.1, 
                         'color': '#00FFFF', 
-                        'weight': 4,
+                        'weight': 2.5,
                         'dashArray': '5, 5'
-                    }
+                    },
+                    tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto], aliases=["Prov:", "Dpto:"])
                 ).add_to(m)
                 
                 # Auto-zoom
                 b = gdf_res.total_bounds.tolist()
                 m.fit_bounds([[b[1], b[0]], [b[3], b[2]]])
 
+            # --- 5. BOTÓN DE PROCESAMIENTO (DEBAJO DEL MAPA) ---
+            st.divider()
+            col_btn1, col_btn2 = st.columns([2, 1])
+            
+            with col_btn2:
+                # El botón ahora está bien visible y separado
+                ejecutar = st.button("🛰️ PROCESAR NDVI/NDWI", use_container_width=True)
+            
+            with col_btn1:
+                st.info(f"📍 Analizando: {depto_sel}, {prov_sel}")
+
+            # --- 6. LÓGICA DE SENTINEL ---
+            if ejecutar:
+                with st.spinner("Descargando imagen Sentinel-2..."):
+                    token = get_sentinel_token()
+                    if token:
+                        radio = zoom_val * 2
+                        img_raw = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, radio)
+                        
+                        if img_raw:
+                            b64_img = base64.b64encode(img_raw).decode()
+                            url_img = f"data:image/png;base64,{b64_img}"
+                            limites_img = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
+
+                            # Capa satelital
+                            folium.raster_layers.ImageOverlay(
+                                image=url_img,
+                                bounds=limites_img,
+                                opacity=0.7,
+                                zindex=10 # Por encima de los límites para ver el lote claro
+                            ).add_to(m)
+                            st.success("Capa satelital aplicada correctamente.")
+
+            # Renderizado
             components.html(m._repr_html_(), height=650)
         except Exception as e:
             st.error(f"❌ Error técnico: {e}")
