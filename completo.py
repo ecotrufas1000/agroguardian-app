@@ -893,17 +893,40 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_2'] == depto_sel]
 
     # --- 4. SELECCIÓN DE ÍNDICE ---
+    # --- 4. SELECCIÓN DE ÍNDICE (CON GRADIENTES PROFESIONALES) ---
     evalscripts = {
-        "🌿 NDVI (Vegetación)": "NDVI",
-        "💧 NDWI (Humedad)": "NDWI"
+        "🌿 NDVI (Vegetación)": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
+                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo/Caminos (Gris)
+                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Estrés Crítico (Rojo)
+                else if (val < 0.4) return [1, 0.8, 0.2];   // Vigor Bajo (Naranja/Amarillo)
+                else if (val < 0.6) return [0.4, 0.9, 0.2]; // Vigor Medio (Verde Claro)
+                else return [0, 0.4, 0];                    // Vigor Alto (Verde Oscuro)
+            }
+        """,
+        "💧 NDWI (Humedad/Agua)": """
+            //VERSION=3
+            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
+                if (val > 0.1) return [0, 0, 0.8];          // AGUA LIBRE (Azul)
+                else if (val > 0.0) return [0.2, 0.6, 1];   // Suelo muy húmedo (Celeste)
+                else if (val > -0.1) return [1, 1, 0.4];    // Humedad moderada (Amarillo)
+                else return [0.8, 0.4, 0.1];                // Suelo Seco (Marrón)
+            }
+        """
     }
 
+    # Solo una vez definimos las columnas
     col_mapa, col_ctrl = st.columns([3, 1])
-    with col_ctrl:
-        indice_sel = st.selectbox("Índice:", list(evalscripts.keys()))
-        zoom_val = st.slider("Área (Zoom)", 0.005, 0.08, 0.02, format="%.3f")
-        st.write(f"**Lat:** {lat_map:.4f}  |  **Lon:** {lon_map:.4f}")
 
+    with col_ctrl:
+        indice_sel = st.selectbox("Seleccioná Índice:", list(evalscripts.keys()))
+        zoom_val = st.slider("Área de Captura (Zoom)", 0.005, 0.08, 0.02, format="%.3f")
+        st.info(f"📍 **Ubicación actual:**\n{lat_map:.4f} | {lon_map:.4f}")  
     # --- 5. FUNCION DE CALCULO DE INDICES (SIMULADO) ---
     def calcular_indice_sentinel_real(token, indice, lat, lon, radio):
         """
