@@ -835,6 +835,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -844,15 +845,34 @@ elif menu == "🛰️ Índices Satelitales":
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
-    # 1. CONFIGURACIÓN
+    # 1. CONFIGURACIÓN ÚNICA
+    # Asegurate de que tu Dashboard de Sentinel tenga una capa llamada exactamente "NDVI"
     INSTANCE_ID = "TU_INSTANCE_ID_AQUÍ" 
     
     evalscripts = {
-        "🌿 NDVI (Vegetación)": "...", # (Mantené tus evalscripts aquí)
-        "💧 NDWI (Humedad)": "..."
+        "🌿 NDVI (Vegetación)": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
+                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo (Gris)
+                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Estrés (Rojo)
+                else if (val < 0.4) return [1, 0.8, 0.2];   // Medio (Amarillo)
+                else return [0, 0.4, 0];                    // Sano (Verde)
+            }
+        """,
+        "💧 NDWI (Humedad)": """
+            //VERSION=3
+            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
+            function evaluatePixel(s) {
+                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
+                if (val > 0.1) return [0, 0, 0.8];          // Agua
+                else if (val > 0.0) return [0.2, 0.6, 1];   // Humedad
+                else return [0.8, 0.4, 0.1];                // Seco
+            }
+        """
     }
 
-    # 2. CARGA DE DATOS (Pesada pero cacheada)
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
@@ -863,47 +883,46 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        columnas = gdf_argentina.columns.tolist()
-        col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
-        col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
+        col_prov = "NAME_1"
+        col_depto = "NAME_2"
 
-        # --- 3. INTERFAZ DE ENTRADA (Solo selectores al principio) ---
-        st.info("👋 Seleccioná una ubicación para activar el monitor satelital.")
+        # --- 2. INTERFAZ DE ENTRADA ---
+        st.info("📍 Para comenzar, seleccioná la ubicación de interés.")
         
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."] + provincias)
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
+                depto_sel = st.selectbox("Departamento:", ["Seleccionar..."] + deptos)
             else:
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando provincia..."], disabled=True)
+                depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Índice:", list(evalscripts.keys()))
+            indice_sel = st.selectbox("Índice a Visualizar:", list(evalscripts.keys()))
 
-        # --- 4. LÓGICA DE CARGA CONDICIONAL ---
-        # Solo entramos aquí si el usuario eligió provincia Y departamento
+        # --- 3. RENDERIZADO CONDICIONAL (Solo si hay selección) ---
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             
-            with st.spinner(f"Cargando mapa de {depto_sel}..."):
-                # Filtramos la geometría específica
+            with st.spinner(f"Sincronizando capa satelital en {depto_sel}..."):
+                # Filtro y Centroide
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
                 
-                # Creamos el mapa solo para esta zona
+                # Crear Mapa
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=12, 
                                tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
                                attr='Google Satellite')
 
-                # Capa WMS Dinámica
+                # CAPA WMS DINÁMICA
                 if INSTANCE_ID != "TU_INSTANCE_ID_AQUÍ":
                     url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+                    
                     folium.WmsTileLayer(
                         url=url_wms,
-                        layers="NDVI",
-                        name=f"Capa: {indice_sel}",
+                        layers="NDVI", # <--- IMPORTANTE: Debe llamarse igual en tu dashboard
+                        name=f"Análisis {indice_sel}",
                         fmt="image/png",
                         transparent=True,
                         overlay=True,
@@ -911,64 +930,39 @@ elif menu == "🛰️ Índices Satelitales":
                         zindex=1000,
                         evalscript=evalscripts[indice_sel]
                     ).add_to(m)
+                
+                # Dibujamos el límite del departamento (Cian con transparencia mínima)
+                folium.GeoJson(
+                    gdf_loc, 
+                    style_function=lambda x: {
+                        'fillColor': 'cyan', 
+                        'fillOpacity': 0.05, 
+                        'color': '#00FFFF', 
+                        'weight': 3,
+                        'dashArray': '5, 5'
+                    }
+                ).add_to(m)
 
-                # Límites del departamento (Cian)
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.05, 'color': '#00FFFF', 'weight': 3}).add_to(m)
+                # Agregamos control de capas para que puedas apagar/prender el NDVI
+                folium.LayerControl().add_to(m)
 
-                # Renderizado
+                # Forzamos el ajuste de vista
+                bounds = gdf_loc.total_bounds.tolist()
+                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+
+                # Renderizar HTML
                 components.html(m._repr_html_(), height=650)
-                st.success(f"Monitor activo en {depto_sel}, {prov_sel}.")
-        
+                
+                st.success(f"✅ Monitor activo. Si no ves colores, verificá que la capa en Sentinel Hub se llame 'NDVI'.")
         else:
-            # Mostramos un placeholder o imagen estática mientras espera
-            st.warning("Por favor, seleccioná Provincia y Departamento para visualizar los datos satelitales.")
-            # Opcional: Podés poner una imagen de fondo bonita aquí
+            # Estado inicial: Sin mapa pesado cargado
+            st.warning("Esperando selección de ubicación para inicializar el motor satelital.")
+            
+            # Un pequeño truco visual: una imagen o espacio vacío para mantener la estética
+            st.container().write("") 
+
     else:
-        st.error("Error al cargar la base de datos geográfica.")
-        # 5. CREACIÓN DEL MAPA
-        m = folium.Map(location=[lat_focal, lon_focal], zoom_start=zoom_focal, 
-                       tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
-                       attr='Google Satellite')
-
-        # 6. CAPA DINÁMICA WMS (Sentinel Hub)
-        if INSTANCE_ID != "TU_INSTANCE_ID_AQUÍ":
-            url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
-            folium.WmsTileLayer(
-                url=url_wms,
-                layers="NDVI",  # Nombre de la capa en tu Sentinel Dashboard
-                name=f"Capa: {indice_sel}",
-                fmt="image/png",
-                transparent=True,
-                overlay=True,
-                control=True,
-                opacity=0.7,
-                zindex=1000,
-                evalscript=evalscripts[indice_sel] # Sobreescribe el color al vuelo
-            ).add_to(m)
-        else:
-            st.warning("⚠️ No olvides pegar tu INSTANCE_ID para ver el índice dinámico.")
-
-        # 7. DIBUJO DE LÍMITES ADMINISTRATIVOS
-        # A. Departamentos (Gris suave de fondo)
-        folium.GeoJson(gdf_argentina, style_function=lambda x: {'fillColor': 'transparent', 'color': '#D3D3D3', 'weight': 0.7, 'opacity': 0.4}, interactive=False).add_to(m)
-        # B. Provincias (Naranja)
-        folium.GeoJson(gdf_argentina.dissolve(by=col_prov), style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2.5}, interactive=False).add_to(m)
-        # C. Nación (Azul)
-        folium.GeoJson(gdf_argentina.dissolve(), style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4}, interactive=False).add_to(m)
-
-        # D. Resaltado Cian si hay selección
-        if prov_sel != "Todas":
-            gdf_res = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
-            if depto_sel != "Todos": gdf_res = gdf_res[gdf_res[col_depto] == depto_sel]
-            folium.GeoJson(gdf_res, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.05, 'color': '#00FFFF', 'weight': 3, 'dashArray': '5,5'}).add_to(m)
-            m.fit_bounds(gdf_res.total_bounds.tolist())
-
-        # 8. RENDERIZADO FINAL
-        components.html(m._repr_html_(), height=650)
-        
-        st.info(f"💡 El mapa se está pintando con {indice_sel}. Podés desplazarte para analizar otros lotes cercanos.")
-        else:
-        st.error("No se encontró el archivo de límites (gadm41_AGR_2.gpkg).")
+        st.error("No se pudo cargar la base de datos de departamentos.")
     #    except Exception as e:
     #        st.error(f"❌ Error técnico: {e}")
 #==========================================================
