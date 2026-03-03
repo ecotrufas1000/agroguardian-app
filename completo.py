@@ -838,41 +838,34 @@ elif menu == "🛰️ Índices Satelitales":
 
     st.header("🗺️ Configuración de Límites Administrativos")
 
-    # --- 1. INTENTO DE CARGA FORZADA ---
-    ruta_gpkg = "gadm41_AGR_2.gpkg"
+    # --- 1. CARGA CON NOMBRE CORREGIDO ---
+    # Usamos AGR porque así se ve en tu carpeta de archivos
+    ruta_gpkg = "gadm41_AGR_2.gpkg" 
     
     if not os.path.exists(ruta_gpkg):
-        st.error(f"❌ ARCHIVO NO ENCONTRADO: El archivo '{ruta_gpkg}' no está en la raíz del proyecto.")
-        st.info("Asegurate de que el archivo que convertiste esté subido a GitHub con ese nombre exacto.")
+        st.error(f"❌ ARCHIVO NO ENCONTRADO: El archivo se llama '{ruta_gpkg}' en tu carpeta, verificá que el código tenga ese nombre exacto.")
     else:
         try:
-            # Cargamos el archivo
             gdf = gpd.read_file(ruta_gpkg, engine="pyogrio")
-            st.success(f"✅ ARCHIVO CARGADO: {len(gdf)} registros encontrados.")
+            st.success(f"✅ ¡CONECTADO! Se cargaron {len(gdf)} áreas de Argentina.")
             
-            # --- DIAGNÓSTICO DE COLUMNAS ---
-            # Esto nos dirá si las columnas se llaman NAME_1, NAME_2 o de otra forma
-            columnas = gdf.columns.tolist()
-            st.write(f"Columnas detectadas: `{columnas}`")
-
             # --- 2. SELECTORES ---
-            col_sel1, col_sel2 = st.columns(2)
-            
-            with col_sel1:
-                # Usamos la primera columna que parezca de provincias (NAME_1 usualmente)
-                col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
+            columnas = gdf.columns.tolist()
+            col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
+            col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
+
+            c1, c2 = st.columns(2)
+            with c1:
                 provincias = sorted(gdf[col_prov].unique())
                 prov_sel = st.selectbox("Seleccioná Provincia:", ["Todas"] + provincias)
-
-            with col_sel2:
-                col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
+            with c2:
                 if prov_sel != "Todas":
                     deptos = sorted(gdf[gdf[col_prov] == prov_sel][col_depto].unique())
                     depto_sel = st.selectbox("Seleccioná Departamento:", ["Todos"] + deptos)
                 else:
                     depto_sel = st.selectbox("Seleccioná Departamento:", ["Todos"], disabled=True)
 
-            # --- 3. CREACIÓN DEL MAPA ---
+            # --- 3. MAPA DINÁMICO ---
             lat_map = st.session_state.get('lat', -34.61)
             lon_map = st.session_state.get('lon', -58.38)
 
@@ -880,26 +873,23 @@ elif menu == "🛰️ Índices Satelitales":
                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
                            attr='Google Satellite')
 
-            # --- 4. DIBUJO DE LÍMITES (Colores Pedidos) ---
-            
             # A. CONTORNO PAÍS (AZUL FUERTE)
-            # Dissolve une todo el país en una sola forma
-            contorno_pais = gdf.dissolve()
             folium.GeoJson(
-                contorno_pais,
-                name="Contorno Argentina",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 5}
+                gdf.dissolve(),
+                name="Frontera Nacional",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 5},
+                interactive=False
             ).add_to(m)
 
-            # B. LÍMITES INTERNOS (AMARILLO)
+            # B. LÍMITES PROVINCIALES/DEPTOS (AMARILLO)
             folium.GeoJson(
                 gdf,
                 name="Límites Internos",
                 style_function=lambda x: {'fillColor': 'transparent', 'color': '#FFFF00', 'weight': 1},
-                tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto])
+                tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto], aliases=["Prov:", "Dpto:"])
             ).add_to(m)
 
-            # C. RESALTADO SELECCIÓN (CIAN)
+            # C. RESALTADO CIAN (Si selecciona algo)
             if prov_sel != "Todas":
                 gdf_res = gdf[gdf[col_prov] == prov_sel]
                 if depto_sel != "Todos":
@@ -910,15 +900,14 @@ elif menu == "🛰️ Índices Satelitales":
                     style_function=lambda x: {'fillColor': '#00FFFF', 'fillOpacity': 0.2, 'color': '#00FFFF', 'weight': 3}
                 ).add_to(m)
                 
-                # Ajustar el mapa automáticamente a la zona
-                bounds = gdf_res.total_bounds.tolist() # [minx, miny, maxx, maxy]
-                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+                # Auto-zoom a la zona
+                b = gdf_res.total_bounds.tolist()
+                m.fit_bounds([[b[1], b[0]], [b[3], b[2]]])
 
-            # Renderizar
-            components.html(m._repr_html_(), height=600)
+            components.html(m._repr_html_(), height=650)
 
         except Exception as e:
-            st.error(f"❌ ERROR AL PROCESAR EL MAPA: {e}")
+            st.error(f"❌ Error técnico: {e}")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
