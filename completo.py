@@ -928,7 +928,10 @@ elif menu == "🛰️ Índices Satelitales":
                     transparent=True,
                     overlay=True,
                     opacity=0.7,
-                    version="1.3.0"
+                    version="1.3.0",
+                    attr="Sentinel Hub",
+                    crs="EPSG:3857",
+                    time="2024-01-01/2024-12-31"
                 ).add_to(m)
 
                 # 2. LÍMITES NACIONALES (AZUL)
@@ -937,11 +940,21 @@ elif menu == "🛰️ Índices Satelitales":
                 # 3. LÍMITES PROVINCIALES (NARANJA)
                 folium.GeoJson(gdf_provs, style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2}, interactive=False).add_to(m)
 
-                # 4. RESALTADO DEPARTAMENTO (CIAN)
+                   # 4. RESALTADO DEPARTAMENTO (CIAN)
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3}).add_to(m)
 
                 # Ajuste de vista y render
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
+                # Ajuste de vista
+                m.fit_bounds(gdf_loc.total_bounds.tolist())
+
+                # 👇 ESTO FALTABA
+                folium.LayerControl(collapsed=False).add_to(m)
+
+                # Render
+                components.html(m._repr_html_(), height=650)
+
+st.success(f"Visualizando {indice_sel} en {depto_sel}")
                 components.html(m._repr_html_(), height=650)
                 st.success(f"Visualizando {indice_sel} en {depto_sel}")
         else:
