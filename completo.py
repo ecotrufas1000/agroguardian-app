@@ -931,7 +931,7 @@ elif menu == "🛰️ Índices Satelitales":
     # Esta capa se pide al servidor cada vez que movés el mapa o hacés zoom
     folium.WmsTileLayer(
         url=url_wms,
-        layers="NDVI",  // Asegurate que en tu Dashboard de Sentinel la capa se llame exactamente 'NDVI'
+        layers="NDVI",
         name=f"Capa Dinámica: {indice_sel}",
         fmt="image/png",
         transparent=True,
