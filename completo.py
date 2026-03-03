@@ -923,7 +923,7 @@ elif menu == "🛰️ Índices Satelitales":
                 # CAPA WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=layer_name,   # ← dinámico, no fijo
+                    layers=layer_name,
                     name=layer_name,
                     fmt="image/png",
                     transparent=True,
@@ -933,6 +933,10 @@ elif menu == "🛰️ Índices Satelitales":
                     attr="Sentinel Hub",
                     styles="",
                     uppercase=True,
+                    extra_params={
+                        "TIME": "2025-01-01/2025-12-31",  # ← rango del año pasado
+                        "MAXCC": "20",                     # ← máximo 20% nubosidad
+                    }
                 ).add_to(m)
 
                 # LÍMITES
