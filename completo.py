@@ -920,43 +920,49 @@ elif menu == "🛰️ Índices Satelitales":
             if depto_sel != "Todos": gdf_res = gdf_res[gdf_res[col_depto] == depto_sel]
             folium.GeoJson(gdf_res, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.05, 'color': '#00FFFF', 'weight': 3, 'dashArray': '5,5'}).add_to(m)
 
-    # 6. Panel de Control
-    st.divider()
-    col_c1, col_c2 = st.columns([3, 1])
-    with col_c1:
-        idx_key = st.selectbox("Índice:", list(evalscripts.keys()))
-        z_val = st.slider("Radio de captura", 0.005, 0.08, 0.02)
-    with col_c2:
-        st.write("") ; st.write("")
-        btn_proc = st.button("🛰️ ANALIZAR", use_container_width=True)
+    # --- 6. CONFIGURACIÓN CAPA DINÁMICA (WMS) ---
+    # Colocá aquí tu ID de Instancia de Sentinel Hub
+    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"  # <--- PEGA TU ID ACÁ
+    
+    # Construimos la URL del servicio OGC de Sentinel
+    url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
 
-    # 7. Lógica de Procesamiento con PERSISTENCIA
-    if btn_proc:
-        token = get_sentinel_token()
-        if token:
-            with st.spinner("Descargando imagen..."):
-                radio = z_val * 2
-                img_data = get_sentinel_image(token, evalscripts[idx_key], lat_map, lon_map, radio)
-                if img_data:
-                    # Guardamos la imagen y los límites en la sesión para que no se borren
-                    st.session_state['last_ndvi'] = base64.b64encode(img_data).decode()
-                    st.session_state['last_bounds'] = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
-                    st.session_state['raw_img'] = img_data
+    # Agregamos la capa dinámica al mapa de Folium
+    # Esta capa se pide al servidor cada vez que movés el mapa o hacés zoom
+    folium.WmsTileLayer(
+        url=url_wms,
+        layers="NDVI",  // Asegurate que en tu Dashboard de Sentinel la capa se llame exactamente 'NDVI'
+        name=f"Capa Dinámica: {indice_sel}",
+        fmt="image/png",
+        transparent=True,
+        overlay=True,
+        control=True,
+        opacity=0.7,
+        zindex=1000,
+        styles="",
+        # Pasamos el script de color para que Sentinel procese los pixeles al vuelo
+        evalscript=evalscripts[indice_sel]
+    ).add_to(m)
 
-    # 8. Renderizar la imagen si existe en la sesión
-    if 'last_ndvi' in st.session_state:
-        folium.raster_layers.ImageOverlay(
-            image=f"data:image/png;base64,{st.session_state['last_ndvi']}",
-            bounds=st.session_state['last_bounds'],
-            opacity=0.8,
-            zindex=1000
-        ).add_to(m)
-        m.fit_bounds(st.session_state['last_bounds'])
-        
-        st.download_button("💾 Guardar Análisis", data=st.session_state['raw_img'], 
-                           file_name="analisis_agro.png", mime="image/png")
+    # --- 7. LEYENDA FLOTANTE (Opcional pero muy útil) ---
+    if "NDVI" in indice_sel:
+        leyenda_html = '''
+             <div style="position: fixed; 
+                         bottom: 50px; left: 50px; width: 150px; height: 120px; 
+                         border:2px solid grey; z-index:9999; font-size:14px;
+                         background-color:white; opacity: 0.8;
+                         padding: 10px;">
+             <b>Escala NDVI</b><br>
+             <i style="background:#006400;width:10px;height:10px;display:inline-block"></i> Alto Vigor<br>
+             <i style="background:#FFFF00;width:10px;height:10px;display:inline-block"></i> Medio/Bajo<br>
+             <i style="background:#FF0000;width:10px;height:10px;display:inline-block"></i> Estrés/Suelo<br>
+             </div>
+             '''
+        m.get_root().html.add_child(folium.Element(leyenda_html))
 
-    # Render Final
+    st.success("🛰️ Modo Dinámico Activo: Navegá libremente por el mapa para ver el índice.")
+
+    # Renderizado final
     components.html(m._repr_html_(), height=650)
     #    except Exception as e:
     #        st.error(f"❌ Error técnico: {e}")
