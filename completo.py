@@ -839,7 +839,7 @@ elif menu == "🛰️ Índices Satelitales":
     st.header("🗺️ Configuración de Límites Administrativos")
 
     # --- 1. INTENTO DE CARGA FORZADA ---
-    ruta_gpkg = "gadm41_ARG_2.gpkg"
+    ruta_gpkg = "gadm41_AGR_2.gpkg"
     
     if not os.path.exists(ruta_gpkg):
         st.error(f"❌ ARCHIVO NO ENCONTRADO: El archivo '{ruta_gpkg}' no está en la raíz del proyecto.")
