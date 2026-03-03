@@ -828,132 +828,97 @@ elif menu == "📝 Bitácora":
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (GeoPackage)
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
-    import base64
 
-    st.header("🛰️ Índices Satelitales en Tiempo Real")
+    st.header("🗺️ Configuración de Límites Administrativos")
 
-    # --- 1. CARGA DE GPKG (Aseguramos lectura) ---
-    @st.cache_data
-    def cargar_limites_argentina():
-        # Verificamos si el archivo existe con el nombre exacto
-        ruta_gpkg = "gadm41_ARG_2.gpkg" 
-        if os.path.exists(ruta_gpkg):
-            return gpd.read_file(ruta_gpkg, engine="pyogrio")
-        return None
+    # --- 1. INTENTO DE CARGA FORZADA ---
+    ruta_gpkg = "gadm41_ARG_2.gpkg"
+    
+    if not os.path.exists(ruta_gpkg):
+        st.error(f"❌ ARCHIVO NO ENCONTRADO: El archivo '{ruta_gpkg}' no está en la raíz del proyecto.")
+        st.info("Asegurate de que el archivo que convertiste esté subido a GitHub con ese nombre exacto.")
+    else:
+        try:
+            # Cargamos el archivo
+            gdf = gpd.read_file(ruta_gpkg, engine="pyogrio")
+            st.success(f"✅ ARCHIVO CARGADO: {len(gdf)} registros encontrados.")
+            
+            # --- DIAGNÓSTICO DE COLUMNAS ---
+            # Esto nos dirá si las columnas se llaman NAME_1, NAME_2 o de otra forma
+            columnas = gdf.columns.tolist()
+            st.write(f"Columnas detectadas: `{columnas}`")
 
-    gdf_argentina = cargar_limites_argentina()
+            # --- 2. SELECTORES ---
+            col_sel1, col_sel2 = st.columns(2)
+            
+            with col_sel1:
+                # Usamos la primera columna que parezca de provincias (NAME_1 usualmente)
+                col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
+                provincias = sorted(gdf[col_prov].unique())
+                prov_sel = st.selectbox("Seleccioná Provincia:", ["Todas"] + provincias)
 
-    # --- 2. SELECTORES DE UBICACIÓN ---
-    lat_map = st.session_state.get('lat', -34.61)
-    lon_map = st.session_state.get('lon', -58.38)
+            with col_sel2:
+                col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
+                if prov_sel != "Todas":
+                    deptos = sorted(gdf[gdf[col_prov] == prov_sel][col_depto].unique())
+                    depto_sel = st.selectbox("Seleccioná Departamento:", ["Todos"] + deptos)
+                else:
+                    depto_sel = st.selectbox("Seleccioná Departamento:", ["Todos"], disabled=True)
 
-    if gdf_argentina is not None:
-        c1, c2 = st.columns(2)
-        with c1:
-            lista_provincias = sorted(gdf_argentina['NAME_1'].unique())
-            provincia_sel = st.selectbox("📍 Provincia:", ["Todas"] + lista_provincias)
-        with c2:
-            if provincia_sel != "Todas":
-                lista_deptos = sorted(gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]['NAME_2'].unique())
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + lista_deptos)
-            else:
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
+            # --- 3. CREACIÓN DEL MAPA ---
+            lat_map = st.session_state.get('lat', -34.61)
+            lon_map = st.session_state.get('lon', -58.38)
 
-    # --- 3. SCRIPTS DE COLORES PROFESIONALES ---
-    evalscripts = {
-        "🌿 NDVI (Vegetación)": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5]; 
-                else if (val < 0.3) return [0.9, 0.1, 0.1]; 
-                else if (val < 0.5) return [1, 0.8, 0.2]; 
-                else return [0, 0.4, 0];
-            }
-        """,
-        "💧 NDWI (Humedad)": """
-            //VERSION=3
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 0.8];
-                else if (val > 0.0) return [0.2, 0.6, 1];
-                else return [0.8, 0.4, 0.1];
-            }
-        """
-    }
+            m = folium.Map(location=[lat_map, lon_map], zoom_start=5, 
+                           tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
+                           attr='Google Satellite')
 
-    col_mapa, col_ctrl = st.columns([3, 1])
-
-    with col_ctrl:
-        indice_sel = st.selectbox("Índice:", list(evalscripts.keys()))
-        zoom_val = st.slider("Tamaño de visualización", 0.005, 0.08, 0.02, format="%.3f")
-        btn_procesar = st.button("🛰️ ACTUALIZAR MAPA", use_container_width=True)
-
-    with col_mapa:
-        # Creamos el mapa base dinámico
-        m = folium.Map(location=[lat_map, lon_map], zoom_start=14,
-                       tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                       attr='Google Satellite')
-
-        # --- DIBUJO DE CAPAS GPKG (Prioridad de dibujo) ---
-        if gdf_argentina is not None:
-            # 1. CONTORNO PAÍS (AZUL) - Siempre visible
+            # --- 4. DIBUJO DE LÍMITES (Colores Pedidos) ---
+            
+            # A. CONTORNO PAÍS (AZUL FUERTE)
+            # Dissolve une todo el país en una sola forma
+            contorno_pais = gdf.dissolve()
             folium.GeoJson(
-                gdf_argentina.dissolve(), 
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4},
-                interactive=False
+                contorno_pais,
+                name="Contorno Argentina",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 5}
             ).add_to(m)
 
-            # 2. LÍMITES PROVINCIALES (AMARILLO)
+            # B. LÍMITES INTERNOS (AMARILLO)
             folium.GeoJson(
-                gdf_argentina,
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FFFF00', 'weight': 1.5},
-                tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
+                gdf,
+                name="Límites Internos",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FFFF00', 'weight': 1},
+                tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto])
             ).add_to(m)
 
-            # 3. RESALTAR ZONA SELECCIONADA (CYAN)
-            if provincia_sel != "Todas":
-                gdf_res = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
+            # C. RESALTADO SELECCIÓN (CIAN)
+            if prov_sel != "Todas":
+                gdf_res = gdf[gdf[col_prov] == prov_sel]
                 if depto_sel != "Todos":
-                    gdf_res = gdf_res[gdf_res['NAME_2'] == depto_sel]
+                    gdf_res = gdf_res[gdf_res[col_depto] == depto_sel]
                 
                 folium.GeoJson(
                     gdf_res,
-                    style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3, 'dashArray': '5,5'}
+                    style_function=lambda x: {'fillColor': '#00FFFF', 'fillOpacity': 0.2, 'color': '#00FFFF', 'weight': 3}
                 ).add_to(m)
-
-        # --- LÓGICA DE SENTINEL ---
-        if btn_procesar:
-            token = get_sentinel_token()
-            if token:
-                radio = zoom_val * 2
-                img_raw = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, radio)
                 
-                if img_raw:
-                    b64_img = base64.b64encode(img_raw).decode()
-                    url_img = f"data:image/png;base64,{b64_img}"
-                    limites_img = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
+                # Ajustar el mapa automáticamente a la zona
+                bounds = gdf_res.total_bounds.tolist() # [minx, miny, maxx, maxy]
+                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
 
-                    # Overlay con Z-Index medio para que no tape los límites amarillos si no quieres
-                    folium.raster_layers.ImageOverlay(
-                        image=url_img,
-                        bounds=limites_img,
-                        opacity=0.6, # Menos opacidad lo integra mejor al mapa base
-                        zindex=1 # Lo ponemos debajo de las líneas de los límites
-                    ).add_to(m)
-                    m.fit_bounds(limites_img)
+            # Renderizar
+            components.html(m._repr_html_(), height=600)
 
-        # Marcador y Render
-        folium.Marker([lat_map, lon_map]).add_to(m)
-        components.html(m._repr_html_(), height=650)
+        except Exception as e:
+            st.error(f"❌ ERROR AL PROCESAR EL MAPA: {e}")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
