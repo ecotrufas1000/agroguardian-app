@@ -936,7 +936,7 @@ elif menu == "🛰️ Índices Satelitales":
                     time="2024-01-15",
                     uppercase=True
                     width=1024,
-                    height=1024,
+                    height=1024
                 ).add_to(m)
 
                 # 2. LÍMITES NACIONALES (AZUL)
