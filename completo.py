@@ -915,17 +915,20 @@ elif menu == "🛰️ Índices Satelitales":
                                attr='Google Satellite')
 
                 # 1. CAPA NDVI (WMS) - La ponemos primero con zindex alto
+                #url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+                layer_name = "NDVI" if "NDVI" in indice_sel else "NDWI"
+
                 url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+
                 folium.WmsTileLayer(
                     url=url_wms,
-                    layers="NDVI", 
-                    name="Análisis Satelital",
+                    layers=layer_name,
+                    name=indice_sel,
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
                     opacity=0.7,
-                    zindex=100, # Prioridad para que se vea
-                    evalscript=evalscripts[indice_sel]
+                    version="1.3.0"
                 ).add_to(m)
 
                 # 2. LÍMITES NACIONALES (AZUL)
