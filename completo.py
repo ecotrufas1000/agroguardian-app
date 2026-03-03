@@ -836,6 +836,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -845,8 +846,7 @@ elif menu == "🛰️ Índices Satelitales":
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
-    # 1. CONFIGURACIÓN ÚNICA
-    # Asegurate de que tu Dashboard de Sentinel tenga una capa llamada exactamente "NDVI"
+    # 1. CONFIGURACIÓN (Verificá que en Sentinel la capa se llame exactamente 'NDVI')
     INSTANCE_ID = "TU_INSTANCE_ID_AQUÍ" 
     
     evalscripts = {
@@ -855,10 +855,10 @@ elif menu == "🛰️ Índices Satelitales":
             function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
                 let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo (Gris)
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Estrés (Rojo)
-                else if (val < 0.4) return [1, 0.8, 0.2];   // Medio (Amarillo)
-                else return [0, 0.4, 0];                    // Sano (Verde)
+                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo
+                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Rojo
+                else if (val < 0.4) return [1, 0.8, 0.2];   // Amarillo
+                else return [0, 0.4, 0];                    // Verde
             }
         """,
         "💧 NDWI (Humedad)": """
@@ -886,9 +886,7 @@ elif menu == "🛰️ Índices Satelitales":
         col_prov = "NAME_1"
         col_depto = "NAME_2"
 
-        # --- 2. INTERFAZ DE ENTRADA ---
-        st.info("📍 Para comenzar, seleccioná la ubicación de interés.")
-        
+        # SELECTORES
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
@@ -900,69 +898,51 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("Índice a Visualizar:", list(evalscripts.keys()))
+            indice_sel = st.selectbox("Índice:", list(evalscripts.keys()))
 
-        # --- 3. RENDERIZADO CONDICIONAL (Solo si hay selección) ---
+        # RENDERIZADO (Solo si hay selección)
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            
-            with st.spinner(f"Sincronizando capa satelital en {depto_sel}..."):
-                # Filtro y Centroide
+            with st.spinner("Sincronizando capas..."):
+                # Filtros de Geometría
+                gdf_nacion = gdf_argentina.dissolve()
+                gdf_provs = gdf_argentina.dissolve(by=col_prov).reset_index()
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
                 
-                # Crear Mapa
+                # MAPA BASE
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=12, 
                                tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
                                attr='Google Satellite')
 
-                # CAPA WMS DINÁMICA
-                if INSTANCE_ID != "TU_INSTANCE_ID_AQUÍ":
-                    url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
-                    
-                    folium.WmsTileLayer(
-                        url=url_wms,
-                        layers="NDVI", # <--- IMPORTANTE: Debe llamarse igual en tu dashboard
-                        name=f"Análisis {indice_sel}",
-                        fmt="image/png",
-                        transparent=True,
-                        overlay=True,
-                        opacity=0.7,
-                        zindex=1000,
-                        evalscript=evalscripts[indice_sel]
-                    ).add_to(m)
-                
-                # Dibujamos el límite del departamento (Cian con transparencia mínima)
-                folium.GeoJson(
-                    gdf_loc, 
-                    style_function=lambda x: {
-                        'fillColor': 'cyan', 
-                        'fillOpacity': 0.05, 
-                        'color': '#00FFFF', 
-                        'weight': 3,
-                        'dashArray': '5, 5'
-                    }
+                # 1. CAPA NDVI (WMS) - La ponemos primero con zindex alto
+                url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+                folium.WmsTileLayer(
+                    url=url_wms,
+                    layers="NDVI", 
+                    name="Análisis Satelital",
+                    fmt="image/png",
+                    transparent=True,
+                    overlay=True,
+                    opacity=0.7,
+                    zindex=100, # Prioridad para que se vea
+                    evalscript=evalscripts[indice_sel]
                 ).add_to(m)
 
-                # Agregamos control de capas para que puedas apagar/prender el NDVI
-                folium.LayerControl().add_to(m)
+                # 2. LÍMITES NACIONALES (AZUL)
+                folium.GeoJson(gdf_nacion, style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4}, interactive=False).add_to(m)
 
-                # Forzamos el ajuste de vista
-                bounds = gdf_loc.total_bounds.tolist()
-                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+                # 3. LÍMITES PROVINCIALES (NARANJA)
+                folium.GeoJson(gdf_provs, style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2}, interactive=False).add_to(m)
 
-                # Renderizar HTML
+                # 4. RESALTADO DEPARTAMENTO (CIAN)
+                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3}).add_to(m)
+
+                # Ajuste de vista y render
+                m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m._repr_html_(), height=650)
-                
-                st.success(f"✅ Monitor activo. Si no ves colores, verificá que la capa en Sentinel Hub se llame 'NDVI'.")
+                st.success(f"Visualizando {indice_sel} en {depto_sel}")
         else:
-            # Estado inicial: Sin mapa pesado cargado
-            st.warning("Esperando selección de ubicación para inicializar el motor satelital.")
-            
-            # Un pequeño truco visual: una imagen o espacio vacío para mantener la estética
-            st.container().write("") 
-
-    else:
-        st.error("No se pudo cargar la base de datos de departamentos.")
+            st.warning("Seleccioná Provincia y Departamento para cargar el monitor.")
     #    except Exception as e:
     #        st.error(f"❌ Error técnico: {e}")
 #==========================================================
