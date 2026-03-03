@@ -908,70 +908,57 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_provs = gdf_argentina.dissolve(by=col_prov).reset_index()
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
-                
-                # MAPA BASE
-                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, 
-                               tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
-                               attr='Google Satellite')
 
-                # 1. CAPA NDVI (WMS) - La ponemos primero con zindex alto
-                #url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+                # MAPA BASE
+                m = folium.Map(
+                    location=[centro.y, centro.x],
+                    zoom_start=12,
+                    tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                    attr='Google Satellite'
+                )
+
+                # Nombre de capa dinámico según selección
                 layer_name = "NDVI" if "NDVI" in indice_sel else "NDWI"
 
-                url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
-
+                # CAPA WMS
                 folium.WmsTileLayer(
-                    url=url_wms,
-                    layers="NDVI",   # fijo para probar
-                    name="NDVI",
+                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+                    layers=layer_name,   # ← dinámico, no fijo
+                    name=layer_name,
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
                     opacity=0.9,
                     version="1.3.0",
                     attr="Sentinel Hub",
-                    #crs="EPSG:3857",
-                    #srs="EPSG:3857",
                     styles="",
-                    #time="2024-01-15",
                     uppercase=True,
-                    width=1024,
-                    height=1024
                 ).add_to(m)
 
-                # 2. LÍMITES NACIONALES (AZUL)
-                folium.GeoJson(gdf_nacion, style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4}, interactive=False).add_to(m)
+                # LÍMITES
+                folium.GeoJson(gdf_nacion, style_function=lambda x: {
+                    'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4
+                }, interactive=False).add_to(m)
 
-                # 3. LÍMITES PROVINCIALES (NARANJA)
-                folium.GeoJson(gdf_provs, style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2}, interactive=False).add_to(m)
+                folium.GeoJson(gdf_provs, style_function=lambda x: {
+                    'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2
+                }, interactive=False).add_to(m)
 
-                   # 4. RESALTADO DEPARTAMENTO (CIAN)
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3}).add_to(m)
+                folium.GeoJson(gdf_loc, style_function=lambda x: {
+                    'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3
+                }).add_to(m)
 
-                # Ajuste de vista y render
-                #m.fit_bounds(gdf_loc.total_bounds.tolist())
-                # Ajuste de vista
-                #m.fit_bounds(gdf_loc.total_bounds.tolist())
-                m = folium.Map(
-                    location=[-34, -64],   # centro Argentina aprox
-                    zoom_start=10,
-                    tiles="Esri.WorldImagery"
-                )
+                # fit_bounds con formato correcto
+                bounds = gdf_loc.total_bounds  # [minx, miny, maxx, maxy]
+                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
 
-                # 👇 ESTO FALTABA
                 folium.LayerControl(collapsed=False).add_to(m)
 
-                # Render
-                components.html(m._repr_html_(), height=650)
-
-                st.success(f"Visualizando {indice_sel} en {depto_sel}")
+                # Render UNA sola vez
                 components.html(m._repr_html_(), height=650)
                 st.success(f"Visualizando {indice_sel} en {depto_sel}")
-        else:
-                st.warning("Seleccioná Provincia y Departamento para cargar el monitor.")
-    #    except Exception as e:
-    #        st.error(f"❌ Error técnico: {e}")
-#==========================================================
+                
+                #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
