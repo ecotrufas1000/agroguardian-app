@@ -845,7 +845,7 @@ elif menu == "🛰️ Índices Satelitales":
     st.header("🛰️ Monitor Satelital Dinámico (WMS)")
 
     # 1. CONFIGURACIÓN DE INSTANCIA (Reemplazá con tu ID)
-    INSTANCE_ID = "TU_INSTANCE_ID_AQUÍ" 
+    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617" 
     
     # 2. DEFINICIÓN DE SCRIPTS DE COLOR (EVALSCRIPTS)
     evalscripts = {
