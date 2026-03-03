@@ -958,8 +958,8 @@ elif menu == "🛰️ Índices Satelitales":
     # Renderizado Final
     folium.Marker([lat_map, lon_map], tooltip="Tu Lote").add_to(m)
     components.html(m._repr_html_(), height=650)
-        except Exception as e:
-            st.error(f"❌ Error técnico: {e}")
+    #    except Exception as e:
+    #        st.error(f"❌ Error técnico: {e}")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
