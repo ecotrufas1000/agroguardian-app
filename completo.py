@@ -888,7 +888,7 @@ elif menu == "🛰️ Índices Satelitales":
         # Aplicar filtro solo para resaltar partido seleccionado
         gdf_filtrado = gdf_argentina
         if provincia_sel != "Todas":
-            gdf_filtrado = gdf_filtrado[gdf_argentina['NAME_1'] == provincia_sel]
+            gdf_filtrado = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
             if depto_sel != "Todos":
                 gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_2'] == depto_sel]
 
@@ -904,7 +904,7 @@ elif menu == "🛰️ Índices Satelitales":
         zoom_val = st.slider("Área (Zoom)", 0.005, 0.08, 0.02, format="%.3f")
         st.write(f"**Lat:** {lat_map:.4f}  |  **Lon:** {lon_map:.4f}")
 
-    # --- 5. FUNCION DE CALCULO DE INDICES ---
+    # --- 5. FUNCION DE CALCULO DE INDICES (SIMULADO) ---
     def calcular_indice_sentinel_real(token, indice, lat, lon, radio):
         """
         Devuelve imagen PIL con NDVI o NDWI real desde Sentinel-2.
@@ -925,7 +925,7 @@ elif menu == "🛰️ Índices Satelitales":
                        attr='Google Satellite')
 
         if gdf_argentina is not None:
-            # Dibujamos todos los partidos en gris
+            # Dibujamos todo el país en gris
             folium.GeoJson(
                 gdf_argentina,
                 name="Límites Argentina",
@@ -933,8 +933,18 @@ elif menu == "🛰️ Índices Satelitales":
                 tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
             ).add_to(m)
 
-            # Resaltamos el partido seleccionado en cyan
-            if gdf_filtrado is not None:
+            # Provincia seleccionada en azul oscuro
+            if provincia_sel != "Todas":
+                gdf_prov = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
+                folium.GeoJson(
+                    gdf_prov,
+                    name="Provincia Seleccionada",
+                    style_function=lambda x: {'fillColor': 'transparent', 'color': '#00008B', 'weight': 2},
+                    tooltip=folium.GeoJsonTooltip(fields=['NAME_1'], aliases=['Provincia:'])
+                ).add_to(m)
+
+            # Partido seleccionado en cyan punteado
+            if depto_sel != "Todos" and gdf_filtrado is not None:
                 folium.GeoJson(
                     gdf_filtrado,
                     name="Partido Seleccionado",
