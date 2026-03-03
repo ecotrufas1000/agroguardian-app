@@ -954,11 +954,11 @@ elif menu == "🛰️ Índices Satelitales":
                 # Render
                 components.html(m._repr_html_(), height=650)
 
-st.success(f"Visualizando {indice_sel} en {depto_sel}")
+                st.success(f"Visualizando {indice_sel} en {depto_sel}")
                 components.html(m._repr_html_(), height=650)
                 st.success(f"Visualizando {indice_sel} en {depto_sel}")
         else:
-            st.warning("Seleccioná Provincia y Departamento para cargar el monitor.")
+                st.warning("Seleccioná Provincia y Departamento para cargar el monitor.")
     #    except Exception as e:
     #        st.error(f"❌ Error técnico: {e}")
 #==========================================================
