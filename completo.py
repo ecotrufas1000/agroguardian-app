@@ -1013,7 +1013,7 @@ elif menu == "🛰️ Índices Satelitales":
         # Renderizado final (fuera del IF para que el mapa base siempre esté)
         folium.Marker([lat_map, lon_map]).add_to(m)
         components.html(m._repr_html_(), height=600)
-     ==========================================================
+#==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
