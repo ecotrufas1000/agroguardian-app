@@ -865,7 +865,7 @@ elif menu == "🛰️ Índices Satelitales":
                 else:
                     depto_sel = st.selectbox("Seleccioná Departamento:", ["Todos"], disabled=True)
 
-            # --- 3. MAPA DINÁMICO ---
+            # --- 3. CREACIÓN DEL MAPA ---
             lat_map = st.session_state.get('lat', -34.61)
             lon_map = st.session_state.get('lon', -58.38)
 
@@ -873,23 +873,36 @@ elif menu == "🛰️ Índices Satelitales":
                            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
                            attr='Google Satellite')
 
-            # A. CONTORNO PAÍS (AZUL FUERTE)
+            # --- 4. DIBUJO DE LÍMITES CON JERARQUÍA ---
+
+            # A. CONTORNO PAÍS (AZUL ELÉCTRICO - Muy grueso)
             folium.GeoJson(
                 gdf.dissolve(),
                 name="Frontera Nacional",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 5},
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 6},
                 interactive=False
             ).add_to(m)
 
-            # B. LÍMITES PROVINCIALES/DEPTOS (AMARILLO)
+            # B. LÍMITES PROVINCIALES (NARANJA FUERTE - Grosor medio)
+            # Disolvemos por provincia para dibujar solo sus bordes
+            gdf_provincias = gdf.dissolve(by=col_prov)
+            folium.GeoJson(
+                gdf_provincias,
+                name="Límites Provinciales",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 3},
+                interactive=False
+            ).add_to(m)
+
+            # C. LÍMITES DEPARTAMENTALES (GRIS CLARO - Muy fino)
+            # Estos son los que antes eran amarillos y hacían ruido
             folium.GeoJson(
                 gdf,
-                name="Límites Internos",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FFFF00', 'weight': 1},
+                name="Departamentos",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#D3D3D3', 'weight': 0.8, 'opacity': 0.5},
                 tooltip=folium.GeoJsonTooltip(fields=[col_prov, col_depto], aliases=["Prov:", "Dpto:"])
             ).add_to(m)
 
-            # C. RESALTADO CIAN (Si selecciona algo)
+            # D. RESALTADO SELECCIÓN (CIAN BRILLANTE)
             if prov_sel != "Todas":
                 gdf_res = gdf[gdf[col_prov] == prov_sel]
                 if depto_sel != "Todos":
@@ -897,15 +910,20 @@ elif menu == "🛰️ Índices Satelitales":
                 
                 folium.GeoJson(
                     gdf_res,
-                    style_function=lambda x: {'fillColor': '#00FFFF', 'fillOpacity': 0.2, 'color': '#00FFFF', 'weight': 3}
+                    style_function=lambda x: {
+                        'fillColor': '#00FFFF', 
+                        'fillOpacity': 0.15, 
+                        'color': '#00FFFF', 
+                        'weight': 4,
+                        'dashArray': '5, 5'
+                    }
                 ).add_to(m)
                 
-                # Auto-zoom a la zona
+                # Auto-zoom
                 b = gdf_res.total_bounds.tolist()
                 m.fit_bounds([[b[1], b[0]], [b[3], b[2]]])
 
             components.html(m._repr_html_(), height=650)
-
         except Exception as e:
             st.error(f"❌ Error técnico: {e}")
 #==========================================================
