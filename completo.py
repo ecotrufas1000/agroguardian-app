@@ -834,45 +834,25 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
-    import base64
 
-    st.header("🛰️ Monitor Satelital Dinámico (WMS)")
+    st.header("🛰️ Monitor Satelital Dinámico")
 
-    # 1. CONFIGURACIÓN DE INSTANCIA (Reemplazá con tu ID)
-    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617" 
+    # 1. CONFIGURACIÓN
+    INSTANCE_ID = "TU_INSTANCE_ID_AQUÍ" 
     
-    # 2. DEFINICIÓN DE SCRIPTS DE COLOR (EVALSCRIPTS)
     evalscripts = {
-        "🌿 NDVI (Vegetación)": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Rojo (Estrés)
-                else if (val < 0.4) return [1, 0.8, 0.2];   // Amarillo (Medio)
-                else return [0, 0.4, 0];                    // Verde (Sano)
-            }
-        """,
-        "💧 NDWI (Humedad)": """
-            //VERSION=3
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 0.8];          // Agua
-                else if (val > 0.0) return [0.2, 0.6, 1];   // Humedad
-                else return [0.8, 0.4, 0.1];                // Seco
-            }
-        """
+        "🌿 NDVI (Vegetación)": "...", # (Mantené tus evalscripts aquí)
+        "💧 NDWI (Humedad)": "..."
     }
 
-    # 3. CARGA DE ARCHIVO GPKG (Sin simplificar para mantener calidad)
+    # 2. CARGA DE DATOS (Pesada pero cacheada)
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
@@ -882,38 +862,69 @@ elif menu == "🛰️ Índices Satelitales":
 
     gdf_argentina = cargar_limites_argentina()
 
-    # 4. SELECTORES DE UBICACIÓN E ÍNDICE (Definidos antes del mapa)
     if gdf_argentina is not None:
         columnas = gdf_argentina.columns.tolist()
         col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
         col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
 
+        # --- 3. INTERFAZ DE ENTRADA (Solo selectores al principio) ---
+        st.info("👋 Seleccioná una ubicación para activar el monitor satelital.")
+        
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Todas"] + provincias)
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
         with c2:
-            deptos = ["Todos"]
-            if prov_sel != "Todas":
-                deptos = ["Todos"] + sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-            depto_sel = st.selectbox("🏘️ Departamento:", deptos)
+            if prov_sel != "Seleccionar...":
+                deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
+            else:
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando provincia..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Ver Índice:", list(evalscripts.keys()))
+            indice_sel = st.selectbox("🌿 Índice:", list(evalscripts.keys()))
 
-        # LÓGICA DE COORDENADAS: Si elige lugar, el mapa viaja allí
-        if prov_sel != "Todas":
-            gdf_loc = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
-            if depto_sel != "Todos":
-                gdf_loc = gdf_loc[gdf_loc[col_depto] == depto_sel]
-            centro = gdf_loc.geometry.centroid.iloc[0]
-            lat_focal = centro.y
-            lon_focal = centro.x
-            zoom_focal = 12 if depto_sel != "Todos" else 8
+        # --- 4. LÓGICA DE CARGA CONDICIONAL ---
+        # Solo entramos aquí si el usuario eligió provincia Y departamento
+        if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
+            
+            with st.spinner(f"Cargando mapa de {depto_sel}..."):
+                # Filtramos la geometría específica
+                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
+                centro = gdf_loc.geometry.centroid.iloc[0]
+                
+                # Creamos el mapa solo para esta zona
+                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, 
+                               tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
+                               attr='Google Satellite')
+
+                # Capa WMS Dinámica
+                if INSTANCE_ID != "TU_INSTANCE_ID_AQUÍ":
+                    url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+                    folium.WmsTileLayer(
+                        url=url_wms,
+                        layers="NDVI",
+                        name=f"Capa: {indice_sel}",
+                        fmt="image/png",
+                        transparent=True,
+                        overlay=True,
+                        opacity=0.7,
+                        zindex=1000,
+                        evalscript=evalscripts[indice_sel]
+                    ).add_to(m)
+
+                # Límites del departamento (Cian)
+                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.05, 'color': '#00FFFF', 'weight': 3}).add_to(m)
+
+                # Renderizado
+                components.html(m._repr_html_(), height=650)
+                st.success(f"Monitor activo en {depto_sel}, {prov_sel}.")
+        
         else:
-            lat_focal = -34.61
-            lon_focal = -58.38
-            zoom_focal = 5
-
+            # Mostramos un placeholder o imagen estática mientras espera
+            st.warning("Por favor, seleccioná Provincia y Departamento para visualizar los datos satelitales.")
+            # Opcional: Podés poner una imagen de fondo bonita aquí
+    else:
+        st.error("Error al cargar la base de datos geográfica.")
         # 5. CREACIÓN DEL MAPA
         m = folium.Map(location=[lat_focal, lon_focal], zoom_start=zoom_focal, 
                        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
