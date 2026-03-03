@@ -880,26 +880,38 @@ elif menu == "🛰️ Índices Satelitales":
 
     gdf_argentina = cargar_limites_argentina()
 
-    # --- 3. SELECTORES DE UBICACIÓN ---
-    lat_map = st.session_state.get('lat', -34.61)
-    lon_map = st.session_state.get('lon', -58.38)
+    # --- 3. SELECTORES DE UBICACIÓN DINÁMICOS ---
+if gdf_argentina is not None:
+    columnas = gdf_argentina.columns.tolist()
+    col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
+    col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
 
-    if gdf_argentina is not None:
-        columnas = gdf_argentina.columns.tolist()
-        col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
-        col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
+    c1, c2 = st.columns(2)
+    with c1:
+        provincias = sorted(gdf_argentina[col_prov].unique())
+        prov_sel = st.selectbox("📍 Provincia:", ["Todas"] + provincias)
+    with c2:
+        if prov_sel != "Todas":
+            deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
+            depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + deptos)
+        else:
+            depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
 
-        c1, c2 = st.columns(2)
-        with c1:
-            provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Todas"] + provincias)
-        with c2:
-            if prov_sel != "Todas":
-                deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + deptos)
-            else:
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
-
+    # --- LÓGICA DE ACTUALIZACIÓN DE COORDENADAS ---
+    # Si el usuario elige un lugar, recalculamos el centro para Sentinel
+    if prov_sel != "Todas":
+        gdf_focalizado = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+        if depto_sel != "Todos":
+            gdf_focalizado = gdf_focalizado[gdf_focalizado[col_depto] == depto_sel]
+        
+        # Obtenemos el centro real de la geometría seleccionada
+        centroide = gdf_focalizado.geometry.centroid.iloc[0]
+        lat_map = centroide.y
+        lon_map = centroide.x
+    else:
+        # Volver al centro por defecto si elige "Todas"
+        lat_map = st.session_state.get('lat', -34.61)
+        lon_map = st.session_state.get('lon', -58.38)
     # --- 4. MAPA BASE Y LÍMITES ---
     m = folium.Map(location=[lat_map, lon_map], zoom_start=5, 
                    tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
