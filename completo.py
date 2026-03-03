@@ -949,9 +949,14 @@ elif menu == "🛰️ Índices Satelitales":
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3}).add_to(m)
 
                 # Ajuste de vista y render
-                m.fit_bounds(gdf_loc.total_bounds.tolist())
+                #m.fit_bounds(gdf_loc.total_bounds.tolist())
                 # Ajuste de vista
-                m.fit_bounds(gdf_loc.total_bounds.tolist())
+                #m.fit_bounds(gdf_loc.total_bounds.tolist())
+                m = folium.Map(
+                    location=[-34, -64],   # centro Argentina aprox
+                    zoom_start=10,
+                    tiles="Esri.WorldImagery"
+                )
 
                 # 👇 ESTO FALTABA
                 folium.LayerControl(collapsed=False).add_to(m)
