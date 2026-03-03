@@ -922,16 +922,19 @@ elif menu == "🛰️ Índices Satelitales":
 
                 folium.WmsTileLayer(
                     url=url_wms,
-                    layers=layer_name,
-                    name=indice_sel,
+                    layers="NDVI",   # fijo para probar
+                    name="NDVI",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    opacity=0.7,
+                    opacity=0.9,
                     version="1.3.0",
                     attr="Sentinel Hub",
                     crs="EPSG:3857",
-                    time="2024-01-01/2024-12-31"
+                    srs="EPSG:3857",
+                    styles="",
+                    time="2024-01-15",
+                    uppercase=True
                 ).add_to(m)
 
                 # 2. LÍMITES NACIONALES (AZUL)
