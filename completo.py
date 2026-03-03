@@ -827,6 +827,7 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (GeoPackage)
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -834,136 +835,123 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit as st
     import streamlit.components.v1 as components
     import base64
-    import io
 
     st.header("🛰️ Índices Satelitales en Tiempo Real")
 
-    # --- 1. CARGA DE GPKG ---
+    # --- 1. CARGA DE GPKG (Aseguramos lectura) ---
     @st.cache_data
     def cargar_limites_argentina():
-        ruta_gpkg = "gadm41_ARG_2.gpkg"
+        # Verificamos si el archivo existe con el nombre exacto
+        ruta_gpkg = "gadm41_ARG_2.gpkg" 
         if os.path.exists(ruta_gpkg):
-            try:
-                return gpd.read_file(ruta_gpkg, engine="pyogrio")
-            except Exception as e:
-                st.error(f"Error al leer el archivo: {e}")
-                return None
+            return gpd.read_file(ruta_gpkg, engine="pyogrio")
         return None
 
     gdf_argentina = cargar_limites_argentina()
 
-    # --- 2. GESTIÓN DE COORDENADAS (GPS o Manual) ---
+    # --- 2. SELECTORES DE UBICACIÓN ---
     lat_map = st.session_state.get('lat', -34.61)
     lon_map = st.session_state.get('lon', -58.38)
 
-    # --- 3. SELECTORES DE UBICACIÓN ---
     if gdf_argentina is not None:
         c1, c2 = st.columns(2)
         with c1:
             lista_provincias = sorted(gdf_argentina['NAME_1'].unique())
             provincia_sel = st.selectbox("📍 Provincia:", ["Todas"] + lista_provincias)
         with c2:
-            if provincia_sel == "Todas":
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
-            else:
+            if provincia_sel != "Todas":
                 lista_deptos = sorted(gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]['NAME_2'].unique())
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + lista_deptos)
+            else:
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
 
-    # --- 4. CONFIGURACIÓN DE ÍNDICES (SCRIPTS DE COLORES) ---
+    # --- 3. SCRIPTS DE COLORES PROFESIONALES ---
     evalscripts = {
         "🌿 NDVI (Vegetación)": """
             //VERSION=3
             function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
                 let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo (Gris)
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Estrés (Rojo)
-                else if (val < 0.4) return [1, 0.8, 0.2];   // Medio (Amarillo)
-                else return [0, 0.4, 0];                    // Sano (Verde)
+                if (val < 0.1) return [0.5, 0.5, 0.5]; 
+                else if (val < 0.3) return [0.9, 0.1, 0.1]; 
+                else if (val < 0.5) return [1, 0.8, 0.2]; 
+                else return [0, 0.4, 0];
             }
         """,
-        "💧 NDWI (Humedad/Agua)": """
+        "💧 NDWI (Humedad)": """
             //VERSION=3
             function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
                 let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 0.8];          // AGUA (Azul)
-                else if (val > 0.0) return [0.2, 0.6, 1];   // Húmedo (Celeste)
-                else return [0.8, 0.4, 0.1];                // Seco (Marrón)
+                if (val > 0.1) return [0, 0, 0.8];
+                else if (val > 0.0) return [0.2, 0.6, 1];
+                else return [0.8, 0.4, 0.1];
             }
         """
     }
 
-    # --- 5. PANEL DE CONTROL ---
     col_mapa, col_ctrl = st.columns([3, 1])
 
     with col_ctrl:
-        indice_sel = st.selectbox("Seleccioná Índice:", list(evalscripts.keys()))
-        zoom_val = st.slider("Área de Captura (Zoom)", 0.005, 0.08, 0.02, format="%.3f")
-        # El botón ahora dispara la ejecución
-        ejecutar = st.button("🛰️ PROCESAR LOTE", use_container_width=True)
-        st.info(f"Lat: {lat_map:.4f}\nLon: {lon_map:.4f}")
+        indice_sel = st.selectbox("Índice:", list(evalscripts.keys()))
+        zoom_val = st.slider("Tamaño de visualización", 0.005, 0.08, 0.02, format="%.3f")
+        btn_procesar = st.button("🛰️ ACTUALIZAR MAPA", use_container_width=True)
 
-    # --- 6. CONSTRUCCIÓN DEL MAPA ---
     with col_mapa:
-        # Creamos el objeto mapa
+        # Creamos el mapa base dinámico
         m = folium.Map(location=[lat_map, lon_map], zoom_start=14,
                        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                        attr='Google Satellite')
 
+        # --- DIBUJO DE CAPAS GPKG (Prioridad de dibujo) ---
         if gdf_argentina is not None:
-            # A. CONTORNO PAÍS (AZUL)
+            # 1. CONTORNO PAÍS (AZUL) - Siempre visible
             folium.GeoJson(
                 gdf_argentina.dissolve(), 
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 3},
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4},
                 interactive=False
             ).add_to(m)
 
-            # B. LÍMITES PROVINCIALES (AMARILLO)
+            # 2. LÍMITES PROVINCIALES (AMARILLO)
             folium.GeoJson(
                 gdf_argentina,
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FFFF00', 'weight': 1},
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FFFF00', 'weight': 1.5},
                 tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
             ).add_to(m)
 
-            # C. RESALTAR ZONA SELECCIONADA (CYAN)
+            # 3. RESALTAR ZONA SELECCIONADA (CYAN)
             if provincia_sel != "Todas":
-                gdf_resaltado = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
+                gdf_res = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
                 if depto_sel != "Todos":
-                    gdf_resaltado = gdf_resaltado[gdf_resaltado['NAME_2'] == depto_sel]
+                    gdf_res = gdf_res[gdf_res['NAME_2'] == depto_sel]
                 
                 folium.GeoJson(
-                    gdf_resaltado,
-                    style_function=lambda x: {'fillColor': 'transparent', 'color': '#00FFFF', 'weight': 3, 'dashArray': '5,5'}
+                    gdf_res,
+                    style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3, 'dashArray': '5,5'}
                 ).add_to(m)
 
-        # --- 7. EJECUCIÓN SENTINEL (Si se presiona el botón) ---
-        if ejecutar:
-            with st.spinner("Conectando con Sentinel-2..."):
-                token = get_sentinel_token()
-                if token:
-                    radio = zoom_val * 2
-                    # Llamada a la función real de descarga
-                    img_raw = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, radio)
-                    
-                    if img_raw:
-                        b64_img = base64.b64encode(img_raw).decode()
-                        url_img = f"data:image/png;base64,{b64_img}"
-                        limites_img = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
+        # --- LÓGICA DE SENTINEL ---
+        if btn_procesar:
+            token = get_sentinel_token()
+            if token:
+                radio = zoom_val * 2
+                img_raw = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, radio)
+                
+                if img_raw:
+                    b64_img = base64.b64encode(img_raw).decode()
+                    url_img = f"data:image/png;base64,{b64_img}"
+                    limites_img = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
 
-                        # Añadimos la capa del satélite al mapa
-                        folium.raster_layers.ImageOverlay(
-                            image=url_img,
-                            bounds=limites_img,
-                            opacity=0.7,
-                            zindex=100
-                        ).add_to(m)
-                        m.fit_bounds(limites_img)
-                        st.success(f"Análisis de {indice_sel} completado.")
-                    else:
-                        st.error("No se pudo obtener la imagen.")
+                    # Overlay con Z-Index medio para que no tape los límites amarillos si no quieres
+                    folium.raster_layers.ImageOverlay(
+                        image=url_img,
+                        bounds=limites_img,
+                        opacity=0.6, # Menos opacidad lo integra mejor al mapa base
+                        zindex=1 # Lo ponemos debajo de las líneas de los límites
+                    ).add_to(m)
+                    m.fit_bounds(limites_img)
 
-        # --- 8. RENDERIZADO FINAL ---
+        # Marcador y Render
         folium.Marker([lat_map, lon_map]).add_to(m)
         components.html(m._repr_html_(), height=650)
 #==========================================================
