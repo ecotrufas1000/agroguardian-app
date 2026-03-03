@@ -893,125 +893,127 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_2'] == depto_sel]
 
     # --- 4. SELECCIÓN DE ÍNDICE ---
-    # --- 4. SELECCIÓN DE ÍNDICE (CON GRADIENTES PROFESIONALES) ---
+    # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+elif menu == "🛰️ Índices Satelitales":
+    import geopandas as gpd
+    import os
+    import folium
+    import streamlit as st
+    import streamlit.components.v1 as components
+    import numpy as np
+    from PIL import Image
+    import base64
+    import io
+
+    st.header("🛰️ Índices Satelitales en Tiempo Real")
+
+    # --- 1. CARGA DE GPKG ---
+    @st.cache_data
+    def cargar_limites_argentina():
+        ruta_gpkg = "gadm41_ARG_2.gpkg"
+        if os.path.exists(ruta_gpkg):
+            try:
+                return gpd.read_file(ruta_gpkg, engine="pyogrio")
+            except Exception as e:
+                st.error(f"Error al leer el archivo: {e}")
+                return None
+        return None
+
+    gdf_argentina = cargar_limites_argentina()
+
+    # --- 2. GESTIÓN DE COORDENADAS ---
+    lat_map = st.session_state.get('lat', -34.61)
+    lon_map = st.session_state.get('lon', -58.38)
+
+    # --- 3. SELECTORES DE UBICACIÓN ---
+    if gdf_argentina is not None:
+        c1, c2 = st.columns(2)
+        with c1:
+            lista_provincias = sorted(gdf_argentina['NAME_1'].unique())
+            provincia_sel = st.selectbox("📍 Provincia:", ["Todas"] + lista_provincias)
+        with c2:
+            if provincia_sel == "Todas":
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"], disabled=True)
+            else:
+                lista_deptos = sorted(gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]['NAME_2'].unique())
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + lista_deptos)
+
+    # --- 4. CONFIGURACIÓN DE ÍNDICES ---
     evalscripts = {
-        "🌿 NDVI (Vegetación)": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo/Caminos (Gris)
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Estrés Crítico (Rojo)
-                else if (val < 0.4) return [1, 0.8, 0.2];   // Vigor Bajo (Naranja/Amarillo)
-                else if (val < 0.6) return [0.4, 0.9, 0.2]; // Vigor Medio (Verde Claro)
-                else return [0, 0.4, 0];                    // Vigor Alto (Verde Oscuro)
-            }
-        """,
-        "💧 NDWI (Humedad/Agua)": """
-            //VERSION=3
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 0.8];          // AGUA LIBRE (Azul)
-                else if (val > 0.0) return [0.2, 0.6, 1];   // Suelo muy húmedo (Celeste)
-                else if (val > -0.1) return [1, 1, 0.4];    // Humedad moderada (Amarillo)
-                else return [0.8, 0.4, 0.1];                // Suelo Seco (Marrón)
-            }
-        """
+        "🌿 NDVI (Vegetación)": "NDVI_SCRIPT_CONTENT", # Aquí va tu script largo
+        "💧 NDWI (Humedad/Agua)": "NDWI_SCRIPT_CONTENT"
     }
 
-    # Solo una vez definimos las columnas
     col_mapa, col_ctrl = st.columns([3, 1])
 
     with col_ctrl:
         indice_sel = st.selectbox("Seleccioná Índice:", list(evalscripts.keys()))
         zoom_val = st.slider("Área de Captura (Zoom)", 0.005, 0.08, 0.02, format="%.3f")
-        st.info(f"📍 **Ubicación actual:**\n{lat_map:.4f} | {lon_map:.4f}")  
-    # --- 5. FUNCION DE CALCULO DE INDICES (SIMULADO) ---
-    def calcular_indice_sentinel_real(token, indice, lat, lon, radio):
-        """
-        Devuelve imagen PIL con NDVI o NDWI real desde Sentinel-2.
-        Por ahora simulado; reemplazar con API real.
-        """
-        size = 256
-        img = np.zeros((size, size, 3), dtype=np.uint8)
-        if indice == "NDVI":
-            img[:, :, 1] = np.linspace(0, 255, size).astype(np.uint8)[:, None]
-        elif indice == "NDWI":
-            img[:, :, 2] = np.linspace(0, 255, size).astype(np.uint8)[:, None]
-        return Image.fromarray(img)
+        procesar = st.button("🛰️ PROCESAR LOTE", use_container_width=True)
 
-    # --- 6. MAPA BASE ---
+    # --- 5. LÓGICA DEL MAPA ---
     with col_mapa:
+        # Creamos el mapa base
         m = folium.Map(location=[lat_map, lon_map], zoom_start=14,
                        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                        attr='Google Satellite')
 
         if gdf_argentina is not None:
-            # Dibujamos todo el país en gris
+            # A. CONTORNO DEL PAÍS (AZUL)
+            folium.GeoJson(
+                gdf_argentina.dissolve(), # Disolvemos para tener solo el borde exterior
+                name="Contorno País",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 3}
+            ).add_to(m)
+
+            # B. LÍMITES PROVINCIALES (AMARILLO)
             folium.GeoJson(
                 gdf_argentina,
-                name="Límites Argentina",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#AAAAAA', 'weight': 1},
+                name="Límites Provinciales",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#FFFF00', 'weight': 1},
                 tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
             ).add_to(m)
 
-            # Provincia seleccionada en azul oscuro
+            # C. RESALTAR SELECCIÓN (CYAN)
             if provincia_sel != "Todas":
-                gdf_prov = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
+                gdf_resaltado = gdf_argentina[gdf_argentina['NAME_1'] == provincia_sel]
+                if depto_sel != "Todos":
+                    gdf_resaltado = gdf_resaltado[gdf_resaltado['NAME_2'] == depto_sel]
+                
                 folium.GeoJson(
-                    gdf_prov,
-                    name="Provincia Seleccionada",
-                    style_function=lambda x: {'fillColor': 'transparent', 'color': '#00008B', 'weight': 2},
-                    tooltip=folium.GeoJsonTooltip(fields=['NAME_1'], aliases=['Provincia:'])
+                    gdf_resaltado,
+                    name="Zona Seleccionada",
+                    style_function=lambda x: {'fillColor': 'transparent', 'color': '#00FFFF', 'weight': 3, 'dashArray': '5,5'}
                 ).add_to(m)
 
-            # Partido seleccionado en cyan punteado
-            if depto_sel != "Todos" and gdf_filtrado is not None:
-                folium.GeoJson(
-                    gdf_filtrado,
-                    name="Partido Seleccionado",
-                    style_function=lambda x: {'fillColor': 'transparent', 'color': '#00FFFF', 'weight': 2, 'dashArray': '5,5'},
-                    tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
-                ).add_to(m)
+        # --- 6. PROCESAMIENTO DE IMAGEN ---
+        if procesar:
+            with st.spinner("Obteniendo datos satelitales..."):
+                token = get_sentinel_token() 
+                if token:
+                    radio = zoom_val * 2
+                    # IMPORTANTE: Usamos la función real que ya tenías antes
+                    # Asegurate de pasar el script completo, no solo el nombre
+                    img_raw = get_sentinel_image(token, evalscripts[indice_sel], lat_map, lon_map, radio)
+                    
+                    if img_raw:
+                        # Convertir para Folium
+                        b64_img = base64.b64encode(img_raw).decode()
+                        url_img = f"data:image/png;base64,{b64_img}"
+                        limites_img = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
 
-        # Marcador único de ubicación seleccionada
-        folium.Marker([lat_map, lon_map], tooltip="Ubicación seleccionada").add_to(m)
+                        folium.raster_layers.ImageOverlay(
+                            image=url_img,
+                            bounds=limites_img,
+                            opacity=0.7,
+                            zindex=100
+                        ).add_to(m)
+                        m.fit_bounds(limites_img)
+
+        # Renderizado final (fuera del IF para que el mapa base siempre esté)
+        folium.Marker([lat_map, lon_map]).add_to(m)
         components.html(m._repr_html_(), height=600)
-
-    # --- 7. BOTÓN PARA PROCESAR INDICE ---
-    if st.button("🛰️ PROCESAR LOTE"):
-        with st.spinner("Descargando y calculando índice..."):
-            token = get_sentinel_token()  # tu función para obtener token real
-            if token:
-                radio = zoom_val * 2
-                indice_key = evalscripts[indice_sel]
-
-                img_data = calcular_indice_sentinel_real(token, indice_key, lat_map, lon_map, radio)
-
-                # Convertimos PIL a base64 para Folium
-                buffer = io.BytesIO()
-                img_data.save(buffer, format="PNG")
-                b64_img = base64.b64encode(buffer.getvalue()).decode()
-                url_img = f"data:image/png;base64,{b64_img}"
-
-                limites = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
-
-                # Añadimos overlay sobre el mismo mapa
-                folium.raster_layers.ImageOverlay(
-                    image=url_img,
-                    bounds=limites,
-                    opacity=0.6,
-                    name=indice_sel,
-                    zindex=10
-                ).add_to(m)
-
-                # Control de capas
-                folium.LayerControl().add_to(m)
-
-                components.html(m._repr_html_(), height=600)
-                st.success(f"Índice {indice_sel} calculado en la ubicación seleccionada")
-# ==========================================================
+     ==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
