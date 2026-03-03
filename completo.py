@@ -898,7 +898,7 @@ elif menu == "🛰️ Índices Satelitales":
             folium.GeoJson(
                 gdf.dissolve(),
                 name="Frontera Nacional",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4},
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 2.5},
                 interactive=False
             ).add_to(m)
 
