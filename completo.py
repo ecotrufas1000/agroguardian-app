@@ -833,6 +833,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -840,21 +841,23 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit as st
     import streamlit.components.v1 as components
     import base64
-    from io import BytesIO
 
-    st.header("🛰️ Análisis Satelital con Persistencia")
+    st.header("🛰️ Monitor Satelital Dinámico (WMS)")
 
-    # 1. Scripts de Índices
+    # 1. CONFIGURACIÓN DE INSTANCIA (Reemplazá con tu ID)
+    INSTANCE_ID = "TU_INSTANCE_ID_AQUÍ" 
+    
+    # 2. DEFINICIÓN DE SCRIPTS DE COLOR (EVALSCRIPTS)
     evalscripts = {
         "🌿 NDVI (Vegetación)": """
             //VERSION=3
             function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
                 let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5];
-                else if (val < 0.2) return [0.9, 0.1, 0.1];
-                else if (val < 0.4) return [1, 0.8, 0.2];
-                else return [0, 0.4, 0];
+                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo
+                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Rojo (Estrés)
+                else if (val < 0.4) return [1, 0.8, 0.2];   // Amarillo (Medio)
+                else return [0, 0.4, 0];                    // Verde (Sano)
             }
         """,
         "💧 NDWI (Humedad)": """
@@ -862,33 +865,30 @@ elif menu == "🛰️ Índices Satelitales":
             function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
                 let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 0.8];
-                else if (val > 0.0) return [0.2, 0.6, 1];
-                else return [0.8, 0.4, 0.1];
+                if (val > 0.1) return [0, 0, 0.8];          // Agua
+                else if (val > 0.0) return [0.2, 0.6, 1];   // Humedad
+                else return [0.8, 0.4, 0.1];                // Seco
             }
         """
     }
 
-    # 2. Carga de GPKG
+    # 3. CARGA DE ARCHIVO GPKG (Sin simplificar para mantener calidad)
     @st.cache_data
     def cargar_limites_argentina():
-        ruta_gpkg = "gadm41_AGR_2.gpkg"
+        ruta_gpkg = "gadm41_AGR_2.gpkg" 
         if os.path.exists(ruta_gpkg):
             return gpd.read_file(ruta_gpkg, engine="pyogrio")
         return None
 
     gdf_argentina = cargar_limites_argentina()
 
-    # 3. Ubicación Dinámica
-    lat_map = st.session_state.get('lat', -34.61)
-    lon_map = st.session_state.get('lon', -58.38)
-
+    # 4. SELECTORES DE UBICACIÓN E ÍNDICE (Definidos antes del mapa)
     if gdf_argentina is not None:
         columnas = gdf_argentina.columns.tolist()
         col_prov = "NAME_1" if "NAME_1" in columnas else columnas[0]
         col_depto = "NAME_2" if "NAME_2" in columnas else columnas[1]
 
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
             prov_sel = st.selectbox("📍 Provincia:", ["Todas"] + provincias)
@@ -897,73 +897,67 @@ elif menu == "🛰️ Índices Satelitales":
             if prov_sel != "Todas":
                 deptos = ["Todos"] + sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
             depto_sel = st.selectbox("🏘️ Departamento:", deptos)
+        with c3:
+            indice_sel = st.selectbox("🌿 Ver Índice:", list(evalscripts.keys()))
 
-        # Actualizar coordenadas al centro del lugar elegido
+        # LÓGICA DE COORDENADAS: Si elige lugar, el mapa viaja allí
         if prov_sel != "Todas":
             gdf_loc = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
             if depto_sel != "Todos":
                 gdf_loc = gdf_loc[gdf_loc[col_depto] == depto_sel]
             centro = gdf_loc.geometry.centroid.iloc[0]
-            lat_map, lon_map = centro.y, centro.x
+            lat_focal = centro.y
+            lon_focal = centro.x
+            zoom_focal = 12 if depto_sel != "Todos" else 8
+        else:
+            lat_focal = -34.61
+            lon_focal = -58.38
+            zoom_focal = 5
 
-    # 4. Mapa Base
-    m = folium.Map(location=[lat_map, lon_map], zoom_start=12, 
-                   tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
-                   attr='Google Satellite')
+        # 5. CREACIÓN DEL MAPA
+        m = folium.Map(location=[lat_focal, lon_focal], zoom_start=zoom_focal, 
+                       tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
+                       attr='Google Satellite')
 
-    # 5. Dibujo de Límites (Naranja Prov, Azul Nación)
-    if gdf_argentina is not None:
-        folium.GeoJson(gdf_argentina.dissolve(by=col_prov), style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2}, interactive=False).add_to(m)
+        # 6. CAPA DINÁMICA WMS (Sentinel Hub)
+        if INSTANCE_ID != "TU_INSTANCE_ID_AQUÍ":
+            url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+            folium.WmsTileLayer(
+                url=url_wms,
+                layers="NDVI",  # Nombre de la capa en tu Sentinel Dashboard
+                name=f"Capa: {indice_sel}",
+                fmt="image/png",
+                transparent=True,
+                overlay=True,
+                control=True,
+                opacity=0.7,
+                zindex=1000,
+                evalscript=evalscripts[indice_sel] # Sobreescribe el color al vuelo
+            ).add_to(m)
+        else:
+            st.warning("⚠️ No olvides pegar tu INSTANCE_ID para ver el índice dinámico.")
+
+        # 7. DIBUJO DE LÍMITES ADMINISTRATIVOS
+        # A. Departamentos (Gris suave de fondo)
+        folium.GeoJson(gdf_argentina, style_function=lambda x: {'fillColor': 'transparent', 'color': '#D3D3D3', 'weight': 0.7, 'opacity': 0.4}, interactive=False).add_to(m)
+        # B. Provincias (Naranja)
+        folium.GeoJson(gdf_argentina.dissolve(by=col_prov), style_function=lambda x: {'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2.5}, interactive=False).add_to(m)
+        # C. Nación (Azul)
         folium.GeoJson(gdf_argentina.dissolve(), style_function=lambda x: {'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4}, interactive=False).add_to(m)
+
+        # D. Resaltado Cian si hay selección
         if prov_sel != "Todas":
             gdf_res = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
             if depto_sel != "Todos": gdf_res = gdf_res[gdf_res[col_depto] == depto_sel]
             folium.GeoJson(gdf_res, style_function=lambda x: {'fillColor': 'cyan', 'fillOpacity': 0.05, 'color': '#00FFFF', 'weight': 3, 'dashArray': '5,5'}).add_to(m)
+            m.fit_bounds(gdf_res.total_bounds.tolist())
 
-    # --- 6. CONFIGURACIÓN CAPA DINÁMICA (WMS) ---
-    # Colocá aquí tu ID de Instancia de Sentinel Hub
-    INSTANCE_ID = "68cef662-2831-4e46-965a-c5747aafe617"  # <--- PEGA TU ID ACÁ
-    
-    # Construimos la URL del servicio OGC de Sentinel
-    url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
-
-    # Agregamos la capa dinámica al mapa de Folium
-    # Esta capa se pide al servidor cada vez que movés el mapa o hacés zoom
-    folium.WmsTileLayer(
-        url=url_wms,
-        layers="NDVI",
-        name=f"Capa Dinámica: {indice_sel}",
-        fmt="image/png",
-        transparent=True,
-        overlay=True,
-        control=True,
-        opacity=0.7,
-        zindex=1000,
-        styles="",
-        # Pasamos el script de color para que Sentinel procese los pixeles al vuelo
-        evalscript=evalscripts[indice_sel]
-    ).add_to(m)
-
-    # --- 7. LEYENDA FLOTANTE (Opcional pero muy útil) ---
-    if "NDVI" in indice_sel:
-        leyenda_html = '''
-             <div style="position: fixed; 
-                         bottom: 50px; left: 50px; width: 150px; height: 120px; 
-                         border:2px solid grey; z-index:9999; font-size:14px;
-                         background-color:white; opacity: 0.8;
-                         padding: 10px;">
-             <b>Escala NDVI</b><br>
-             <i style="background:#006400;width:10px;height:10px;display:inline-block"></i> Alto Vigor<br>
-             <i style="background:#FFFF00;width:10px;height:10px;display:inline-block"></i> Medio/Bajo<br>
-             <i style="background:#FF0000;width:10px;height:10px;display:inline-block"></i> Estrés/Suelo<br>
-             </div>
-             '''
-        m.get_root().html.add_child(folium.Element(leyenda_html))
-
-    st.success("🛰️ Modo Dinámico Activo: Navegá libremente por el mapa para ver el índice.")
-
-    # Renderizado final
-    components.html(m._repr_html_(), height=650)
+        # 8. RENDERIZADO FINAL
+        components.html(m._repr_html_(), height=650)
+        
+        st.info(f"💡 El mapa se está pintando con {indice_sel}. Podés desplazarte para analizar otros lotes cercanos.")
+    else:
+        st.error("No se encontró el archivo de límites (gadm41_AGR_2.gpkg).")
     #    except Exception as e:
     #        st.error(f"❌ Error técnico: {e}")
 #==========================================================
