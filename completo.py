@@ -934,7 +934,7 @@ elif menu == "🛰️ Índices Satelitales":
                     srs="EPSG:3857",
                     styles="",
                     time="2024-01-15",
-                    uppercase=True
+                    uppercase=True,
                     width=1024,
                     height=1024
                 ).add_to(m)
