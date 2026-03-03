@@ -884,7 +884,7 @@ elif menu == "🛰️ Índices Satelitales":
                 )
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Todos"] + lista_deptos)
 
-        # Aplicar filtro
+        # Aplicar filtro solo para resaltar partido seleccionado
         gdf_filtrado = gdf_argentina
         if provincia_sel != "Todas":
             gdf_filtrado = gdf_filtrado[gdf_filtrado['NAME_1'] == provincia_sel]
@@ -922,14 +922,25 @@ elif menu == "🛰️ Índices Satelitales":
                        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                        attr='Google Satellite')
 
-        if gdf_filtrado is not None:
+        if gdf_argentina is not None:
+            # Dibujamos todos los partidos en gris
             folium.GeoJson(
-                gdf_filtrado,
-                name="Límites",
-                style_function=lambda x: {'fillColor': 'transparent', 'color': '#00FFFF', 'weight': 2, 'dashArray': '5, 5'},
+                gdf_argentina,
+                name="Límites Argentina",
+                style_function=lambda x: {'fillColor': 'transparent', 'color': '#AAAAAA', 'weight': 1},
                 tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
             ).add_to(m)
 
+            # Resaltamos el partido seleccionado en cyan
+            if gdf_filtrado is not None:
+                folium.GeoJson(
+                    gdf_filtrado,
+                    name="Partido Seleccionado",
+                    style_function=lambda x: {'fillColor': 'transparent', 'color': '#00FFFF', 'weight': 2, 'dashArray': '5,5'},
+                    tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
+                ).add_to(m)
+
+        # Marcador único de ubicación seleccionada
         folium.Marker([lat_map, lon_map], tooltip="Ubicación seleccionada").add_to(m)
         components.html(m._repr_html_(), height=600)
 
@@ -942,23 +953,20 @@ elif menu == "🛰️ Índices Satelitales":
                 indice_key = evalscripts[indice_sel]
                 img_data = calcular_indice_sentinel(token, indice_key, lat_map, lon_map, radio)
 
-                # Añadimos overlay al mapa
                 limites = [[lat_map - radio, lon_map - radio], [lat_map + radio, lon_map + radio]]
-                m = folium.Map(location=[lat_map, lon_map], zoom_start=14,
-                               tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                               attr='Google Satellite')
 
-                if gdf_filtrado is not None:
-                    folium.GeoJson(
-                        gdf_filtrado,
-                        name="Límites",
-                        style_function=lambda x: {'fillColor': 'transparent', 'color': '#00FFFF', 'weight': 2, 'dashArray': '5, 5'},
-                        tooltip=folium.GeoJsonTooltip(fields=['NAME_1', 'NAME_2'], aliases=['Prov:', 'Dpto:'])
-                    ).add_to(m)
+                # Añadimos overlay sobre el mismo mapa
+                folium.raster_layers.ImageOverlay(
+                    image=img_data,
+                    bounds=limites,
+                    opacity=0.6,
+                    name=indice_sel,
+                    zindex=10
+                ).add_to(m)
 
-                folium.raster_layers.ImageOverlay(image=img_data, bounds=limites, opacity=0.6, zindex=10).add_to(m)
-                folium.Marker([lat_map, lon_map]).add_to(m)
-                m.fit_bounds(limites)
+                # Control de capas
+                folium.LayerControl().add_to(m)
+
                 components.html(m._repr_html_(), height=600)
                 st.success(f"Índice {indice_sel} calculado en la ubicación seleccionada")
 # ==========================================================
