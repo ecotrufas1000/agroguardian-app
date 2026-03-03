@@ -847,7 +847,7 @@ elif menu == "🛰️ Índices Satelitales":
     st.header("🛰️ Monitor Satelital Dinámico")
 
     # 1. CONFIGURACIÓN (Verificá que en Sentinel la capa se llame exactamente 'NDVI')
-    INSTANCE_ID = "TU_INSTANCE_ID_AQUÍ" 
+    INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
     evalscripts = {
         "🌿 NDVI (Vegetación)": """
