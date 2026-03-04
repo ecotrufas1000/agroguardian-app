@@ -877,15 +877,15 @@ elif menu == "🛰️ Índices Satelitales":
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox("Departamento:", ["Seleccionar..."] + deptos)
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
             else:
-                depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Calculando {indice_sel}..."):
@@ -893,39 +893,33 @@ elif menu == "🛰️ Índices Satelitales":
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
                 # Mapa base con atribución vacía para limpiar la pantalla
-                # 1. Creamos el mapa
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
                     tiles='OpenStreetMap',
-                    attr=' '
+                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
                 )
 
-                # --- (Acá van tus capas WMS y GeoJSON que ya funcionan) ---
-                # [Mantené el código de las capas que ya tenés]
+                # Capa WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=capa_a_pedir,
+                    layers=indice_sel,
+                    name=f"Sentinel-2 {indice_sel}",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
                     opacity=1.0,
                     zindex=1000,
                     version="1.1.1",
-                    extra_params=params
+                    maxcc=100, 
+                    time="2023-01-01/2026-03-04",
+                    attr=' ' # Intentamos limpiar la atribución de la capa también
                 ).add_to(m)
 
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
-                m.fit_bounds(gdf_loc.total_bounds.tolist())
 
-                # --- 2. EL CAMBIO REAL: Forzar el tamaño ---
-                # Usamos st.components con un contenedor que ignore las columnas
-                st.write("---") # Separador visual
-                
-                # Definimos el HTML del mapa con ancho al 100% y alto fijo grande
-                mapa_html = m._repr_html_()
-                
-                components.html(mapa_html, height=1000, scrolling=True)
+                m.fit_bounds(gdf_loc.total_bounds.tolist())
+                components.html(m._repr_html_(), height=650)
                                 # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 if indice_sel == "NDVI":
