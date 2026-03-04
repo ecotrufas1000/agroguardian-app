@@ -904,29 +904,33 @@ elif menu == "🛰️ Índices Satelitales":
                     attr=' ' 
                 )
 
-folium.raster_layers.WmsTileLayer(
-    url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
-    layers="MODIS_Terra_NDVI_16Day",  # NDVI compuesto 16 días
-    name="NDVI MODIS (16 días)",
-    fmt="image/png",
-    transparent=True,
-    overlay=True,
-    opacity=0.8,
-    # Si quieres, puedes pedir una fecha concreta (suele funcionar sin poner time)
-    # time=datetime.date.today().isoformat(),
-).add_to(m)
-                # Dibujar el borde negro del departamento
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 3}).add_to(m)
-
-                m.fit_bounds(gdf_loc.total_bounds.tolist())
-                
-                # Renderizado grande
-                components.html(
-                    m.get_root().render(),
-                    height=900,
-                    scrolling=False
-                )
-
+ # Capa NDVI regional (NASA MODIS, sin marca de agua)
+            folium.WmsTileLayer(
+                url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
+                layers="MODIS_Terra_NDVI_16Day",  # NDVI compuesto 16 días
+                name="NDVI MODIS (16 días)",
+                fmt="image/png",
+                transparent=True,
+                overlay=True,
+                opacity=0.8,
+                version="1.1.1",
+                attr="NASA GIBS"
+            ).add_to(m)
+            # Dibujar el borde negro del departamento
+            folium.GeoJson(
+                gdf_loc,
+                style_function=lambda x: {
+                    'fillColor': 'transparent',
+                    'color': 'black',
+                    'weight': 3
+                }
+            ).add_to(m)
+            m.fit_bounds(gdf_loc.total_bounds.tolist())
+            components.html(
+                m.get_root().render(),
+                height=900,
+                scrolling=False
+            )
                 # --- LEYENDAS FUERA DEL MAPA (Streamlit) ---
                 st.write("---")
                 if indice_sel == "NDVI":
