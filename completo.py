@@ -902,21 +902,23 @@ elif menu == "🛰️ Índices Satelitales":
                     attr=' ' 
                 )
 
-                # Capa WMS pura (SIN evalscript para que no se rompa)
-                folium.WmsTileLayer(
-                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=indice_sel,
-                    name=f"Sentinel-2 {indice_sel}",
-                    fmt="image/png",
-                    transparent=True,
-                    overlay=True,
-                    opacity=1.0,
-                    zindex=1000,
-                    version="1.1.1",
-                    maxcc=100, 
-                    time="2024-01-01/2026-02-04", # Fecha actualizada
-                    attr=' ' 
-                ).add_to(m)
+# Fecha actual como fin del rango
+hoy = datetime.date.today().isoformat()
+# Capa WMS pura (SIN evalscript para que no se rompa)
+folium.WmsTileLayer(
+    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+    layers=indice_sel,
+    name=f"Sentinel-2 {indice_sel}",
+    fmt="image/png",
+    transparent=True,
+    overlay=True,
+    opacity=1.0,
+    zindex=1000,
+    version="1.1.1",
+    maxcc=100,
+    time=f"2024-01-01/{hoy}",  # <-- siempre hasta la fecha de hoy
+    attr=' '
+).add_to(m)
 
                 # Dibujar el borde negro del departamento
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 3}).add_to(m)
