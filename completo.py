@@ -976,7 +976,7 @@ elif menu == "🛰️ Índices Satelitales":
                     scrolling=False
                 )
 
-        st.success(f"Visualizando {indice_sel} en {depto_sel}")
+                st.success(f"Visualizando {indice_sel} en {depto_sel}")
                 
                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
