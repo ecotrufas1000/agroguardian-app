@@ -914,7 +914,7 @@ elif menu == "🛰️ Índices Satelitales":
                     zindex=1000,
                     version="1.1.1",
                     maxcc=100, 
-                    time="2024-01-01/2026-03-04", # Fecha actualizada
+                    time="2024-01-01/2026-02-04", # Fecha actualizada
                     attr=' ' 
                 ).add_to(m)
 
