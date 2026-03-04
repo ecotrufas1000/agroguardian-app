@@ -937,7 +937,12 @@ elif menu == "🛰️ Índices Satelitales":
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m._repr_html_(), height=900)
+                components.html(
+                    m.get_root().render(),
+                    height=900,
+                    width=None,
+                    scrolling=False
+                )
                 
                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
