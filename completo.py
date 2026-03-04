@@ -840,13 +840,13 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
-    from datetime import datetime
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
@@ -868,52 +868,50 @@ elif menu == "🛰️ Índices Satelitales":
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox("Departamento:", ["Seleccionar..."] + deptos)
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
             else:
-                depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
+                depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("Capa:", ["NDVI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("🌿 Capa:", ["NDVI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner("Buscando imagen satelital..."):
+            with st.spinner("Buscando la mejor imagen disponible..."):
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # --- CAMBIO CLAVE: Mapa base simple para que el NDVI resalte ---
+                # Mapa base con calles para referencia
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
-                    tiles='OpenStreetMap' # Usamos el mapa común para descartar errores de Google
+                    tiles='OpenStreetMap'
                 )
 
-                # WMS con parámetros mínimos (los que funcionaron en tu navegador)
-                url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
-                
+                # URL WMS con búsqueda profunda (2023 a 2026)
+                # MAXCC=100 asegura que si hay nubes, igual veamos algo y no un cuadro vacío
                 folium.WmsTileLayer(
-                    url=url_wms,
+                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
-                    name="SATELITE SENTINEL",
+                    name="Sentinel-2",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    control=True,
-                    opacity=1.0, # Opacidad total para verlo bien
+                    opacity=1.0,
                     zindex=1000,
-                    version="1.1.1"
+                    version="1.1.1",
+                    maxcc=100, 
+                    time="2023-01-01/2026-03-04" 
                 ).add_to(m)
 
-                # Dibujamos el límite solo como referencia
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m._repr_html_(), height=650)
                 
-                # Botón de depuración por si sigue sin verse
-                st.write(f"🌐 [Clic aquí para verificar imagen fuera de la App]({url_wms}?REQUEST=GetMap&BBOX={centro.y-0.1},{centro.x-0.1},{centro.y+0.1},{centro.x+0.1}&LAYERS={indice_sel}&MAXCC=30&WIDTH=512&HEIGHT=512&FORMAT=image/png&TIME=2024-01-01/2026-03-04)")
+                st.info("💡 Si ves un cuadro gris, puede ser que el satélite esté procesando la zona. Probá cambiando de departamento.")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
