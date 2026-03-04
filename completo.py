@@ -853,7 +853,7 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
     from datetime import datetime
 
-    # CSS para mobile y limpieza
+    # --- ESTILOS CSS ---
     st.markdown("""
         <style>
         .leaflet-control-attribution { display: none !important; }
@@ -866,22 +866,15 @@ elif menu == "🛰️ Índices Satelitales":
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
-    # 1. Scripts de procesamiento corregidos
-    # El NDVI lo dejamos simple para que use tu config de Sentinel Hub
-    # El NDWI lo forzamos con fondo blanco
-    ndwi_white_script = """
+    # Script para NDWI (Azules profesionales + Fondo Blanco)
+    ndwi_script = """
     //VERSION=3
-    function setup() {
-      return {
-        input: ["B03", "B08"],
-        output: { bands: 3 }
-      };
-    }
+    function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
     function evaluatePixel(sample) {
       let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
-      if (val > 0.1) return [0, 0, 0.5];    // Azul
-      if (val > 0.0) return [0.4, 0.7, 1];  // Celeste
-      return [1, 1, 1];                     // Blanco
+      if (val > 0.1) return [0, 0.3, 0.6];    // Azul (Agua)
+      if (val > 0.0) return [0.6, 0.8, 1];    // Celeste (Humedad)
+      return [1, 1, 1];                       // Blanco (Seco)
     }
     """
 
@@ -895,10 +888,13 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        col_prov, col_depto = "NAME_1", "NAME_2"
+        col_prov = "NAME_1"
+        col_depto = "NAME_2"
+
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + sorted(gdf_argentina[col_prov].unique()))
+            provincias = sorted(gdf_argentina[col_prov].unique())
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
@@ -906,47 +902,73 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Capa:", ["NDVI", "NDWI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Cargando {indice_sel}..."):
-                gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
-                gdf_loc = gdf_prov[gdf_prov[col_depto] == depto_sel]
+            with st.spinner(f"Calculando {indice_sel}..."):
+                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
+        
+                # 1. Mapa base
+                m = folium.Map(
+                    location=[centro.y, centro.x],
+                    zoom_start=12,
+                    tiles='OpenStreetMap',
+                    attr=' ' 
+                )
 
-                # Crear mapa base
-                m = folium.Map(location=[centro.y, centro.x], zoom_start=9, tiles="OpenStreetMap", attr=" ")
-
-                # Configuración de parámetros
+                # 2. Configuración de parámetros WMS
                 params = {
-                    "MAXCC": 100,
-                    "TIME": "2024-01-01/2026-03-04",
-                    "TRANSPARENT": True
+                    "maxcc": 100, 
+                    "time": "2023-01-01/2026-03-04",
+                    "transparent": True
                 }
-
-                # Si es NDWI, inyectamos el script de fondo blanco
+                
+                # Si es NDWI, aplicamos el estilo "Google Earth Engine"
                 if indice_sel == "NDWI":
-                    params["EVALSCRIPT"] = ndwi_white_script
+                    params["evalscript"] = ndwi_script
 
-                # Agregamos la capa satelital
+                # 3. Capa WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
+                    name=f"Sentinel-2 {indice_sel}",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
                     opacity=1.0,
+                    zindex=1000,
                     version="1.1.1",
+                    attr=' ',
                     extra_params=params
                 ).add_to(m)
 
-                # Capas de límites (Gris para provincia, Negro para el depto)
-                folium.GeoJson(gdf_prov, style_function=lambda x: {"fillColor": "none", "color": "#666666", "weight": 1}, interactive=False).add_to(m)
-                folium.GeoJson(gdf_loc, style_function=lambda x: {"fillColor": "none", "color": "black", "weight": 3}).add_to(m)
+                # 4. Geometría del departamento
+                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
-                # Ajustar vista y render
-                m.fit_bounds(gdf_prov.total_bounds.tolist())
-                components.html(m.get_root().render(), height=900)
+                # 5. Ajuste de cámara y renderizado
+                m.fit_bounds(gdf_loc.total_bounds.tolist())
+                components.html(
+                    m.get_root().render(),
+                    height=900,
+                    scrolling=False
+                )
+
+                # --- 6. LEYENDAS (Debajo del mapa) ---
+                st.write("---")
+                if indice_sel == "NDVI":
+                    st.subheader("📊 Referencia NDVI")
+                    l1, l2, l3, l4 = st.columns(4)
+                    l1.metric("Suelo", "< 0.2", "🔴")
+                    l2.metric("Medio", "0.2-0.4", "🟡")
+                    l3.metric("Sano", "0.4-0.7", "🟢")
+                    l4.metric("Vigor", "> 0.7", "🌲")
+                elif indice_sel == "NDWI":
+                    st.subheader("💧 Referencia NDWI")
+                    l1, l2, l3 = st.columns(3)
+                    l1.info("⚪ **Blanco:** Suelo Seco")
+                    l2.info("🔵 **Celeste:** Humedad")
+                    l3.info("🌊 **Azul:** Agua Libre")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
