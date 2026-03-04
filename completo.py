@@ -850,6 +850,13 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
     from datetime import datetime
 
+    # --- TRUCO CSS: Ocultar la barra de atribución de Folium ---
+    st.markdown("""
+        <style>
+        .leaflet-control-attribution { display: none !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.header("🛰️ Monitor Satelital Dinámico")
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
@@ -878,7 +885,6 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            # Agregamos NDWI a las opciones
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
@@ -886,13 +892,15 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
+                # Mapa base con atribución vacía para limpiar la pantalla
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
-                    tiles='OpenStreetMap'
+                    tiles='OpenStreetMap',
+                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
                 )
 
-                # WMS con búsqueda profunda
+                # Capa WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
@@ -904,7 +912,8 @@ elif menu == "🛰️ Índices Satelitales":
                     zindex=1000,
                     version="1.1.1",
                     maxcc=100, 
-                    time="2023-01-01/2026-03-04" 
+                    time="2023-01-01/2026-03-04",
+                    attr=' ' # Intentamos limpiar la atribución de la capa también
                 ).add_to(m)
 
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
