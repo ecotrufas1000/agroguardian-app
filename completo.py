@@ -893,34 +893,40 @@ elif menu == "🛰️ Índices Satelitales":
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
                 # Mapa base con atribución vacía para limpiar la pantalla
+                # 1. Creamos el mapa
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
                     tiles='OpenStreetMap',
-                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
+                    attr=' '
                 )
 
-                # Capa WMS
+                # --- (Acá van tus capas WMS y GeoJSON que ya funcionan) ---
+                # [Mantené el código de las capas que ya tenés]
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=indice_sel,
-                    name=f"Sentinel-2 {indice_sel}",
+                    layers=capa_a_pedir,
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
                     opacity=1.0,
                     zindex=1000,
                     version="1.1.1",
-                    maxcc=100, 
-                    time="2023-01-01/2026-03-04",
-                    attr=' ' # Intentamos limpiar la atribución de la capa también
+                    extra_params=params
                 ).add_to(m)
 
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
-
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m._repr_html_(), height=850)
-                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
+
+                # --- 2. EL CAMBIO REAL: Forzar el tamaño ---
+                # Usamos st.components con un contenedor que ignore las columnas
+                st.write("---") # Separador visual
+                
+                # Definimos el HTML del mapa con ancho al 100% y alto fijo grande
+                mapa_html = m._repr_html_()
+                
+                components.html(mapa_html, height=1000, scrolling=True)
+                                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 if indice_sel == "NDVI":
                     st.subheader("📊 Referencia del Índice de Vegetación (NDVI)")
