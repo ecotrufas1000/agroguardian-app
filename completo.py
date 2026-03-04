@@ -919,7 +919,7 @@ elif menu == "🛰️ Índices Satelitales":
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m._repr_html_(), height=650)
+                components.html(m._repr_html_(), height=850)
                 # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 if indice_sel == "NDVI":
