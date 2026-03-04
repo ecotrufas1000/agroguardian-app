@@ -838,6 +838,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -848,37 +849,15 @@ elif menu == "🛰️ Índices Satelitales":
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
+    # 1. CONFIGURACIÓN DE INSTANCIA (Verificada)
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
-    # Scripts de procesamiento
-    evalscripts = {
-        "🌿 NDVI (Vegetación)": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5];
-                else if (val < 0.2) return [0.9, 0.1, 0.1];
-                else if (val < 0.4) return [1, 0.8, 0.2];
-                else return [0, 0.4, 0];
-            }
-        """,
-        "💧 NDWI (Humedad)": """
-            //VERSION=3
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
-            function evaluatePixel(s) {
-                let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 0.8];
-                else if (val > 0.0) return [0.2, 0.6, 1];
-                else return [0.8, 0.4, 0.1];
-            }
-        """
-    }
-
+    # 2. CARGA DE DATOS GEOGRÁFICOS
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
         if os.path.exists(ruta_gpkg):
+            # Usamos pyogrio para mayor velocidad de lectura
             return gpd.read_file(ruta_gpkg, engine="pyogrio")
         return None
 
@@ -888,6 +867,9 @@ elif menu == "🛰️ Índices Satelitales":
         col_prov = "NAME_1"
         col_depto = "NAME_2"
 
+        # --- 3. INTERFAZ DE USUARIO (Selectores) ---
+        st.info("📍 Seleccioná una ubicación para activar el análisis satelital.")
+        
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
@@ -899,13 +881,17 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("Índice:", list(evalscripts.keys()))
+            # Simplificamos los nombres de capas para que coincidan con tu Dashboard
+            indice_sel = st.selectbox("Capa Sentinel:", ["NDVI", "TRUE-COLOR"])
 
+        # --- 4. LÓGICA DE RENDERIZADO ---
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner("Sincronizando capas..."):
+            with st.spinner(f"Sincronizando con Sentinel Hub para {depto_sel}..."):
+                # Filtrar ubicación y obtener centro
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
-
+                
+                # Crear el Mapa Folium
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
@@ -913,38 +899,57 @@ elif menu == "🛰️ Índices Satelitales":
                     attr='Google Satellite'
                 )
 
-                # Rango de tiempo dinámico (últimos 3 meses para asegurar imagen sin nubes)
-                fecha_fin = datetime.now().strftime('%Y-%m-%d')
-                
-                # Configuramos la capa WMS
+                # Definir rango de tiempo hasta hoy
+                fecha_hoy = datetime.now().strftime('%Y-%m-%d')
+                time_range = f"2024-01-01/{fecha_hoy}"
+
+                # 5. AGREGAR CAPA WMS (Configuración exacta que funcionó en tu navegador)
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers="NDVI", # El nombre de la capa base en tu dashboard
-                    name=indice_sel,
+                    layers=indice_sel,
+                    name=f"Capa: {indice_sel}",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
                     opacity=0.8,
-                    zindex=10,
+                    zindex=1000,
+                    version="1.1.1",     # Versión más estable para Folium
+                    crs="EPSG:3857",      # Proyección de Mercator Web
                     extra_params={
-                        "EVALSCRIPT": evalscripts[indice_sel], # Enviamos el script de color
-                        "MAXCC": "30",                         # 30% de nubes máximo
-                        "TIME": f"2024-01-01/{fecha_fin}"      # Rango amplio
+                        "MAXCC": "30",    # Máximo 30% de nubes
+                        "TIME": time_range
                     }
                 ).add_to(m)
 
-                # Límites territoriales (Solo el depto seleccionado para no sobrecargar)
-                folium.GeoJson(gdf_loc, style_function=lambda x: {
-                    'fillColor': 'cyan', 'fillOpacity': 0.05, 'color': '#00FFFF', 'weight': 3
-                }, name="Límite Departamento").add_to(m)
+                # 6. DIBUJAR LÍMITE (Solo borde para no tapar el índice)
+                folium.GeoJson(
+                    gdf_loc,
+                    name="Límite Político",
+                    style_function=lambda x: {
+                        'fillColor': 'transparent', 
+                        'color': '#00FFFF', 
+                        'weight': 3,
+                        'dashArray': '5, 5'
+                    }
+                ).add_to(m)
 
+                # 7. CONTROLES Y AJUSTE DE VISTA
+                folium.LayerControl(collapsed=False).add_to(m)
+                
+                # Centrar el mapa automáticamente en el departamento
                 bounds = gdf_loc.total_bounds
                 m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
-                folium.LayerControl(collapsed=False).add_to(m)
 
+                # Renderizado final
                 components.html(m._repr_html_(), height=650)
-                st.success(f"✅ Monitor activo en {depto_sel}. Si no ves colores, aleja un poco el zoom.")                
-                #==========================================================
+                
+                st.success(f"✅ Mostrando datos de {indice_sel}. Podés cambiar de capa o moverte en el mapa.")
+        else:
+            st.warning("Por favor, seleccioná Provincia y Departamento para cargar el monitor.")
+
+    else:
+        st.error("No se encontró el archivo de límites 'gadm41_AGR_2.gpkg'. Asegurate de que esté en la misma carpeta que este script.")
+#==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
