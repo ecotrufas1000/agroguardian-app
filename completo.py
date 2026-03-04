@@ -877,15 +877,15 @@ elif menu == "🛰️ Índices Satelitales":
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."] + provincias)
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
+                depto_sel = st.selectbox("Departamento:", ["Seleccionar..."] + deptos)
             else:
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
+                depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Calculando {indice_sel}..."):
@@ -924,7 +924,7 @@ elif menu == "🛰️ Índices Satelitales":
                 st.write("---")
                 if indice_sel == "NDVI":
                     st.subheader("📊 Referencia del Índice de Vegetación (NDVI)")
-                    st.info("Mide la salud de la planta. Cuanto más verde, mayor actividad fotosintética.")
+                    st.info("Cuanto más verde, mayor actividad fotosintética.")
                     l1, l2, l3, l4 = st.columns(4)
                     l1.metric("Suelo / Estrés", "< 0.2", "🔴")
                     l2.metric("Crecimiento", "0.2 - 0.4", "🟡")
@@ -933,7 +933,7 @@ elif menu == "🛰️ Índices Satelitales":
 
                 elif indice_sel == "NDWI":
                     st.subheader("💧 Referencia del Índice de Agua (NDWI)")
-                    st.info("Detecta contenido de agua en la vegetación y cuerpos de agua.")
+                    st.info("Detecta cuerpos de agua.")
                     l1, l2, l3, l4 = st.columns(4)
                     l1.metric("Seco / Sin Agua", "< 0.0", "🟤")
                     l2.metric("Humedad Baja", "0.0 - 0.2", "🟡")
