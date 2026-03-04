@@ -840,6 +840,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES 
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
@@ -847,6 +848,7 @@ elif menu == "🛰️ Índices Satelitales":
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
+    from datetime import datetime
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
@@ -876,26 +878,25 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Capa:", ["NDVI", "TRUE-COLOR"])
+            # Agregamos NDWI a las opciones
+            indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner("Buscando la mejor imagen disponible..."):
+            with st.spinner(f"Calculando {indice_sel}..."):
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # Mapa base con calles para referencia
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
                     tiles='OpenStreetMap'
                 )
 
-                # URL WMS con búsqueda profunda (2023 a 2026)
-                # MAXCC=100 asegura que si hay nubes, igual veamos algo y no un cuadro vacío
+                # WMS con búsqueda profunda
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
-                    name="Sentinel-2",
+                    name=f"Sentinel-2 {indice_sel}",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
@@ -911,7 +912,32 @@ elif menu == "🛰️ Índices Satelitales":
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m._repr_html_(), height=650)
                 
-                st.info("💡 Si ves un cuadro gris, puede ser que el satélite esté procesando la zona. Probá cambiando de departamento.")
+                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
+                st.write("---")
+                if indice_sel == "NDVI":
+                    st.subheader("📊 Referencia del Índice de Vegetación (NDVI)")
+                    st.info("Mide la salud de la planta. Cuanto más verde, mayor actividad fotosintética.")
+                    l1, l2, l3, l4 = st.columns(4)
+                    l1.metric("Suelo / Estrés", "< 0.2", "🔴")
+                    l2.metric("Crecimiento", "0.2 - 0.4", "🟡")
+                    l3.metric("Saludable", "0.4 - 0.7", "🟢")
+                    l4.metric("Vigor Alto", "> 0.7", "🌲")
+
+                elif indice_sel == "NDWI":
+                    st.subheader("💧 Referencia del Índice de Agua (NDWI)")
+                    st.info("Detecta contenido de agua en la vegetación y cuerpos de agua.")
+                    l1, l2, l3, l4 = st.columns(4)
+                    l1.metric("Seco / Sin Agua", "< 0.0", "🟤")
+                    l2.metric("Humedad Baja", "0.0 - 0.2", "🟡")
+                    l3.metric("Humedad Alta", "0.2 - 0.4", "🔵")
+                    l4.metric("Agua Libre", "> 0.4", "🌊")
+                
+                elif indice_sel == "TRUE-COLOR":
+                    st.subheader("📷 Imagen Real (True Color)")
+                    st.write("Esta es la fotografía satelital tal cual la vería el ojo humano.")
+
+        else:
+            st.warning("Seleccioná ubicación para cargar el monitor.")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
