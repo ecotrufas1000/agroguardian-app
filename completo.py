@@ -842,6 +842,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES 
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -850,28 +851,12 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
     from datetime import datetime
 
-    # --- TRUCO CSS: Ocultar la barra de atribución de Folium ---
+    # CSS para mobile y limpieza
     st.markdown("""
         <style>
         .leaflet-control-attribution { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-        <style>
-        /* Ocultar atribución */
-        .leaflet-control-attribution { display: none !important; }
-
-        /* Quitar padding lateral en mobile */
-        .block-container {
-            padding-top: 1rem;
-            padding-left: 0rem;
-            padding-right: 0rem;
-        }
-
-        /* Forzar altura grande del iframe */
-        iframe {
-            height: 85vh !important;
-        }
+        .block-container { padding-top: 1rem; padding-left: 0rem; padding-right: 0rem; }
+        iframe { height: 85vh !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -879,6 +864,18 @@ elif menu == "🛰️ Índices Satelitales":
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
+    # Script para NDWI con fondo blanco
+    ndwi_script = """
+        //VERSION=3
+        function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
+        function evaluatePixel(sample) {
+          let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+          if (val > 0.1) return [0, 0, 0.5];    
+          if (val > 0.0) return [0.4, 0.7, 1];  
+          return [1, 1, 1];                     
+        }
+    """
+
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
@@ -889,8 +886,7 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        col_prov = "NAME_1"
-        col_depto = "NAME_2"
+        col_prov, col_depto = "NAME_1", "NAME_2"
 
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
@@ -906,18 +902,12 @@ elif menu == "🛰️ Índices Satelitales":
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Calculando {indice_sel}..."):
-
-                # 🔹 Filtrar provincia completa
+            with st.spinner(f"Sincronizando {indice_sel}..."):
                 gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
-
-                # 🔹 Filtrar departamento seleccionado
                 gdf_loc = gdf_prov[gdf_prov[col_depto] == depto_sel]
-
-                # Centro del departamento
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # 🔹 MAPA BASE
+                # 1. MAPA BASE
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=9,
@@ -925,7 +915,27 @@ elif menu == "🛰️ Índices Satelitales":
                     attr=" "
                 )
 
-                # 🔹 CAPA WMS (Sentinel Hub)
+                # 2. CAPA DE TODOS LOS DEPARTAMENTOS (Gris - Solo líneas)
+                folium.GeoJson(
+                    gdf_prov,
+                    style_function=lambda x: {
+                        "fillColor": "none", # IMPORTANTE: none para que no tape
+                        "color": "#666666",
+                        "weight": 1,
+                        "fillOpacity": 0
+                    },
+                    interactive=False
+                ).add_to(m)
+
+                # 3. CAPA DE SATÉLITE (WMS) - Se agrega después para quedar ARRIBA
+                extra_params = {
+                    "MAXCC": 100,
+                    "TIME": "2023-01-01/2026-03-04",
+                    "TRANSPARENT": True
+                }
+                if indice_sel == "NDWI":
+                    extra_params["EVALSCRIPT"] = ndwi_script
+
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
@@ -933,74 +943,46 @@ elif menu == "🛰️ Índices Satelitales":
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    opacity=1.0,
+                    opacity=0.8, # Un poco de transparencia para ver las líneas debajo
                     version="1.1.1",
-                    maxcc=100,
-                    time="2023-01-01/2026-03-04",
-                    attr=" "
+                    extra_params=extra_params
                 ).add_to(m)
 
-                # 🔹 TODOS LOS DEPARTAMENTOS (gris)
-                folium.GeoJson(
-                    gdf_prov,
-                    style_function=lambda x: {
-                        "fillColor": "transparent",
-                        "color": "#666666",
-                        "weight": 1
-                    },
-                    interactive=False
-                ).add_to(m)
-
-                # 🔹 DEPARTAMENTO SELECCIONADO (resaltado)
+                # 4. DEPARTAMENTO SELECCIONADO (Borde resaltado)
                 folium.GeoJson(
                     gdf_loc,
                     style_function=lambda x: {
-                        "fillColor": "cyan",
-                        "fillOpacity": 0.15,
+                        "fillColor": "none",
                         "color": "black",
                         "weight": 3
                     }
                 ).add_to(m)
 
-                # 🔹 Ajustar vista a la provincia (NO al país)
+                # Ajustar vista
                 bounds = gdf_prov.total_bounds
-                m.fit_bounds([
-                    [bounds[1], bounds[0]],
-                    [bounds[3], bounds[2]]
-                ])
+                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
 
-                # 🔹 Render grande en mobile
-                components.html(
-                    m.get_root().render(),
-                    height=900,
-                    scrolling=False
-                )
+                # RENDER
+                components.html(m.get_root().render(), height=900)
 
                 st.success(f"Visualizando {indice_sel} en {depto_sel}")
                 
-               # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
+                # --- LEYENDAS ---
                 st.write("---")
                 if indice_sel == "NDVI":
                     st.subheader("📊 Referencia del Índice de Vegetación (NDVI)")
-                    st.info("Cuanto más verde, mayor actividad fotosintética.")
                     l1, l2, l3, l4 = st.columns(4)
-                    l1.metric("Suelo / Estrés", "< 0.2", "🔴")
-                    l2.metric("Crecimiento", "0.2 - 0.4", "🟡")
-                    l3.metric("Saludable", "0.4 - 0.7", "🟢")
-                    l4.metric("Vigor Alto", "> 0.7", "🌲")
-
+                    l1.metric("Suelo", "< 0.2", "🔴")
+                    l2.metric("Medio", "0.2-0.4", "🟡")
+                    l3.metric("Saludable", "0.4-0.7", "🟢")
+                    l4.metric("Vigor", "> 0.7", "🌲")
                 elif indice_sel == "NDWI":
                     st.subheader("💧 Referencia del Índice de Agua (NDWI)")
-                    st.info("Detecta cuerpos de agua.")
                     l1, l2, l3, l4 = st.columns(4)
-                    l1.metric("Seco / Sin Agua", "< 0.0", "🟤")
-                    l2.metric("Humedad Baja", "0.0 - 0.2", "🟡")
-                    l3.metric("Humedad Alta", "0.2 - 0.4", "🔵")
-                    l4.metric("Agua Libre", "> 0.4", "🌊")
-                
-                elif indice_sel == "TRUE-COLOR":
-                    st.subheader("📷 Imagen Real (True Color)")
-                    st.write("Esta es la fotografía satelital tal cual la vería el ojo humano.")
+                    l1.metric("Seco", "< 0.0", "⚪")
+                    l2.metric("Humedad", "0.0-0.2", "🟡")
+                    l3.metric("Agua", "0.2-0.4", "🔵")
+                    l4.metric("Libre", "> 0.4", "🌊")
 
         else:
             st.warning("Seleccioná ubicación para cargar el monitor.")
