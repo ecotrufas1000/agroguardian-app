@@ -856,6 +856,24 @@ elif menu == "🛰️ Índices Satelitales":
         .leaflet-control-attribution { display: none !important; }
         </style>
     """, unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+        /* Ocultar atribución */
+        .leaflet-control-attribution { display: none !important; }
+
+        /* Quitar padding lateral en mobile */
+        .block-container {
+            padding-top: 1rem;
+            padding-left: 0rem;
+            padding-right: 0rem;
+        }
+
+        /* Forzar altura grande del iframe */
+        iframe {
+            height: 85vh !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
@@ -919,14 +937,8 @@ elif menu == "🛰️ Índices Satelitales":
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(
-                    f"""
-                    <div style="height:75vh; width:100%;">
-                    {m._repr_html_()}
-                    </div>
-                    """,
-                    height=900,
-                )
+                components.html(m._repr_html_(), height=900)
+                
                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 if indice_sel == "NDVI":
