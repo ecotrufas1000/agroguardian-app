@@ -844,14 +844,16 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
+    from datetime import datetime
 
-    # Limpieza visual para mobile
+    # CSS para mobile y limpieza
     st.markdown("""
         <style>
         .leaflet-control-attribution { display: none !important; }
@@ -864,34 +866,24 @@ elif menu == "🛰️ Índices Satelitales":
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
-    # --- SCRIPTS DE PROCESAMIENTO (Estilo Google Earth Engine) ---
-    scripts_custom = {
-        "NDVI": """
-            //VERSION=3
-            function setup() { return { input: ["B04","B08"], output: { bands: 3 } }; }
-            function evaluatePixel(sample) {
-                let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
-                if (ndvi < 0.2) return [0.8, 0.1, 0.1]; // Rojo (Suelo)
-                if (ndvi < 0.4) return [1, 0.9, 0.2];   // Amarillo (Bajo vigor)
-                if (ndvi < 0.7) return [0.1, 0.7, 0.1]; // Verde (Saludable)
-                return [0, 0.3, 0];                    // Verde oscuro (Vigor alto)
-            }
-        """,
-        "NDWI": """
-            //VERSION=3
-            // Replicando la paleta de azules de tu script de GEE
-            function setup() { return { input: ["B03","B08"], output: { bands: 3 } }; }
-            function evaluatePixel(sample) {
-                let ndwi = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
-                // Colores en formato RGB (0 a 1)
-                if (ndwi > 0.4) return [0, 0.3, 0.6];      // #004C99 (Agua libre)
-                if (ndwi > 0.2) return [0, 0.4, 0.8];      // #0066CC (Humedad alta)
-                if (ndwi > 0.1) return [0.2, 0.6, 1];      // #3399FF (Humedad media)
-                if (ndwi > 0.0) return [0.6, 0.8, 1];      // #99CCFF (Humedad baja)
-                return [1, 1, 1];                          // Blanco (Tierra seca)
-            }
-        """
+    # 1. Scripts de procesamiento corregidos
+    # El NDVI lo dejamos simple para que use tu config de Sentinel Hub
+    # El NDWI lo forzamos con fondo blanco
+    ndwi_white_script = """
+    //VERSION=3
+    function setup() {
+      return {
+        input: ["B03", "B08"],
+        output: { bands: 3 }
+      };
     }
+    function evaluatePixel(sample) {
+      let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+      if (val > 0.1) return [0, 0, 0.5];    // Azul
+      if (val > 0.0) return [0.4, 0.7, 1];  // Celeste
+      return [1, 1, 1];                     // Blanco
+    }
+    """
 
     @st.cache_data
     def cargar_limites_argentina():
@@ -914,52 +906,47 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("🌿 Capa:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Sincronizando con Sentinel Hub..."):
+            with st.spinner(f"Cargando {indice_sel}..."):
                 gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
                 gdf_loc = gdf_prov[gdf_prov[col_depto] == depto_sel]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
+                # Crear mapa base
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=9, tiles="OpenStreetMap", attr=" ")
 
-                # Dibujamos primero los límites grises
-                folium.GeoJson(gdf_prov, style_function=lambda x: {"fillColor": "none", "color": "#666666", "weight": 1}, interactive=False).add_to(m)
+                # Configuración de parámetros
+                params = {
+                    "MAXCC": 100,
+                    "TIME": "2024-01-01/2026-03-04",
+                    "TRANSPARENT": True
+                }
 
-                # Parámetros del satélite
-                params = {"MAXCC": 100, "TIME": "2023-01-01/2026-03-04", "TRANSPARENT": True}
-                if indice_sel in scripts_custom:
-                    params["EVALSCRIPT"] = scripts_custom[indice_sel]
+                # Si es NDWI, inyectamos el script de fondo blanco
+                if indice_sel == "NDWI":
+                    params["EVALSCRIPT"] = ndwi_white_script
 
-                # Capa WMS (Sentinel Hub con estética GEE)
+                # Agregamos la capa satelital
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    opacity=0.85,
+                    opacity=1.0,
                     version="1.1.1",
                     extra_params=params
                 ).add_to(m)
 
-                # Resaltar departamento seleccionado
+                # Capas de límites (Gris para provincia, Negro para el depto)
+                folium.GeoJson(gdf_prov, style_function=lambda x: {"fillColor": "none", "color": "#666666", "weight": 1}, interactive=False).add_to(m)
                 folium.GeoJson(gdf_loc, style_function=lambda x: {"fillColor": "none", "color": "black", "weight": 3}).add_to(m)
 
-                # Ajustar vista y renderizar
+                # Ajustar vista y render
                 m.fit_bounds(gdf_prov.total_bounds.tolist())
                 components.html(m.get_root().render(), height=900)
-
-                # --- LEYENDAS REPLICADAS ---
-                st.write("---")
-                if indice_sel == "NDWI":
-                    st.subheader("💧 Referencia NDWI (Paleta GEE)")
-                    c1, c2, c3, c4 = st.columns(4)
-                    c1.markdown("<div style='background-color:#004C99; padding:10px; border-radius:5px; color:white; text-align:center'>Agua Libre</div>", unsafe_allow_html=True)
-                    c2.markdown("<div style='background-color:#3399FF; padding:10px; border-radius:5px; color:white; text-align:center'>Humedad Alta</div>", unsafe_allow_html=True)
-                    c3.markdown("<div style='background-color:#99CCFF; padding:10px; border-radius:5px; color:black; text-align:center'>Humedad Baja</div>", unsafe_allow_html=True)
-                    c4.markdown("<div style='background-color:#FFFFFF; padding:10px; border-radius:5px; color:black; border:1px solid gray; text-align:center'>Seco</div>", unsafe_allow_html=True)
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
