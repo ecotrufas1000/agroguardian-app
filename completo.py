@@ -906,75 +906,75 @@ elif menu == "🛰️ Índices Satelitales":
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-    with st.spinner(f"Calculando {indice_sel}..."):
+            with st.spinner(f"Calculando {indice_sel}..."):
 
-        # 🔹 Filtrar provincia completa
-        gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+                # 🔹 Filtrar provincia completa
+                gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
 
-        # 🔹 Filtrar departamento seleccionado
-        gdf_loc = gdf_prov[gdf_prov[col_depto] == depto_sel]
+                # 🔹 Filtrar departamento seleccionado
+                gdf_loc = gdf_prov[gdf_prov[col_depto] == depto_sel]
 
-        # Centro del departamento
-        centro = gdf_loc.geometry.centroid.iloc[0]
+                # Centro del departamento
+                centro = gdf_loc.geometry.centroid.iloc[0]
 
-        # 🔹 MAPA BASE
-        m = folium.Map(
-            location=[centro.y, centro.x],
-            zoom_start=9,
-            tiles="OpenStreetMap",
-            attr=" "
-        )
+                # 🔹 MAPA BASE
+                m = folium.Map(
+                    location=[centro.y, centro.x],
+                    zoom_start=9,
+                    tiles="OpenStreetMap",
+                    attr=" "
+                )
 
-        # 🔹 CAPA WMS (Sentinel Hub)
-        folium.WmsTileLayer(
-            url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-            layers=indice_sel,
-            name=f"Sentinel-2 {indice_sel}",
-            fmt="image/png",
-            transparent=True,
-            overlay=True,
-            opacity=1.0,
-            version="1.1.1",
-            maxcc=100,
-            time="2023-01-01/2026-03-04",
-            attr=" "
-        ).add_to(m)
+                # 🔹 CAPA WMS (Sentinel Hub)
+                folium.WmsTileLayer(
+                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+                    layers=indice_sel,
+                    name=f"Sentinel-2 {indice_sel}",
+                    fmt="image/png",
+                    transparent=True,
+                    overlay=True,
+                    opacity=1.0,
+                    version="1.1.1",
+                    maxcc=100,
+                    time="2023-01-01/2026-03-04",
+                    attr=" "
+                ).add_to(m)
 
-        # 🔹 TODOS LOS DEPARTAMENTOS (gris)
-        folium.GeoJson(
-            gdf_prov,
-            style_function=lambda x: {
-                "fillColor": "transparent",
-                "color": "#666666",
-                "weight": 1
-            },
-            interactive=False
-        ).add_to(m)
+                # 🔹 TODOS LOS DEPARTAMENTOS (gris)
+                folium.GeoJson(
+                    gdf_prov,
+                    style_function=lambda x: {
+                        "fillColor": "transparent",
+                        "color": "#666666",
+                        "weight": 1
+                    },
+                    interactive=False
+                ).add_to(m)
 
-        # 🔹 DEPARTAMENTO SELECCIONADO (resaltado)
-        folium.GeoJson(
-            gdf_loc,
-            style_function=lambda x: {
-                "fillColor": "cyan",
-                "fillOpacity": 0.15,
-                "color": "black",
-                "weight": 3
-            }
-        ).add_to(m)
+                # 🔹 DEPARTAMENTO SELECCIONADO (resaltado)
+                folium.GeoJson(
+                    gdf_loc,
+                    style_function=lambda x: {
+                        "fillColor": "cyan",
+                        "fillOpacity": 0.15,
+                        "color": "black",
+                        "weight": 3
+                    }
+                ).add_to(m)
 
-        # 🔹 Ajustar vista a la provincia (NO al país)
-        bounds = gdf_prov.total_bounds
-        m.fit_bounds([
-            [bounds[1], bounds[0]],
-            [bounds[3], bounds[2]]
-        ])
+                # 🔹 Ajustar vista a la provincia (NO al país)
+                bounds = gdf_prov.total_bounds
+                m.fit_bounds([
+                    [bounds[1], bounds[0]],
+                    [bounds[3], bounds[2]]
+                ])
 
-        # 🔹 Render grande en mobile
-        components.html(
-            m.get_root().render(),
-            height=900,
-            scrolling=False
-        )
+                # 🔹 Render grande en mobile
+                components.html(
+                    m.get_root().render(),
+                    height=900,
+                    scrolling=False
+                )
 
         st.success(f"Visualizando {indice_sel} en {depto_sel}")
                 
