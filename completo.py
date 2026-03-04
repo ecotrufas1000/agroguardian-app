@@ -906,43 +906,77 @@ elif menu == "🛰️ Índices Satelitales":
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Calculando {indice_sel}..."):
-                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
-                centro = gdf_loc.geometry.centroid.iloc[0]
+    with st.spinner(f"Calculando {indice_sel}..."):
 
-                # Mapa base con atribución vacía para limpiar la pantalla
-                m = folium.Map(
-                    location=[centro.y, centro.x],
-                    zoom_start=12,
-                    tiles='OpenStreetMap',
-                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
-                )
+        # 🔹 Filtrar provincia completa
+        gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
 
-                # Capa WMS
-                folium.WmsTileLayer(
-                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=indice_sel,
-                    name=f"Sentinel-2 {indice_sel}",
-                    fmt="image/png",
-                    transparent=True,
-                    overlay=True,
-                    opacity=1.0,
-                    zindex=1000,
-                    version="1.1.1",
-                    maxcc=100, 
-                    time="2023-01-01/2026-03-04",
-                    attr=' ' # Intentamos limpiar la atribución de la capa también
-                ).add_to(m)
+        # 🔹 Filtrar departamento seleccionado
+        gdf_loc = gdf_prov[gdf_prov[col_depto] == depto_sel]
 
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
+        # Centro del departamento
+        centro = gdf_loc.geometry.centroid.iloc[0]
 
-                m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(
-                    m.get_root().render(),
-                    height=900,
-                    width=None,
-                    scrolling=False
-                )
+        # 🔹 MAPA BASE
+        m = folium.Map(
+            location=[centro.y, centro.x],
+            zoom_start=9,
+            tiles="OpenStreetMap",
+            attr=" "
+        )
+
+        # 🔹 CAPA WMS (Sentinel Hub)
+        folium.WmsTileLayer(
+            url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+            layers=indice_sel,
+            name=f"Sentinel-2 {indice_sel}",
+            fmt="image/png",
+            transparent=True,
+            overlay=True,
+            opacity=1.0,
+            version="1.1.1",
+            maxcc=100,
+            time="2023-01-01/2026-03-04",
+            attr=" "
+        ).add_to(m)
+
+        # 🔹 TODOS LOS DEPARTAMENTOS (gris)
+        folium.GeoJson(
+            gdf_prov,
+            style_function=lambda x: {
+                "fillColor": "transparent",
+                "color": "#666666",
+                "weight": 1
+            },
+            interactive=False
+        ).add_to(m)
+
+        # 🔹 DEPARTAMENTO SELECCIONADO (resaltado)
+        folium.GeoJson(
+            gdf_loc,
+            style_function=lambda x: {
+                "fillColor": "cyan",
+                "fillOpacity": 0.15,
+                "color": "black",
+                "weight": 3
+            }
+        ).add_to(m)
+
+        # 🔹 Ajustar vista a la provincia (NO al país)
+        bounds = gdf_prov.total_bounds
+        m.fit_bounds([
+            [bounds[1], bounds[0]],
+            [bounds[3], bounds[2]]
+        ])
+
+        # 🔹 Render grande en mobile
+        components.html(
+            m.get_root().render(),
+            height=900,
+            scrolling=False
+        )
+
+        st.success(f"Visualizando {indice_sel} en {depto_sel}")
                 
                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
