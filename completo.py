@@ -843,36 +843,20 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES 
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
-    from datetime import datetime
 
-    # --- TRUCO CSS: Ocultar la barra de atribución de Folium ---
+    # Limpieza visual para mobile
     st.markdown("""
         <style>
         .leaflet-control-attribution { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-        <style>
-        /* Ocultar atribución */
-        .leaflet-control-attribution { display: none !important; }
-
-        /* Quitar padding lateral en mobile */
-        .block-container {
-            padding-top: 1rem;
-            padding-left: 0rem;
-            padding-right: 0rem;
-        }
-
-        /* Forzar altura grande del iframe */
-        iframe {
-            height: 85vh !important;
-        }
+        .block-container { padding-top: 1rem; padding-left: 0rem; padding-right: 0rem; }
+        iframe { height: 85vh !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -880,6 +864,35 @@ elif menu == "🛰️ Índices Satelitales":
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
+    # --- SCRIPTS DE PROCESAMIENTO (Estilo Google Earth Engine) ---
+    scripts_custom = {
+        "NDVI": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08"], output: { bands: 3 } }; }
+            function evaluatePixel(sample) {
+                let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+                if (ndvi < 0.2) return [0.8, 0.1, 0.1]; // Rojo (Suelo)
+                if (ndvi < 0.4) return [1, 0.9, 0.2];   // Amarillo (Bajo vigor)
+                if (ndvi < 0.7) return [0.1, 0.7, 0.1]; // Verde (Saludable)
+                return [0, 0.3, 0];                    // Verde oscuro (Vigor alto)
+            }
+        """,
+        "NDWI": """
+            //VERSION=3
+            // Replicando la paleta de azules de tu script de GEE
+            function setup() { return { input: ["B03","B08"], output: { bands: 3 } }; }
+            function evaluatePixel(sample) {
+                let ndwi = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+                // Colores en formato RGB (0 a 1)
+                if (ndwi > 0.4) return [0, 0.3, 0.6];      // #004C99 (Agua libre)
+                if (ndwi > 0.2) return [0, 0.4, 0.8];      // #0066CC (Humedad alta)
+                if (ndwi > 0.1) return [0.2, 0.6, 1];      // #3399FF (Humedad media)
+                if (ndwi > 0.0) return [0.6, 0.8, 1];      // #99CCFF (Humedad baja)
+                return [1, 1, 1];                          // Blanco (Tierra seca)
+            }
+        """
+    }
+
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
@@ -890,13 +903,10 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        col_prov = "NAME_1"
-        col_depto = "NAME_2"
-
+        col_prov, col_depto = "NAME_1", "NAME_2"
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
-            provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + sorted(gdf_argentina[col_prov].unique()))
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
@@ -907,65 +917,49 @@ elif menu == "🛰️ Índices Satelitales":
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Calculando {indice_sel}..."):
-                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
+            with st.spinner(f"Sincronizando con Sentinel Hub..."):
+                gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+                gdf_loc = gdf_prov[gdf_prov[col_depto] == depto_sel]
                 centro = gdf_loc.geometry.centroid.iloc[0]
-        
-                # Mapa base con atribución vacía para limpiar la pantalla
-                m = folium.Map(
-                    location=[centro.y, centro.x],
-                    zoom_start=12,
-                    tiles='OpenStreetMap',
-                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
-                )
 
-                # Capa WMS
+                m = folium.Map(location=[centro.y, centro.x], zoom_start=9, tiles="OpenStreetMap", attr=" ")
+
+                # Dibujamos primero los límites grises
+                folium.GeoJson(gdf_prov, style_function=lambda x: {"fillColor": "none", "color": "#666666", "weight": 1}, interactive=False).add_to(m)
+
+                # Parámetros del satélite
+                params = {"MAXCC": 100, "TIME": "2023-01-01/2026-03-04", "TRANSPARENT": True}
+                if indice_sel in scripts_custom:
+                    params["EVALSCRIPT"] = scripts_custom[indice_sel]
+
+                # Capa WMS (Sentinel Hub con estética GEE)
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
-                    name=f"Sentinel-2 {indice_sel}",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    opacity=1.0,
-                    zindex=1000,
+                    opacity=0.85,
                     version="1.1.1",
-                    maxcc=100, 
-                    time="2026-01-01/2026-03-04",
-                    attr=' ' # Intentamos limpiar la atribución de la capa también
+                    extra_params=params
                 ).add_to(m)
 
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
+                # Resaltar departamento seleccionado
+                folium.GeoJson(gdf_loc, style_function=lambda x: {"fillColor": "none", "color": "black", "weight": 3}).add_to(m)
 
-                m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(
-                    m.get_root().render(),
-                    height=900,
-                    width=None,
-                    scrolling=False
-                )
+                # Ajustar vista y renderizar
+                m.fit_bounds(gdf_prov.total_bounds.tolist())
+                components.html(m.get_root().render(), height=900)
 
-                st.success(f"Visualizando {indice_sel} en {depto_sel}")
-                
-                # --- LEYENDAS ---
+                # --- LEYENDAS REPLICADAS ---
                 st.write("---")
-                if indice_sel == "NDVI":
-                    st.subheader("📊 Referencia del Índice de Vegetación (NDVI)")
-                    l1, l2, l3, l4 = st.columns(4)
-                    l1.metric("Suelo", "< 0.2", "🔴")
-                    l2.metric("Medio", "0.2-0.4", "🟡")
-                    l3.metric("Saludable", "0.4-0.7", "🟢")
-                    l4.metric("Vigor", "> 0.7", "🌲")
-                elif indice_sel == "NDWI":
-                    st.subheader("💧 Referencia del Índice de Agua (NDWI)")
-                    l1, l2, l3, l4 = st.columns(4)
-                    l1.metric("Seco", "< 0.0", "⚪")
-                    l2.metric("Humedad", "0.0-0.2", "🟡")
-                    l3.metric("Agua", "0.2-0.4", "🔵")
-                    l4.metric("Libre", "> 0.4", "🌊")
-
-        else:
-            st.warning("Seleccioná ubicación para cargar el monitor.")
+                if indice_sel == "NDWI":
+                    st.subheader("💧 Referencia NDWI (Paleta GEE)")
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.markdown("<div style='background-color:#004C99; padding:10px; border-radius:5px; color:white; text-align:center'>Agua Libre</div>", unsafe_allow_html=True)
+                    c2.markdown("<div style='background-color:#3399FF; padding:10px; border-radius:5px; color:white; text-align:center'>Humedad Alta</div>", unsafe_allow_html=True)
+                    c3.markdown("<div style='background-color:#99CCFF; padding:10px; border-radius:5px; color:black; text-align:center'>Humedad Baja</div>", unsafe_allow_html=True)
+                    c4.markdown("<div style='background-color:#FFFFFF; padding:10px; border-radius:5px; color:black; border:1px solid gray; text-align:center'>Seco</div>", unsafe_allow_html=True)
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
