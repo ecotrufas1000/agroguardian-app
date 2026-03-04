@@ -920,9 +920,12 @@ elif menu == "🛰️ Índices Satelitales":
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(
-                    m._repr_html_(),
-                    height=850,  # 👈 más alto para mobile
-                    scrolling=False
+                    f"""
+                    <div style="height:75vh; width:100%;">
+                    {m._repr_html_()}
+                    </div>
+                    """,
+                    height=900,
                 )
                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
