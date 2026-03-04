@@ -850,17 +850,28 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
     from datetime import datetime
 
-    # --- TRUCO CSS: Ocultar la barra de atribución de Folium ---
-    st.markdown("""
-        <style>
-        .leaflet-control-attribution { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
-
+    st.markdown("<style>.leaflet-control-attribution { display: none !important; }</style>", unsafe_allow_html=True)
     st.header("🛰️ Monitor Satelital Dinámico")
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
+    # Script optimizado para NDWI con fondo blanco
+    ndwi_script = """
+        //VERSION=3
+        function setup() {
+          return {
+            input: ["B03", "B08"],
+            output: { bands: 3 }
+          };
+        }
+        function evaluatePixel(sample) {
+          let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+          if (val > 0.1) return [0, 0, 0.5];    // Azul Oscuro (Agua profunda)
+          if (val > 0.0) return [0.4, 0.7, 1];  // Celeste (Humedad/Barro)
+          return [1, 1, 1];                     // BLANCO (Tierra seca)
+        }
+    """
+
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
@@ -871,13 +882,10 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        col_prov = "NAME_1"
-        col_depto = "NAME_2"
-
+        col_prov, col_depto = "NAME_1", "NAME_2"
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
-            provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + sorted(gdf_argentina[col_prov].unique()))
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
@@ -888,36 +896,40 @@ elif menu == "🛰️ Índices Satelitales":
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Calculando {indice_sel}..."):
+            with st.spinner(f"Generando capa {indice_sel}..."):
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # Mapa base con atribución vacía para limpiar la pantalla
-                m = folium.Map(
-                    location=[centro.y, centro.x],
-                    zoom_start=12,
-                    tiles='OpenStreetMap',
-                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
-                )
+                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, tiles='OpenStreetMap', attr=' ')
 
-                # Capa WMS
+                # Configuración de parámetros según el índice
+                params = {
+                    "MAXCC": 100,
+                    "TIME": "2023-01-01/2026-03-04",
+                    "FORMAT": "image/png",
+                    "TRANSPARENT": True
+                }
+
+                # SOLO inyectamos el script si es NDWI. Para NDVI dejamos que use tu Dashboard.
+                if indice_sel == "NDWI":
+                    params["EVALSCRIPT"] = ndwi_script
+                    capa_a_pedir = "NDWI" 
+                else:
+                    capa_a_pedir = indice_sel
+
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=indice_sel,
-                    name=f"Sentinel-2 {indice_sel}",
+                    layers=capa_a_pedir,
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
                     opacity=1.0,
                     zindex=1000,
                     version="1.1.1",
-                    maxcc=100, 
-                    time="2023-01-01/2026-03-04",
-                    attr=' ' # Intentamos limpiar la atribución de la capa también
+                    extra_params=params
                 ).add_to(m)
 
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
-
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m._repr_html_(), height=650)
                 # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
