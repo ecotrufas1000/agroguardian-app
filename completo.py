@@ -931,7 +931,7 @@ elif menu == "🛰️ Índices Satelitales":
                     zindex=1000,
                     version="1.1.1",
                     maxcc=100, 
-                    time="2023-01-01/2026-03-04",
+                    time="2026-01-01/2026-03-04",
                     attr=' ' # Intentamos limpiar la atribución de la capa también
                 ).add_to(m)
 
