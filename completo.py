@@ -931,12 +931,12 @@ elif menu == "🛰️ Índices Satelitales":
                 height=900,
                 scrolling=False
             )
-                # --- LEYENDAS FUERA DEL MAPA (Streamlit) ---
-                st.write("---")
-                if indice_sel == "NDVI":
-                    st.success("🌾 **NDVI:** Los tonos verdes indican cultivos sanos. Rojos indican suelo desnudo.")
-                elif indice_sel == "NDWI":
-                    st.info("💧 **NDWI:** Los tonos oscuros/azules indican presencia de agua o alta humedad.")
+            # --- LEYENDAS FUERA DEL MAPA (Streamlit) ---
+            st.write("---")
+            if indice_sel == "NDVI":
+                st.success("🌾 **NDVI:** Los tonos verdes indican cultivos sanos. Rojos indican suelo desnudo.")
+            elif indice_sel == "NDWI":
+                st.info("💧 **NDWI:** Los tonos oscuros/azules indican presencia de agua o alta humedad.")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
