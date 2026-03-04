@@ -851,9 +851,8 @@ elif menu == "🛰️ Índices Satelitales":
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
-    from datetime import datetime
 
-    # --- ESTILOS CSS ---
+    # --- CSS para limpieza y altura ---
     st.markdown("""
         <style>
         .leaflet-control-attribution { display: none !important; }
@@ -866,17 +865,20 @@ elif menu == "🛰️ Índices Satelitales":
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
-    # Script para NDWI (Azules profesionales + Fondo Blanco)
-    ndwi_script = """
-    //VERSION=3
-    function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
-    function evaluatePixel(sample) {
-      let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
-      if (val > 0.1) return [0, 0.3, 0.6];    // Azul (Agua)
-      if (val > 0.0) return [0.6, 0.8, 1];    // Celeste (Humedad)
-      return [1, 1, 1];                       // Blanco (Seco)
-    }
-    """
+    # Script NDWI ultra-compatible (Fondo Blanco)
+    ndwi_script = """//VERSION=3
+function setup() {
+  return {
+    input: ["B03", "B08"],
+    output: { bands: 3 }
+  };
+}
+function evaluatePixel(sample) {
+  let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+  if (val > 0.1) return [0, 0.4, 0.8]; // Agua
+  if (val > 0.0) return [0.6, 0.8, 1.0]; // Humedad
+  return [1, 1, 1]; // Blanco
+}"""
 
     @st.cache_data
     def cargar_limites_argentina():
@@ -888,13 +890,10 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        col_prov = "NAME_1"
-        col_depto = "NAME_2"
-
+        col_prov, col_depto = "NAME_1", "NAME_2"
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
-            provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + sorted(gdf_argentina[col_prov].unique()))
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
@@ -905,34 +904,26 @@ elif menu == "🛰️ Índices Satelitales":
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Calculando {indice_sel}..."):
+            with st.spinner(f"Cargando {indice_sel}..."):
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
         
-                # 1. Mapa base
-                m = folium.Map(
-                    location=[centro.y, centro.x],
-                    zoom_start=12,
-                    tiles='OpenStreetMap',
-                    attr=' ' 
-                )
+                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, tiles='OpenStreetMap', attr=' ')
 
-                # 2. Configuración de parámetros WMS
+                # Definimos los parámetros extra de forma limpia
                 params = {
-                    "maxcc": 100, 
-                    "time": "2023-01-01/2026-03-04",
-                    "transparent": True
+                    "transparent": True,
+                    "maxcc": 100,
+                    "time": "2023-01-01/2026-03-04"
                 }
                 
-                # Si es NDWI, aplicamos el estilo "Google Earth Engine"
+                # SOLO inyectamos el script si es NDWI. NDVI usará tu configuración de Sentinel Hub.
                 if indice_sel == "NDWI":
                     params["evalscript"] = ndwi_script
 
-                # 3. Capa WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
-                    name=f"Sentinel-2 {indice_sel}",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
@@ -940,35 +931,20 @@ elif menu == "🛰️ Índices Satelitales":
                     zindex=1000,
                     version="1.1.1",
                     attr=' ',
-                    extra_params=params
+                    extra_params=params # Aquí se inyecta el script
                 ).add_to(m)
 
-                # 4. Geometría del departamento
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
-                # 5. Ajuste de cámara y renderizado
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(
-                    m.get_root().render(),
-                    height=900,
-                    scrolling=False
-                )
+                components.html(m.get_root().render(), height=900, scrolling=False)
 
-                # --- 6. LEYENDAS (Debajo del mapa) ---
+                # Leyendas simples para no romper la UI
                 st.write("---")
-                if indice_sel == "NDVI":
-                    st.subheader("📊 Referencia NDVI")
-                    l1, l2, l3, l4 = st.columns(4)
-                    l1.metric("Suelo", "< 0.2", "🔴")
-                    l2.metric("Medio", "0.2-0.4", "🟡")
-                    l3.metric("Sano", "0.4-0.7", "🟢")
-                    l4.metric("Vigor", "> 0.7", "🌲")
-                elif indice_sel == "NDWI":
-                    st.subheader("💧 Referencia NDWI")
-                    l1, l2, l3 = st.columns(3)
-                    l1.info("⚪ **Blanco:** Suelo Seco")
-                    l2.info("🔵 **Celeste:** Humedad")
-                    l3.info("🌊 **Azul:** Agua Libre")
+                if indice_sel == "NDWI":
+                    st.info("💧 **Azul:** Agua | **Celeste:** Humedad | **Blanco:** Suelo Seco")
+                elif indice_sel == "NDVI":
+                    st.success("🌿 **Verde:** Vegetación | **Rojo/Amarillo:** Suelo o bajo vigor")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
