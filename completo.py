@@ -839,6 +839,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -849,15 +850,12 @@ elif menu == "🛰️ Índices Satelitales":
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
-    # 1. CONFIGURACIÓN DE INSTANCIA (Verificada)
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
-    # 2. CARGA DE DATOS GEOGRÁFICOS
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
         if os.path.exists(ruta_gpkg):
-            # Usamos pyogrio para mayor velocidad de lectura
             return gpd.read_file(ruta_gpkg, engine="pyogrio")
         return None
 
@@ -867,9 +865,6 @@ elif menu == "🛰️ Índices Satelitales":
         col_prov = "NAME_1"
         col_depto = "NAME_2"
 
-        # --- 3. INTERFAZ DE USUARIO (Selectores) ---
-        st.info("📍 Seleccioná una ubicación para activar el análisis satelital.")
-        
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
@@ -881,74 +876,44 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            # Simplificamos los nombres de capas para que coincidan con tu Dashboard
-            indice_sel = st.selectbox("Capa Sentinel:", ["NDVI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("Capa:", ["NDVI", "TRUE-COLOR"])
 
-        # --- 4. LÓGICA DE RENDERIZADO ---
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Sincronizando con Sentinel Hub para {depto_sel}..."):
-                # Filtrar ubicación y obtener centro
+            with st.spinner("Buscando imagen satelital..."):
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
-                
-                # Crear el Mapa Folium
+
+                # --- CAMBIO CLAVE: Mapa base simple para que el NDVI resalte ---
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
-                    tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                    attr='Google Satellite'
+                    tiles='OpenStreetMap' # Usamos el mapa común para descartar errores de Google
                 )
 
-                # Definir rango de tiempo hasta hoy
-                fecha_hoy = datetime.now().strftime('%Y-%m-%d')
-                time_range = f"2024-01-01/{fecha_hoy}"
-
-                # 5. AGREGAR CAPA WMS (Configuración exacta que funcionó en tu navegador)
+                # WMS con parámetros mínimos (los que funcionaron en tu navegador)
+                url_wms = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
+                
                 folium.WmsTileLayer(
-                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+                    url=url_wms,
                     layers=indice_sel,
-                    name=f"Capa: {indice_sel}",
+                    name="SATELITE SENTINEL",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    opacity=0.8,
+                    control=True,
+                    opacity=1.0, # Opacidad total para verlo bien
                     zindex=1000,
-                    version="1.1.1",     # Versión más estable para Folium
-                    crs="EPSG:3857",      # Proyección de Mercator Web
-                    extra_params={
-                        "MAXCC": "30",    # Máximo 30% de nubes
-                        "TIME": time_range
-                    }
+                    version="1.1.1"
                 ).add_to(m)
 
-                # 6. DIBUJAR LÍMITE (Solo borde para no tapar el índice)
-                folium.GeoJson(
-                    gdf_loc,
-                    name="Límite Político",
-                    style_function=lambda x: {
-                        'fillColor': 'transparent', 
-                        'color': '#00FFFF', 
-                        'weight': 3,
-                        'dashArray': '5, 5'
-                    }
-                ).add_to(m)
+                # Dibujamos el límite solo como referencia
+                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
-                # 7. CONTROLES Y AJUSTE DE VISTA
-                folium.LayerControl(collapsed=False).add_to(m)
-                
-                # Centrar el mapa automáticamente en el departamento
-                bounds = gdf_loc.total_bounds
-                m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
-
-                # Renderizado final
+                m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m._repr_html_(), height=650)
                 
-                st.success(f"✅ Mostrando datos de {indice_sel}. Podés cambiar de capa o moverte en el mapa.")
-        else:
-            st.warning("Por favor, seleccioná Provincia y Departamento para cargar el monitor.")
-
-    else:
-        st.error("No se encontró el archivo de límites 'gadm41_AGR_2.gpkg'. Asegurate de que esté en la misma carpeta que este script.")
+                # Botón de depuración por si sigue sin verse
+                st.write(f"🌐 [Clic aquí para verificar imagen fuera de la App]({url_wms}?REQUEST=GetMap&BBOX={centro.y-0.1},{centro.x-0.1},{centro.y+0.1},{centro.x+0.1}&LAYERS={indice_sel}&MAXCC=30&WIDTH=512&HEIGHT=512&FORMAT=image/png&TIME=2024-01-01/2026-03-04)")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
