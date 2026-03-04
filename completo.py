@@ -850,17 +850,38 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
     from datetime import datetime
 
-    # --- TRUCO CSS: Ocultar la barra de atribución de Folium ---
-    st.markdown("""
-        <style>
-        .leaflet-control-attribution { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
+    # CSS para limpiar la interfaz
+    st.markdown("<style>.leaflet-control-attribution { display: none !important; }</style>", unsafe_allow_html=True)
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
+    # Scripts personalizados para evitar fondos negros
+    scripts_custom = {
+        "NDVI": """
+            //VERSION=3
+            function setup() { return { input: ["B04","B08","dataMask"], output: { bands: 4 } }; }
+            function evaluatePixel(sample) {
+                let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+                if (ndvi < 0.1) return [0.5, 0.5, 0.5, 0]; // Transparente si es suelo/seco
+                if (ndvi < 0.2) return [0.9, 0.1, 0.1, 1]; // Rojo
+                if (ndvi < 0.4) return [1, 0.8, 0.2, 1];   // Amarillo
+                return [0, 0.4, 0, 1];                    // Verde
+            }
+        """,
+        "NDWI": """
+            //VERSION=3
+            function setup() { return { input: ["B03","B08","dataMask"], output: { bands: 4 } }; }
+            function evaluatePixel(sample) {
+                let ndwi = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+                if (ndwi < 0.0) return [0, 0, 0, 0];       // TODO LO SECO ES TRANSPARENTE
+                if (ndwi < 0.2) return [0.5, 0.8, 1, 1];   // Celeste (Humedad)
+                return [0, 0, 0.8, 1];                    // Azul (Agua fuerte)
+            }
+        """
+    }
+
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
@@ -871,13 +892,10 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        col_prov = "NAME_1"
-        col_depto = "NAME_2"
-
+        col_prov, col_depto = "NAME_1", "NAME_2"
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
-            provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + sorted(gdf_argentina[col_prov].unique()))
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
@@ -885,42 +903,42 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("🌿 Capa:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Calculando {indice_sel}..."):
+            with st.spinner("Procesando imagen..."):
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # Mapa base con atribución vacía para limpiar la pantalla
-                m = folium.Map(
-                    location=[centro.y, centro.x],
-                    zoom_start=12,
-                    tiles='OpenStreetMap',
-                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
-                )
+                # Volvemos al Satélite de Google para que se vea profesional detrás de la transparencia
+                m = folium.Map(location=[centro.y, centro.x], zoom_start=12,
+                               tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                               attr='Google')
 
-                # Capa WMS
+                params = {
+                    "MAXCC": 30,
+                    "TIME": "2024-01-01/2026-03-04",
+                }
+                
+                # Si es un índice, inyectamos el script de transparencia
+                if indice_sel in scripts_custom:
+                    params["EVALSCRIPT"] = scripts_custom[indice_sel]
+
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
-                    name=f"Sentinel-2 {indice_sel}",
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    opacity=1.0,
+                    opacity=0.8,
                     zindex=1000,
                     version="1.1.1",
-                    maxcc=100, 
-                    time="2023-01-01/2026-03-04",
-                    attr=' ' # Intentamos limpiar la atribución de la capa también
+                    extra_params=params
                 ).add_to(m)
 
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
-
+                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': '#00FFFF', 'weight': 2}).add_to(m)
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m._repr_html_(), height=650)
-                
+                components.html(m._repr_html_(), height=650)                
                 # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 if indice_sel == "NDVI":
