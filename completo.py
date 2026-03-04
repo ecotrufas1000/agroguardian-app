@@ -861,6 +861,20 @@ elif menu == "🛰️ Índices Satelitales":
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
+    # 1. Definimos los scripts de procesamiento (Aquí es donde forzamos el fondo blanco para NDWI)
+    scripts_custom = {
+        "NDWI": """
+            //VERSION=3
+            function setup() { return { input: ["B03","B08"], output: { bands: 3 } }; }
+            function evaluatePixel(sample) {
+                let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+                if (val > 0.1) return [0, 0, 0.8];    // Azul fuerte para agua
+                if (val > 0.0) return [0.5, 0.8, 1];  // Celeste para humedad
+                return [1, 1, 1];                     // FONDO BLANCO para todo lo demás
+            }
+        """
+    }
+
     @st.cache_data
     def cargar_limites_argentina():
         ruta_gpkg = "gadm41_AGR_2.gpkg" 
@@ -892,13 +906,23 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # Mapa base con atribución vacía para limpiar la pantalla
+                # Mapa base
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
                     tiles='OpenStreetMap',
-                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
+                    attr=' '
                 )
+
+                # Parámetros base
+                extra_params = {
+                    "MAXCC": "100",
+                    "TIME": "2023-01-01/2026-03-04"
+                }
+
+                # Si el usuario elige NDWI, inyectamos el script de fondo blanco
+                if indice_sel == "NDWI":
+                    extra_params["EVALSCRIPT"] = scripts_custom["NDWI"]
 
                 # Capa WMS
                 folium.WmsTileLayer(
@@ -911,15 +935,15 @@ elif menu == "🛰️ Índices Satelitales":
                     opacity=1.0,
                     zindex=1000,
                     version="1.1.1",
-                    maxcc=100, 
-                    time="2023-01-01/2026-03-04",
-                    attr=' ' # Intentamos limpiar la atribución de la capa también
+                    attr=' ',
+                    extra_params=extra_params
                 ).add_to(m)
 
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m._repr_html_(), height=650)
+
                 # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 if indice_sel == "NDVI":
