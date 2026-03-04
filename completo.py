@@ -837,28 +837,30 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
+    from datetime import datetime
 
     st.header("🛰️ Monitor Satelital Dinámico")
 
-    # 1. CONFIGURACIÓN (Verificá que en Sentinel la capa se llame exactamente 'NDVI')
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d" 
     
+    # Scripts de procesamiento
     evalscripts = {
         "🌿 NDVI (Vegetación)": """
             //VERSION=3
             function setup() { return { input: ["B04","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
                 let val = (s.B08 - s.B04) / (s.B08 + s.B04);
-                if (val < 0.1) return [0.5, 0.5, 0.5];      // Suelo
-                else if (val < 0.2) return [0.9, 0.1, 0.1]; // Rojo
-                else if (val < 0.4) return [1, 0.8, 0.2];   // Amarillo
-                else return [0, 0.4, 0];                    // Verde
+                if (val < 0.1) return [0.5, 0.5, 0.5];
+                else if (val < 0.2) return [0.9, 0.1, 0.1];
+                else if (val < 0.4) return [1, 0.8, 0.2];
+                else return [0, 0.4, 0];
             }
         """,
         "💧 NDWI (Humedad)": """
@@ -866,9 +868,9 @@ elif menu == "🛰️ Índices Satelitales":
             function setup() { return { input: ["B03","B08"], output: { bands: 3 } } }
             function evaluatePixel(s) {
                 let val = (s.B03 - s.B08) / (s.B03 + s.B08);
-                if (val > 0.1) return [0, 0, 0.8];          // Agua
-                else if (val > 0.0) return [0.2, 0.6, 1];   // Humedad
-                else return [0.8, 0.4, 0.1];                // Seco
+                if (val > 0.1) return [0, 0, 0.8];
+                else if (val > 0.0) return [0.2, 0.6, 1];
+                else return [0.8, 0.4, 0.1];
             }
         """
     }
@@ -886,7 +888,6 @@ elif menu == "🛰️ Índices Satelitales":
         col_prov = "NAME_1"
         col_depto = "NAME_2"
 
-        # SELECTORES
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
@@ -900,16 +901,11 @@ elif menu == "🛰️ Índices Satelitales":
         with c3:
             indice_sel = st.selectbox("Índice:", list(evalscripts.keys()))
 
-        # RENDERIZADO (Solo si hay selección)
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner("Sincronizando capas..."):
-                # Filtros de Geometría
-                gdf_nacion = gdf_argentina.dissolve()
-                gdf_provs = gdf_argentina.dissolve(by=col_prov).reset_index()
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # MAPA BASE
                 m = folium.Map(
                     location=[centro.y, centro.x],
                     zoom_start=12,
@@ -917,51 +913,37 @@ elif menu == "🛰️ Índices Satelitales":
                     attr='Google Satellite'
                 )
 
-                # Nombre de capa dinámico según selección
-                layer_name = "NDVI" if "NDVI" in indice_sel else "NDWI"
-
-                # CAPA WMS
+                # Rango de tiempo dinámico (últimos 3 meses para asegurar imagen sin nubes)
+                fecha_fin = datetime.now().strftime('%Y-%m-%d')
+                
+                # Configuramos la capa WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=layer_name,
-                    name=layer_name,
+                    layers="NDVI", # El nombre de la capa base en tu dashboard
+                    name=indice_sel,
                     fmt="image/png",
                     transparent=True,
                     overlay=True,
-                    opacity=0.9,
-                    version="1.3.0",
-                    attr="Sentinel Hub",
-                    styles="",
-                    uppercase=True,
+                    opacity=0.8,
+                    zindex=10,
                     extra_params={
-                        "TIME": "2025-01-01/2025-12-31",  # ← rango del año pasado
-                        "MAXCC": "20",                     # ← máximo 20% nubosidad
+                        "EVALSCRIPT": evalscripts[indice_sel], # Enviamos el script de color
+                        "MAXCC": "30",                         # 30% de nubes máximo
+                        "TIME": f"2024-01-01/{fecha_fin}"      # Rango amplio
                     }
                 ).add_to(m)
 
-                # LÍMITES
-                folium.GeoJson(gdf_nacion, style_function=lambda x: {
-                    'fillColor': 'transparent', 'color': '#0000FF', 'weight': 4
-                }, interactive=False).add_to(m)
-
-                folium.GeoJson(gdf_provs, style_function=lambda x: {
-                    'fillColor': 'transparent', 'color': '#FF8C00', 'weight': 2
-                }, interactive=False).add_to(m)
-
+                # Límites territoriales (Solo el depto seleccionado para no sobrecargar)
                 folium.GeoJson(gdf_loc, style_function=lambda x: {
-                    'fillColor': 'cyan', 'fillOpacity': 0.1, 'color': '#00FFFF', 'weight': 3
-                }).add_to(m)
+                    'fillColor': 'cyan', 'fillOpacity': 0.05, 'color': '#00FFFF', 'weight': 3
+                }, name="Límite Departamento").add_to(m)
 
-                # fit_bounds con formato correcto
-                bounds = gdf_loc.total_bounds  # [minx, miny, maxx, maxy]
+                bounds = gdf_loc.total_bounds
                 m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
-
                 folium.LayerControl(collapsed=False).add_to(m)
 
-                # Render UNA sola vez
                 components.html(m._repr_html_(), height=650)
-                st.success(f"Visualizando {indice_sel} en {depto_sel}")
-                
+                st.success(f"✅ Monitor activo en {depto_sel}. Si no ves colores, aleja un poco el zoom.")                
                 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
