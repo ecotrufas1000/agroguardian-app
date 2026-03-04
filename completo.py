@@ -8,12 +8,14 @@ import pandas as pd
 import plotly.express as px
 import urllib.parse
 import base64
+import datetime
 from io import BytesIO
 from supabase import create_client
 from streamlit_folium import folium_static
 import folium
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
+
 
 # ==========================================================
 # FUNCIONES DE APOYO (Ahora sí, debajo de los imports)
@@ -902,24 +904,17 @@ elif menu == "🛰️ Índices Satelitales":
                     attr=' ' 
                 )
 
-# Fecha actual como fin del rango
-hoy = datetime.date.today().isoformat()
-# Capa WMS pura (SIN evalscript para que no se rompa)
-folium.WmsTileLayer(
-    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-    layers=indice_sel,
-    name=f"Sentinel-2 {indice_sel}",
+folium.raster_layers.WmsTileLayer(
+    url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi",
+    layers="MODIS_Terra_NDVI_16Day",  # NDVI compuesto 16 días
+    name="NDVI MODIS (16 días)",
     fmt="image/png",
     transparent=True,
     overlay=True,
-    opacity=1.0,
-    zindex=1000,
-    version="1.1.1",
-    maxcc=100,
-    time=f"2024-01-01/{hoy}",  # <-- siempre hasta la fecha de hoy
-    attr=' '
+    opacity=0.8,
+    # Si quieres, puedes pedir una fecha concreta (suele funcionar sin poner time)
+    # time=datetime.date.today().isoformat(),
 ).add_to(m)
-
                 # Dibujar el borde negro del departamento
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 3}).add_to(m)
 
