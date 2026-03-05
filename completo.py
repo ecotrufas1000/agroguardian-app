@@ -1,4 +1,5 @@
 import streamlit as st
+from google import genai
 import requests  # <--- IMPORTANTE: Subí esto aquí
 import json
 import os
