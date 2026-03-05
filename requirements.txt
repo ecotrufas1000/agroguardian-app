@@ -8,7 +8,7 @@ requests
 plotly
 pyTelegramBotAPI
 google-genai
-pilow
+pillow
 flask
 python-dotenv
 streamlit-js-eval
