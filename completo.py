@@ -897,26 +897,20 @@ elif menu == "🛰️ Índices Satelitales":
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Sincronizando {indice_sel}..."):
-                # ... (resto del código de filtrado) ...
+                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
+                centro = gdf_loc.geometry.centroid.iloc[0]
+        
+                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, tiles='OpenStreetMap', attr=' ')
 
-                # --- LA LLAMADA AL SATÉLITE ---
-                folium.WmsTileLayer(
-                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=indice_sel, # <--- Esto envía "NDVI" o "NDWI"
-                    name=f"Sentinel-2 {indice_sel}",
-                    fmt="image/png",
-                    transparent=True,
-                    overlay=True,
-                    opacity=1.0,
-                    zindex=1000,
-                    version="1.1.1",
-                    # Usamos la fecha de hoy que ya calculamos
-                    time=f"2024-01-01/{datetime.now().strftime('%Y-%m-%d')}",
-                    maxcc=100,
-                    attr=' '
-                ).add_to(m)
+                # 1. Definimos los parámetros básicos
+                hoy_fecha = datetime.now().strftime('%Y-%m-%d')
+                wms_params = {
+                    "transparent": True,
+                    "maxcc": 100,
+                    "time": f"2024-01-01/{hoy_fecha}"
+                }
 
-                # Inyectamos el script del NDWI (Blanco y Azul) para que no salga negro
+                # 2. Inyectamos el script del NDWI si corresponde
                 if indice_sel == "NDWI":
                     wms_params["evalscript"] = """//VERSION=3
                     function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
@@ -927,10 +921,10 @@ elif menu == "🛰️ Índices Satelitales":
                         return [1, 1, 1];                    // Blanco
                     }"""
 
-                # --- CAPA SENTINEL HUB ---
+                # 3. ÚNICA llamada al satélite (Capa Sentinel Hub)
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
-                    layers=indice_sel, # Usa NDVI o NDWI según el selectbox
+                    layers=indice_sel,
                     name=f"Sentinel-2 {indice_sel}",
                     fmt="image/png",
                     transparent=True,
@@ -941,12 +935,17 @@ elif menu == "🛰️ Índices Satelitales":
                     extra_params=wms_params
                 ).add_to(m)
 
-                # Borde del departamento
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 3}).add_to(m)
+                # 4. Capa de borde del departamento
+                folium.GeoJson(
+                    gdf_loc, 
+                    style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 3}
+                ).add_to(m)
 
+                # 5. Ajuste y Renderizado
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m.get_root().render(), height=900, scrolling=False)
 
+                # 6. Leyendas dinámicas
                 st.write("---")
                 if indice_sel == "NDVI":
                     st.success("🌾 **NDVI:** Indica vigor vegetal. Verde oscuro = máximo vigor.")
