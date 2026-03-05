@@ -33,7 +33,7 @@ from reportlab.lib.units import cm
 from datetime import datetime
 import io
 
-    buffer = io.BytesIO()
+buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
