@@ -814,39 +814,6 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 # ==========================================================
 # SECCIÓN: 🛰️ ÍNDICES SATELITALES (VERSIÓN FINAL CORREGIDA)
-# ==========================================================
-# --- COLOCAR ESTO ARRIBA DE LOS "IF MENU" ---
-# ==========================================================
-# SECCIÓN: 🛰️ ÍNDICES SATELITALES (BLOQUE FINAL)
-# ==========================================================
-# ==========================================================
-# SECCIÓN: 🛰️ ÍNDICES SATELITALES
-# ==========================================================
-# ==========================================================
-# SECCIÓN: 🛰️ ÍNDICES SATELITALES (shapefile sin DBF)
-# ==========================================================
-# SECCIÓN: 🛰️ ÍNDICES SATELITALES (GADM con DBF)
-# ==========================================================
-# SECCIÓN: 🛰️ ÍNDICES SATELITALES (GeoPackage)
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES 
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
-# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
@@ -856,6 +823,7 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
     from datetime import datetime
 
+    # --- TRUCO CSS: Ocultar la barra de atribución de Folium ---
     st.markdown("""
         <style>
         .leaflet-control-attribution { display: none !important; }
@@ -876,11 +844,13 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_argentina = cargar_limites_argentina()
 
     if gdf_argentina is not None:
-        col_prov, col_depto = "NAME_1", "NAME_2"
+        col_prov = "NAME_1"
+        col_depto = "NAME_2"
 
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + sorted(gdf_argentina[col_prov].unique()))
+            provincias = sorted(gdf_argentina[col_prov].unique())
+            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
@@ -895,29 +865,15 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, tiles='OpenStreetMap', attr=' ')
+                # Mapa base con atribución vacía para limpiar la pantalla
+                m = folium.Map(
+                    location=[centro.y, centro.x],
+                    zoom_start=12,
+                    tiles='OpenStreetMap',
+                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
+                )
 
-                # --- CONFIGURACIÓN DE PARÁMETROS ---
-                # Usamos la fecha de hoy para que siempre esté actualizado
-                hoy_str = datetime.now().strftime('%Y-%m-%d')
-                
-                params = {
-                    "transparent": True,
-                    "maxcc": 100,
-                    "time": f"2024-01-01/{hoy_str}"
-                }
-
-                # SOLO agregamos el script si es NDWI para evitar errores en las otras capas
-                if indice_sel == "NDWI":
-                    params["evalscript"] = """//VERSION=3
-function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
-function evaluatePixel(sample) {
-    let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
-    if (val > 0.1) return [0, 0.4, 0.8]; // Azul
-    if (val > 0.0) return [0.6, 0.8, 1]; // Celeste
-    return [1, 1, 1]; // Blanco
-}"""
-
+                # Capa WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
@@ -928,22 +884,15 @@ function evaluatePixel(sample) {
                     opacity=1.0,
                     zindex=1000,
                     version="1.1.1",
-                    extra_params=params, # Aquí pasamos los parámetros limpios
-                    attr=' '
+                    maxcc=100, 
+                    time="2023-01-01/2026-03-04",
+                    attr=' ' # Intentamos limpiar la atribución de la capa también
                 ).add_to(m)
 
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                
-                # Renderizado estable que ya te funciona
-                components.html(m._repr_html_(), height=700)
-                
-                st.write("---")
-                if indice_sel == "NDWI":
-                    st.info("💧 **Azul:** Agua | **Celeste:** Humedad | **Blanco:** Suelo Seco")
-                else:
-                    st.success(f"🛰️ Mostrando capa: {indice_sel}")
+                components.html(m._repr_html_(), height=650)
                 # 6. Leyendas dinámicas
                 st.write("---")
                 if indice_sel == "NDVI":
