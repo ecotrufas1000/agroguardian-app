@@ -853,6 +853,7 @@ elif menu == "🛰️ Índices Satelitales":
     import folium
     import streamlit as st
     import streamlit.components.v1 as components
+    from datetime import datetime
 
     # --- CSS: Limpieza total ---
     st.markdown("""
@@ -896,49 +897,53 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
         
-                # Volvemos a tu configuración de mapa base que funciona
-                m = folium.Map(
-                    location=[centro.y, centro.x],
-                    zoom_start=12,
-                    tiles='OpenStreetMap',
-                    attr=' ' 
-                )
+                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, tiles='OpenStreetMap', attr=' ')
 
-            # Fecha que quieres pedir a GIBS (hoy)
-            #hoy = datetime.date.today().isoformat()
-            hoy = "2026-03-05"
-            # Capa NDVI regional (NASA MODIS, sin marca de agua)
-            folium.TileLayer(
-                tiles=(
-                    "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
-                    f"MODIS_Terra_NDVI_16Day/default/{hoy}/GoogleMapsCompatible_Level9/"
-                    "{{z}}/{{y}}/{{x}}.png"
-                ),
-                attr="NASA GIBS MODIS NDVI",
-                name=f"NDVI MODIS {hoy}",
-                overlay=True,
-                opacity=0.8,
-            ).add_to(m)
-            # Dibujar el borde negro del departamento
-            folium.GeoJson(
-                gdf_loc,
-                style_function=lambda x: {
-                    "fillColor": "transparent",
-                    "color": "black",
-                    "weight": 3,
-                },
-            ).add_to(m)
-            m.fit_bounds(gdf_loc.total_bounds.tolist())
-            components.html(
-                m.get_root().render(),
-                height=900,
-                scrolling=False,
-            )
-            st.write("---")
-            if indice_sel == "NDVI":
-                st.success("🌾 **NDVI:** Los tonos verdes indican cultivos sanos. Rojos indican suelo desnudo.")
-            elif indice_sel == "NDWI":
-                st.info("💧 **NDWI:** Los tonos oscuros/azules indican presencia de agua o alta humedad.")
+                # --- CONFIGURACIÓN DINÁMICA DE FECHA Y SCRIPT ---
+                hoy = datetime.now().strftime('%Y-%m-%d')
+                
+                wms_params = {
+                    "transparent": True,
+                    "maxcc": 100,
+                    "time": f"2024-01-01/{hoy}"
+                }
+
+                # Inyectamos el script del NDWI (Blanco y Azul) para que no salga negro
+                if indice_sel == "NDWI":
+                    wms_params["evalscript"] = """//VERSION=3
+                    function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
+                    function evaluatePixel(sample) {
+                        let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+                        if (val > 0.1) return [0, 0.4, 0.8]; // Agua Azul
+                        if (val > 0.0) return [0.6, 0.8, 1]; // Celeste
+                        return [1, 1, 1];                    // Blanco
+                    }"""
+
+                # --- CAPA SENTINEL HUB ---
+                folium.WmsTileLayer(
+                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+                    layers=indice_sel, # Usa NDVI o NDWI según el selectbox
+                    name=f"Sentinel-2 {indice_sel}",
+                    fmt="image/png",
+                    transparent=True,
+                    overlay=True,
+                    opacity=1.0,
+                    zindex=1000,
+                    version="1.1.1",
+                    extra_params=wms_params
+                ).add_to(m)
+
+                # Borde del departamento
+                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 3}).add_to(m)
+
+                m.fit_bounds(gdf_loc.total_bounds.tolist())
+                components.html(m.get_root().render(), height=900, scrolling=False)
+
+                st.write("---")
+                if indice_sel == "NDVI":
+                    st.success("🌾 **NDVI:** Indica vigor vegetal. Verde oscuro = máximo vigor.")
+                elif indice_sel == "NDWI":
+                    st.info("💧 **NDWI:** Indica agua o humedad. Azul = agua, Blanco = seco.")
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
