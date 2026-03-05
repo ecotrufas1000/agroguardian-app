@@ -17,7 +17,7 @@ from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
 st.set_page_config(layout="wide", page_title="Monitor Agrícola")
 st.markdown("""
-    <style>
+<style>
     /* 1. Color de fondo de la página */
     .stApp {
         background-color: #f8f9fa;
@@ -45,33 +45,25 @@ st.markdown("""
         color: white !important;
     }
 
+    /* 4. Quitar márgenes de la app para que el mapa respire */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 0rem !important;
+        padding-right: 0rem !important;
+    }
 
-    </style>
-""", unsafe_allow_html=True
+    /* 5. El mapa ocupa el máximo espacio posible */
+    iframe {
+        width: 100% !important;
+        height: 85vh !important; /* 85% de la altura de la pantalla del celular */
+        border: none !important;
+    }
 
-st.markdown("""
-<style>
-
-/* quitar márgenes de la app */
-.block-container {
-    padding-top: 0rem;
-    padding-bottom: 0rem;
-    padding-left: 0rem;
-    padding-right: 0rem;
-}
-
-/* el mapa ocupa toda la pantalla */
-iframe {
-    width: 100vw !important;
-    height: 100vh !important;
-    border: none !important;
-}
-
-/* ocultar atribuciones */
-.leaflet-control-attribution {
-    display: none !important;
-}
-
+    /* 6. Ocultar atribuciones y marcas de agua */
+    .leaflet-control-attribution {
+        display: none !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 # ==========================================================
