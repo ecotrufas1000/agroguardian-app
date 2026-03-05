@@ -45,19 +45,7 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 4. Estirar el mapa para que no tenga bordes blancos */
-    .stHtmlEmbedded {
-        width: 100% !important;
-        border: none !important;
-    }
 
-    /* 5. Eliminar espacio superior en móviles (padding) */
-    .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 0rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
