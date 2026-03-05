@@ -1015,12 +1015,14 @@ if menu == "🔍 Diagnóstico IA":
     model = None
     try:
         import google.generativeai as genai
+
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        #model = genai.GenerativeModel("gemini-1.5-flash")
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
-    except Exception as e:
-        st.error(f"⚠️ Error de configuración: {e}")
-        st.stop()
+
+        try:
+            model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        except Exception as e:
+            st.error(f"Error creando modelo: {e}")
+            st.stop()
 
     # --- PASO 1: Selección de Origen (Pestañas) ---
     st.write("Elegí cómo ingresar la imagen del cultivo:")
