@@ -22,6 +22,88 @@ from streamlit_folium import folium_static
 import folium
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
+def generar_pdf(texto_analisis, nombre_imagen="muestra"):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from datetime import datetime
+    import io
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=2*cm,
+        leftMargin=2*cm,
+        topMargin=2*cm,
+        bottomMargin=2*cm
+    )
+
+    styles = getSampleStyleSheet()
+
+    # Estilos personalizados
+    estilo_titulo = ParagraphStyle(
+        'Titulo',
+        parent=styles['Title'],
+        fontSize=22,
+        textColor=colors.HexColor('#2d6a2d'),
+        spaceAfter=6
+    )
+    estilo_subtitulo = ParagraphStyle(
+        'Subtitulo',
+        parent=styles['Normal'],
+        fontSize=11,
+        textColor=colors.HexColor('#555555'),
+        spaceAfter=4
+    )
+    estilo_cuerpo = ParagraphStyle(
+        'Cuerpo',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=16,
+        spaceAfter=8
+    )
+    estilo_footer = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.grey,
+        alignment=1  # centrado
+    )
+
+    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    story = []
+
+    # Encabezado
+    story.append(Paragraph("🌿 AgroGuardian", estilo_titulo))
+    story.append(Paragraph("Informe de Diagnóstico Agronómico", estilo_subtitulo))
+    story.append(Paragraph(f"Fecha: {fecha}", estilo_subtitulo))
+    story.append(Paragraph(f"Muestra: {nombre_imagen}", estilo_subtitulo))
+    story.append(Spacer(1, 0.3*cm))
+    story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#2d6a2d')))
+    story.append(Spacer(1, 0.5*cm))
+
+    # Cuerpo del análisis
+    story.append(Paragraph("Resultado del Análisis", styles['Heading2']))
+    story.append(Spacer(1, 0.2*cm))
+
+    # Dividir por párrafos y agregar cada uno
+    for parrafo in texto_analisis.split('\n'):
+        if parrafo.strip():
+            # Escapar caracteres especiales para reportlab
+            parrafo_limpio = parrafo.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            story.append(Paragraph(parrafo_limpio, estilo_cuerpo))
+
+    story.append(Spacer(1, 1*cm))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.lightgrey))
+    story.append(Spacer(1, 0.3*cm))
+    story.append(Paragraph("Generado por AgroGuardian · Diagnóstico asistido por IA · Solo orientativo", estilo_footer))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
 client = None 
 
 try:
