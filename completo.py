@@ -1010,77 +1010,69 @@ elif menu == "🛰️ Índices Satelitales":
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # --- 1. CONFIGURACIÓN AL INICIO DEL ARCHIVO (Fuera de cualquier IF) ---
-#import google.generativeai as genai
-#from PIL import Image
-#import io
-from google import genai  # Importación para SDK 2.0
-import streamlit as st
-
-# 1. Configuración del Cliente
-client = None
-try:
-    if "GOOGLE_API_KEY" in st.secrets:
-        # En la versión nueva, creamos un objeto 'client'
-        client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
-    else:
-        st.error("🔑 Falta la clave de API en los Secrets.")
-except Exception as e:
-    st.error(f"⚠️ Error al conectar con la IA: {e}")
-# --- 2. SECCIÓN DEL MENÚ ---
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
-    # Verificamos que el cliente de la nueva librería esté listo
     if client is None:
-        st.error("🚨 La IA no está configurada correctamente. Revisa la conexión con Google GenAI.")
+        st.error("🚨 IA no configurada.")
         st.stop()
 
-    # Selección de foto
-    tab_cam, tab_gal = st.tabs(["📸 Cámara", "📁 Galería"])
+    # 1. Inicializar el estado si no existe (esto evita que se borre)
+    if "resultado_analisis" not in st.session_state:
+        st.session_state.resultado_analisis = None
 
+    # 2. Selección de foto
+    tab_cam, tab_gal = st.tabs(["📸 Cámara", "📁 Galería"])
     with tab_cam:
         img_camera = st.camera_input("Capturar síntoma")
     with tab_gal:
         img_upload = st.file_uploader("Subir foto", type=['jpg', 'jpeg', 'png'])
 
-    # Elegir la imagen disponible
     foto_final = img_camera if img_camera else img_upload
 
     if foto_final:
-        # AQUÍ EL CAMBIO: width='stretch' reemplaza a use_container_width
         st.image(foto_final, caption="Muestra seleccionada", width='stretch')
         
-    if st.button("🧠 ANALIZAR", type="primary"):
-        with st.status("Analizando...", expanded=True) as status:
-            try:
-                # 1. Importación necesaria AQUÍ mismo para estar seguros
-                from PIL import Image
-                import io
+        # 3. Botón de Acción
+        if st.button("🧠 ANALIZAR", type="primary"):
+            with st.status("Analizando...", expanded=True) as status:
+                try:
+                    from PIL import Image
+                    import io
+                    
+                    # Procesar imagen
+                    foto_final.seek(0)
+                    imagen_pil = Image.open(io.BytesIO(foto_final.read()))
 
-                # 2. Procesar la imagen
-                # foto_final es el archivo que viene del uploader o cámara
-                #imagen_pil = Image.open(foto_final)
-                foto_final.seek(0)  # ✅ resetea el cursor del archivo
-                imagen_bytes = foto_final.read()
-                imagen_pil = Image.open(io.BytesIO(imagen_bytes))
-                
-                # 3. Llamada al nuevo cliente (SDK 2.0)
-                prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
-            
-                # Usamos el objeto 'client' que configuramos antes
-                response = client.models.generate_content(
-                    model="models/gemini-2.5-flash",  # ✅ con "models/" adelante
-                    contents=[
-                        imagen_pil,
-                        prompt
-                    ]
-                )
-            
-                st.markdown(response.text)
-                status.update(label="✅ Análisis Completo", state="complete")
-            
-            except Exception as e:
-                st.error(f"Error en el análisis: {e}")
-    st.divider()
-    if st.button("🔄 REINICIAR"):
+                    prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
+                    
+                    # Llamada a la IA
+                    response = client.models.generate_content(
+                        model="gemini-1.5-flash",
+                        contents=[imagen_pil, prompt]
+                    )
+                    
+                    # Guardamos el resultado en el session_state
+                    st.session_state.resultado_analisis = response.text
+                    status.update(label="✅ Análisis Completo", state="complete")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+    # 4. Mostrar y Guardar (FUERA del botón para que no desaparezca)
+    if st.session_state.resultado_analisis:
+        st.divider()
+        st.subheader("📋 Resultado del Análisis")
+        st.markdown(st.session_state.resultado_analisis)
+        
+        # Botón para descargar el reporte
+        st.download_button(
+            label="⬇️ Guardar Informe (.txt)",
+            data=st.session_state.resultado_analisis,
+            file_name="analisis_agronomico.txt",
+            mime="text/plain"
+        )
+
+    # 5. Reiniciar
+    if st.button("🔄 NUEVO ANÁLISIS"):
+        st.session_state.resultado_analisis = None
         st.rerun()
