@@ -15,6 +15,13 @@ from streamlit_folium import folium_static
 import folium
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
+client = None 
+
+try:
+    if "GOOGLE_API_KEY" in st.secrets:
+        client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
+except Exception as e:
+    st.error(f"Error al configurar el cliente: {e}")
 st.set_page_config(layout="wide", page_title="Monitor Agrícola")
 st.markdown("""
 <style>
