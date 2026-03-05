@@ -893,12 +893,37 @@ elif menu == "🛰️ Índices Satelitales":
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m._repr_html_(), height=650)
-                # 6. Leyendas dinámicas
+                # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
+                
                 if indice_sel == "NDVI":
-                    st.success("🌾 **NDVI:** Indica vigor vegetal. Verde oscuro = máximo vigor.")
+                    st.subheader("🍃 Análisis de Vigor Vegetal (NDVI)")
+                    st.markdown("""
+                    El **NDVI** mide la salud de la vegetación:
+                    * 🟩 **Verde Oscuro:** Cultivo muy sano o bosque denso (máximo vigor).
+                    * 🟩 **Verde Claro:** Vegetación en crecimiento o pasturas.
+                    * 🟨 **Amarillo/Marrón:** Suelo desnudo, rastrojo o cultivo estresado.
+                    * 🟥 **Rojo/Blanco:** Zonas sin vegetación o agua.
+                    """)
+                    
                 elif indice_sel == "NDWI":
-                    st.info("💧 **NDWI:** Indica agua o humedad. Azul = agua, Blanco = seco.")
+                    st.subheader("💧 Monitor de Humedad y Agua (NDWI)")
+                    st.markdown("""
+                    El **NDWI** resalta la presencia de agua líquida:
+                    * 🟦 **Azul Oscuro:** Cuerpos de agua claros (lagunas, canales).
+                    * 🔷 **Celeste:** Suelo muy húmedo, barro o vegetación inundada.
+                    * ⬜ **Blanco:** Suelo seco, cultivos o zonas urbanas.
+                    """)
+                    
+                elif indice_sel == "TRUE-COLOR":
+                    st.subheader("📸 Fotografía Satelital Real (True Color)")
+                    st.markdown("""
+                    Esta es una composición de color natural (RGB):
+                    * 🌿 **Verdes:** Cultivos activos y montes.
+                    * 🪵 **Marrones/Grises:** Lotes preparados para siembra o rastrojo.
+                    * ⚫ **Oscuros:** Agua profunda o sombras de nubes.
+                    * ☁️ **Blanco Brillante:** Nubes o construcciones.
+                    """)
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
