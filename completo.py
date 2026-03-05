@@ -1006,49 +1006,52 @@ elif menu == "🛰️ Índices Satelitales":
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# --- SECCIÓN: DIAGNÓSTICO IA ---
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
-    st.write("Tomá una foto de la hoja o el insecto para analizar.")
+    
+    # Creamos dos pestañas para que la interfaz sea limpia en el móvil
+    tab_cam, tab_gal = st.tabs(["📸 Usar Cámara", "📁 Subir de Galería"])
 
-    # 1. Configuración del Modelo
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        model = genai.GenerativeModel('gemini-2.0-flash')
-    except Exception as e:
-        st.error("⚠️ Error de configuración: Revisá tu API Key en los Secrets.")
-        st.stop()
+    with tab_cam:
+        img_camera = st.camera_input("Capturar síntoma")
 
-    # 2. Captura de Imagen (Cámara o Galería)
-    img_file = st.camera_input("📷 Capturar síntoma en el lote")
+    with tab_gal:
+        img_upload = st.file_uploader("Elegí una foto ya guardada", type=['jpg', 'jpeg', 'png'])
 
-    if img_file:
-        # Mostrar progreso
-        with st.status("🧠 Analizando con IA Agronómica...", expanded=True) as status:
-            try:
-                # Convertir imagen para Gemini
-                img_bytes = img_file.getvalue()
-                image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
-                
-                # Prompt optimizado para campo
-                prompt = """
-                Sos un Ingeniero Agrónomo experto. Analizá esta imagen de un cultivo y:
-                1. Identificá la planta y el problema (plaga, enfermedad o deficiencia).
-                2. Explicá el daño observado de forma técnica pero breve.
-                3. Da una recomendación de manejo o control.
-                Si no es una planta o insecto agrícola, decilo amablemente.
-                """
-                
-                # Llamada a la IA
-                response = model.generate_content([prompt, image_parts[0]])
-                
-                st.subheader("📋 Resultado del Diagnóstico")
-                st.markdown(response.text)
-                status.update(label="✅ Diagnóstico Completo", state="complete")
-                
-            except Exception as e:
-                st.error(f"Hubo un error en el análisis: {e}")
+    # Elegimos la foto que tenga contenido (prioriza la cámara si ambas tienen algo)
+    foto_final = img_camera if img_camera else img_upload
 
+    if foto_final:
+        # Mostramos una vista previa de la imagen seleccionada
+        st.image(foto_final, caption="Muestra a analizar", use_container_width=True)
+        
+        if st.button("🧠 ANALIZAR CON IA", type="primary"):
+            with st.status("Analizando patologías...", expanded=True) as status:
+                try:
+                    # Preparar imagen para Gemini
+                    img_bytes = foto_final.getvalue()
+                    image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
+                    
+                    # Prompt técnico para el Ingeniero Agrónomo Virtual
+                    prompt = """
+                    Actuá como un Ingeniero Agrónomo experto. 
+                    Analizá esta imagen de cultivo y entregá:
+                    1. **Identificación**: Nombre de la planta y problema detectado.
+                    2. **Análisis**: Breve descripción de los síntomas.
+                    3. **Acción**: Recomendación de manejo o tratamiento.
+                    Sé preciso y técnico.
+                    """
+                    
+                    response = model.generate_content([prompt, image_parts[0]])
+                    st.markdown(response.text)
+                    status.update(label="✅ Análisis Completo", state="complete")
+                    
+                except Exception as e:
+                    if "429" in str(e):
+                        st.error("🚨 Límite de mensajes alcanzado. Esperá un minuto.")
+                    else:
+                        st.error(f"Error técnico: {e}")
     # --- BOTONES EXTRA ---
     st.divider()
     col1, col2 = st.columns(2)
