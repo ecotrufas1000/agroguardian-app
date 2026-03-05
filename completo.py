@@ -15,6 +15,7 @@ from streamlit_folium import folium_static
 import folium
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
+st.set_page_config(layout="wide", page_title="Monitor Agrícola")
 st.markdown("""
     <style>
     /* 1. Color de fondo de la página */
