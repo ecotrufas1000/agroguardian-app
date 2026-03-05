@@ -1010,7 +1010,7 @@ elif menu == "🛰️ Índices Satelitales":
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # --- 1. CONFIGURACIÓN AL INICIO DEL ARCHIVO (Fuera de cualquier IF) ---
-import google.generativeai as genai
+import google.generativeai
 from PIL import Image
 import io
 
