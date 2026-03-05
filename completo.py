@@ -1202,8 +1202,12 @@ if menu == "🔍 Diagnóstico IA":
     # Generar PDF
     pdf_buffer = generar_pdf(
         st.session_state.resultado_analisis,
-        nombre_imagen=foto_final.name if foto_final else "imagen"
-    )
+        nombre_img = foto_final.name if foto_final and hasattr(foto_final, 'name') else "imagen"  # ✅
+
+        pdf_buffer = generar_pdf(
+            st.session_state.resultado_analisis,
+            nombre_imagen=nombre_img   # ✅ reemplazá la línea anterior por esta
+        )
 
     st.download_button(
         label="📄 Descargar Informe PDF",
