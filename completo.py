@@ -1,4 +1,11 @@
 import streamlit as st
+from google import genai
+
+api_key = st.secrets.get("GOOGLE_API_KEY", None)
+st.write("Key cargada:", api_key is not None)  # debe mostrar True
+st.write("Primeros 8 chars:", api_key[:8] if api_key else "NADA")
+
+client = genai.Client(api_key=api_key)
 import requests  # <--- IMPORTANTE: Subí esto aquí
 import json
 import os
