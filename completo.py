@@ -1008,6 +1008,7 @@ elif menu == "🛰️ Índices Satelitales":
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
@@ -1015,14 +1016,12 @@ if menu == "🔍 Diagnóstico IA":
     model = None
     try:
         import google.generativeai as genai
-
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-
-        try:
-            model = genai.GenerativeModel("gemini-1.5-flash-latest")
-        except Exception as e:
-            st.error(f"Error creando modelo: {e}")
-            st.stop()
+        # Usamos el nombre completo del modelo para evitar el error 404
+        model = genai.GenerativeModel('models/gemini-1.5-flash') 
+    except Exception as e:
+        st.error(f"⚠️ Error de configuración: {e}")
+        st.stop()
 
     # --- PASO 1: Selección de Origen (Pestañas) ---
     st.write("Elegí cómo ingresar la imagen del cultivo:")
