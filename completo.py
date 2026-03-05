@@ -1192,12 +1192,27 @@ if menu == "🔍 Diagnóstico IA":
         st.markdown("### 📋 Resultado del Análisis")
         st.markdown(st.session_state.resultado_analisis)
         
-        st.download_button(
-            label="⬇️ Descargar Análisis",
-            data=st.session_state.resultado_analisis,
-            file_name="analisis_agronomico.txt",
-            mime="text/plain"
-        )
+        if st.session_state.resultado_analisis:
+    st.markdown("### 📋 Resultado del Análisis")
+    st.markdown(st.session_state.resultado_analisis)
+
+    # Nombre de archivo con fecha
+    from datetime import datetime
+    fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M")
+    nombre_archivo = f"diagnostico_agroguardian_{fecha_archivo}.pdf"
+
+    # Generar PDF
+    pdf_buffer = generar_pdf(
+        st.session_state.resultado_analisis,
+        nombre_imagen=foto_final.name if foto_final else "imagen"
+    )
+
+    st.download_button(
+        label="📄 Descargar Informe PDF",
+        data=pdf_buffer,
+        file_name=nombre_archivo,
+        mime="application/pdf"
+    )
 
     st.divider()
     if st.button("🔄 REINICIAR"):
