@@ -1026,12 +1026,13 @@ try:
         st.error("🔑 Falta la clave de API en los Secrets.")
 except Exception as e:
     st.error(f"⚠️ Error al conectar con la IA: {e}")
-# --- 2. SECCIÓN DEL MENÚ (Dentro de tu lógica de navegación) ---
+# --- 2. SECCIÓN DEL MENÚ ---
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
-    if model is None:
-        st.error("🚨 La IA no está configurada correctamente.")
+    # Verificamos que el cliente de la nueva librería esté listo
+    if client is None:
+        st.error("🚨 La IA no está configurada correctamente. Revisa la conexión con Google GenAI.")
         st.stop()
 
     # Selección de foto
