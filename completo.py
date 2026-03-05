@@ -847,6 +847,7 @@ elif menu == "📝 Bitácora":
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 # --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
+# --- SECCIÓN: 🛰️ ÍNDICES SATELITALES ---
 elif menu == "🛰️ Índices Satelitales":
     import geopandas as gpd
     import os
@@ -855,12 +856,9 @@ elif menu == "🛰️ Índices Satelitales":
     import streamlit.components.v1 as components
     from datetime import datetime
 
-    # --- CSS: Limpieza total ---
     st.markdown("""
         <style>
         .leaflet-control-attribution { display: none !important; }
-        .block-container { padding-top: 1rem; padding-left: 0rem; padding-right: 0rem; }
-        iframe { height: 85vh !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -889,39 +887,37 @@ elif menu == "🛰️ Índices Satelitales":
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
             else:
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
-        # --- EL SELECTOR (Asegurate que los nombres coincidan con Sentinel Hub) ---
         with c3:
-            # Importante: Sentinel espera "NDVI" y "NDWI". 
-            # Si escribís "NDI", el servidor no lo reconoce.
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Sincronizando {indice_sel}..."):
+            with st.spinner(f"Calculando {indice_sel}..."):
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
-        
+
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=12, tiles='OpenStreetMap', attr=' ')
 
-                # 1. Definimos los parámetros básicos
-                hoy_fecha = datetime.now().strftime('%Y-%m-%d')
-                wms_params = {
+                # --- CONFIGURACIÓN DE PARÁMETROS ---
+                # Usamos la fecha de hoy para que siempre esté actualizado
+                hoy_str = datetime.now().strftime('%Y-%m-%d')
+                
+                params = {
                     "transparent": True,
                     "maxcc": 100,
-                    "time": f"2024-01-01/{hoy_fecha}"
+                    "time": f"2024-01-01/{hoy_str}"
                 }
 
-                # 2. Inyectamos el script del NDWI si corresponde
+                # SOLO agregamos el script si es NDWI para evitar errores en las otras capas
                 if indice_sel == "NDWI":
-                    wms_params["evalscript"] = """//VERSION=3
-                    function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
-                    function evaluatePixel(sample) {
-                        let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
-                        if (val > 0.1) return [0, 0.4, 0.8]; // Agua Azul
-                        if (val > 0.0) return [0.6, 0.8, 1]; // Celeste
-                        return [1, 1, 1];                    // Blanco
-                    }"""
+                    params["evalscript"] = """//VERSION=3
+function setup() { return { input: ["B03", "B08"], output: { bands: 3 } }; }
+function evaluatePixel(sample) {
+    let val = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+    if (val > 0.1) return [0, 0.4, 0.8]; // Azul
+    if (val > 0.0) return [0.6, 0.8, 1]; // Celeste
+    return [1, 1, 1]; // Blanco
+}"""
 
-                # 3. ÚNICA llamada al satélite (Capa Sentinel Hub)
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
                     layers=indice_sel,
@@ -932,19 +928,22 @@ elif menu == "🛰️ Índices Satelitales":
                     opacity=1.0,
                     zindex=1000,
                     version="1.1.1",
-                    extra_params=wms_params
+                    extra_params=params, # Aquí pasamos los parámetros limpios
+                    attr=' '
                 ).add_to(m)
 
-                # 4. Capa de borde del departamento
-                folium.GeoJson(
-                    gdf_loc, 
-                    style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 3}
-                ).add_to(m)
+                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
-                # 5. Ajuste y Renderizado
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m.get_root().render(), height=900, scrolling=False)
-
+                
+                # Renderizado estable que ya te funciona
+                components.html(m._repr_html_(), height=700)
+                
+                st.write("---")
+                if indice_sel == "NDWI":
+                    st.info("💧 **Azul:** Agua | **Celeste:** Humedad | **Blanco:** Suelo Seco")
+                else:
+                    st.success(f"🛰️ Mostrando capa: {indice_sel}")
                 # 6. Leyendas dinámicas
                 st.write("---")
                 if indice_sel == "NDVI":
