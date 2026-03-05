@@ -1045,6 +1045,43 @@ if menu == "🔍 Diagnóstico IA":
             if model:
                 with st.status("Analizando patologías...", expanded=True) as status:
                     try:
+                        # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+if menu == "🔍 Diagnóstico IA":
+    st.header("🔍 Laboratorio Móvil")
+    
+    # 1. Configuración de la IA
+    model = None
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        # Usamos el nombre completo del modelo para evitar el error 404
+        model = genai.GenerativeModel('models/gemini-1.5-flash') 
+    except Exception as e:
+        st.error(f"⚠️ Error de configuración: {e}")
+        st.stop()
+
+    # --- PASO 1: Selección de Origen (Pestañas) ---
+    st.write("Elegí cómo ingresar la imagen del cultivo:")
+    tab_cam, tab_gal = st.tabs(["📸 Cámara en Vivo", "📁 Subir de Galería"])
+
+    with tab_cam:
+        img_camera = st.camera_input("Capturar síntoma")
+
+    with tab_gal:
+        # El uploader permite elegir fotos ya guardadas en el celu
+        img_upload = st.file_uploader("Seleccionar foto guardada", type=['jpg', 'jpeg', 'png'])
+
+    # Determinamos cuál imagen procesar
+    foto_final = img_camera if img_camera else img_upload
+
+    if foto_final:
+        # Vista previa de la muestra
+        st.image(foto_final, caption="Muestra lista para análisis", use_container_width=True)
+        
+        if st.button("🧠 INICIAR ANÁLISIS IA", type="primary"):
+            if model:
+                with st.status("Analizando patologías...", expanded=True) as status:
+                    try:
                         img_bytes = foto_final.getvalue()
                         image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
                         
@@ -1057,6 +1094,23 @@ if menu == "🔍 Diagnóstico IA":
                         """
                         
                         response = model.generate_content([prompt, image_parts[0]])
+                        st.markdown(response.text)
+                        status.update(label="✅ Análisis Completo", state="complete")
+                    except Exception as e:
+                        # Manejo de error de cuota (429) o técnico
+                        if "429" in str(e):
+                            st.error("🚨 Límite de mensajes alcanzado. Esperá un minuto.")
+                        else:
+                            st.error(f"Error en el análisis: {e}")
+            else:
+                st.error("Error: El modelo de IA no está disponible.")
+
+    st.divider()
+    if st.button("💾 GUARDAR EN BITÁCORA"):
+        st.warning("⭐ Solo disponible para versión Pro")
+    with col2:
+        if st.button("🔄 NUEVO ANÁLISIS"):
+            st.rerun()
                         st.markdown(response.text)
                         status.update(label="✅ Análisis Completo", state="complete")
                     except Exception as e:
