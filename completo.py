@@ -1012,67 +1012,13 @@ elif menu == "🛰️ Índices Satelitales":
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
-    # 1. Configuración de la IA
-    from google import genai
-    from PIL import Image
-    import io
-
-    client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
-
-    img = Image.open(io.BytesIO(foto_final.getvalue()))
-
-    prompt = """
-    Actuá como Ingeniero Agrónomo especialista en fitopatología.
-
-    Analizá la imagen del cultivo y respondé:
-
-    1. Cultivo detectado
-    2. Posible plaga o enfermedad
-    3. Síntomas observados
-    4. Nivel de daño (bajo / medio / alto)
-    5. Tratamiento recomendado
-    """
-
-    response = client.models.generate_content(
-    model="gemini-1.5-flash",
-    contents=[prompt, img]
-    )
-
-    st.markdown(response.text)
-
-    # --- PASO 1: Selección de Origen (Pestañas) ---
-    st.write("Elegí cómo ingresar la imagen del cultivo:")
-    tab_cam, tab_gal = st.tabs(["📸 Cámara en Vivo", "📁 Subir de Galería"])
-
-    with tab_cam:
-        img_camera = st.camera_input("Capturar síntoma")
-
-    with tab_gal:
-        # El uploader permite elegir fotos ya guardadas en el celu
-        img_upload = st.file_uploader("Seleccionar foto guardada", type=['jpg', 'jpeg', 'png'])
-
-    # Determinamos cuál imagen procesar
-    foto_final = img_camera if img_camera else img_upload
-
-    if foto_final:
-        # Vista previa de la muestra
-        st.image(foto_final, caption="Muestra lista para análisis", use_container_width=True)
-        
-        if st.button("🧠 INICIAR ANÁLISIS IA", type="primary"):
-            if model:
-                with st.status("Analizando patologías...", expanded=True) as status:
-                    try:
-                        # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
-if menu == "🔍 Diagnóstico IA":
-    st.header("🔍 Laboratorio Móvil")
-    
-    # 1. Configuración de la IA
+    # 1. Configuración de la IA (Librería google-generativeai)
     model = None
     try:
         import google.generativeai as genai
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        # Usamos el nombre completo del modelo para evitar el error 404
-        model = genai.GenerativeModel('models/gemini-1.5-flash') 
+        # Intentamos sin el prefijo 'models/' que a veces da error 404
+        model = genai.GenerativeModel('gemini-1.5-flash') 
     except Exception as e:
         st.error(f"⚠️ Error de configuración: {e}")
         st.stop()
@@ -1085,20 +1031,20 @@ if menu == "🔍 Diagnóstico IA":
         img_camera = st.camera_input("Capturar síntoma")
 
     with tab_gal:
-        # El uploader permite elegir fotos ya guardadas en el celu
         img_upload = st.file_uploader("Seleccionar foto guardada", type=['jpg', 'jpeg', 'png'])
 
     # Determinamos cuál imagen procesar
     foto_final = img_camera if img_camera else img_upload
 
     if foto_final:
-        # Vista previa de la muestra
         st.image(foto_final, caption="Muestra lista para análisis", use_container_width=True)
         
+        # --- PASO 2: Análisis ---
         if st.button("🧠 INICIAR ANÁLISIS IA", type="primary"):
             if model:
                 with st.status("Analizando patologías...", expanded=True) as status:
                     try:
+                        # Convertimos la imagen a bytes para enviarla
                         img_bytes = foto_final.getvalue()
                         image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
                         
@@ -1114,7 +1060,6 @@ if menu == "🔍 Diagnóstico IA":
                         st.markdown(response.text)
                         status.update(label="✅ Análisis Completo", state="complete")
                     except Exception as e:
-                        # Manejo de error de cuota (429) o técnico
                         if "429" in str(e):
                             st.error("🚨 Límite de mensajes alcanzado. Esperá un minuto.")
                         else:
@@ -1122,26 +1067,12 @@ if menu == "🔍 Diagnóstico IA":
             else:
                 st.error("Error: El modelo de IA no está disponible.")
 
+    # --- BOTONES DE ACCIÓN ---
     st.divider()
-    if st.button("💾 GUARDAR EN BITÁCORA"):
-        st.warning("⭐ Solo disponible para versión Pro")
-    with col2:
-        if st.button("🔄 NUEVO ANÁLISIS"):
-            st.rerun()
-                        st.markdown(response.text)
-                        status.update(label="✅ Análisis Completo", state="complete")
-                    except Exception as e:
-                        # Manejo de error de cuota (429) o técnico
-                        if "429" in str(e):
-                            st.error("🚨 Límite de mensajes alcanzado. Esperá un minuto.")
-                        else:
-                            st.error(f"Error en el análisis: {e}")
-            else:
-                st.error("Error: El modelo de IA no está disponible.")
-
-    st.divider()
-    if st.button("💾 GUARDAR EN BITÁCORA"):
-        st.warning("⭐ Solo disponible para versión Pro")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💾 GUARDAR EN BITÁCORA"):
+            st.warning("⭐ Solo disponible para versión Pro")
     with col2:
         if st.button("🔄 NUEVO ANÁLISIS"):
             st.rerun()
