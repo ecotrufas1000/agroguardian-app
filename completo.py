@@ -1066,7 +1066,7 @@ if menu == "🔍 Diagnóstico IA":
             
                 # Usamos el objeto 'client' que configuramos antes
                 response = client.models.generate_content(
-                    model="models/gemini-2.0-flash",  # ✅ con "models/" adelante
+                    model="models/gemini-2.5-flash",  # ✅ con "models/" adelante
                     contents=[
                         imagen_pil,
                         prompt
