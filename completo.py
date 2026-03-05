@@ -17,11 +17,12 @@ from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
 st.markdown("""
     <style>
-    /* Color de fondo de la página */
+    /* 1. Color de fondo de la página */
     .stApp {
         background-color: #f8f9fa;
     }
-    /* Personalizar TODOS los botones */
+
+    /* 2. Personalizar TODOS los botones */
     div.stButton > button:first-child {
         background-color: #2e7d32; /* Verde Agro */
         color: white;
@@ -29,33 +30,35 @@ st.markdown("""
         border: none;
         transition: 0.3s;
     }
+
     /* Efecto al pasar el mouse */
     div.stButton > button:first-child:hover {
         background-color: #1b5e20;
         border: none;
         color: white;
     }
-    /* Personalizar el botón de descarga específicamente */
+
+    /* 3. Personalizar el botón de descarga */
     .stDownloadButton > button {
-        background-color: #0277bd !important; /* Azul para descargas */
+        background-color: #0277bd !important;
         color: white !important;
     }
-    </style>
-""", unsafe_allow_html=True)
-/* Estirar el contenedor del mapa para que no tenga bordes blancos */
+
+    /* 4. Estirar el mapa para que no tenga bordes blancos */
     .stHtmlEmbedded {
-        width: 100%;
-        border: none;
+        width: 100% !important;
+        border: none !important;
     }
 
-    /* Eliminar el espacio superior sobrante en móviles */
+    /* 5. Eliminar espacio superior en móviles (padding) */
     .block-container {
         padding-top: 2rem !important;
         padding-bottom: 0rem !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
     }
-
+    </style>
+""", unsafe_allow_html=True)
 
 # ==========================================================
 # FUNCIONES DE APOYO (Ahora sí, debajo de los imports)
