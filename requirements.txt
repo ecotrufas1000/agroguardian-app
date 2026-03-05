@@ -10,6 +10,7 @@ pyTelegramBotAPI
 google-genai
 Pillow
 flask
+reportlab
 python-dotenv
 streamlit-js-eval
 xlsxwriter
