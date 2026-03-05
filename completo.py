@@ -1007,25 +1007,54 @@ elif menu == "🛰️ Índices Satelitales":
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
-    st.header("🔍 Laboratorio Móvil: Escaneo de Cultivos")
-    st.write("Detección de patologías mediante visión artificial y modelos agronómicos.")
+    st.header("🔍 Laboratorio Móvil")
+    st.write("Tomá una foto de la hoja o el insecto para analizar.")
 
+    # 1. Configuración del Modelo
     try:
+        import google.generativeai as genai
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         model = genai.GenerativeModel('gemini-2.0-flash')
-    except:
-        st.warning("⚠️ Configura la 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
+    except Exception as e:
+        st.error("⚠️ Error de configuración: Revisá tu API Key en los Secrets.")
         st.stop()
 
-    # Inicializar session_state
-    if "resultado_diagnostico" not in st.session_state:
-        st.session_state.resultado_diagnostico = None
-    if "img_bytes_diagnostico" not in st.session_state:
-        st.session_state.img_bytes_diagnostico = None
+    # 2. Captura de Imagen (Cámara o Galería)
+    img_file = st.camera_input("📷 Capturar síntoma en el lote")
 
-    # --- PASO 1: Subir imagen
-    import io
-   
-    if st.button("💾 GUARDAR EN BITÁCORA"):
-       st.warning("⭐ Solo disponible para versión Pro")
-    st.divider()      
+    if img_file:
+        # Mostrar progreso
+        with st.status("🧠 Analizando con IA Agronómica...", expanded=True) as status:
+            try:
+                # Convertir imagen para Gemini
+                img_bytes = img_file.getvalue()
+                image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
+                
+                # Prompt optimizado para campo
+                prompt = """
+                Sos un Ingeniero Agrónomo experto. Analizá esta imagen de un cultivo y:
+                1. Identificá la planta y el problema (plaga, enfermedad o deficiencia).
+                2. Explicá el daño observado de forma técnica pero breve.
+                3. Da una recomendación de manejo o control.
+                Si no es una planta o insecto agrícola, decilo amablemente.
+                """
+                
+                # Llamada a la IA
+                response = model.generate_content([prompt, image_parts[0]])
+                
+                st.subheader("📋 Resultado del Diagnóstico")
+                st.markdown(response.text)
+                status.update(label="✅ Diagnóstico Completo", state="complete")
+                
+            except Exception as e:
+                st.error(f"Hubo un error en el análisis: {e}")
+
+    # --- BOTONES EXTRA ---
+    st.divider()
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💾 GUARDAR EN BITÁCORA"):
+            st.warning("⭐ Solo disponible para versión Pro")
+    with col2:
+        if st.button("🔄 NUEVO ANÁLISIS"):
+            st.rerun()
