@@ -42,6 +42,19 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+/* Estirar el contenedor del mapa para que no tenga bordes blancos */
+    .stHtmlEmbedded {
+        width: 100%;
+        border: none;
+    }
+
+    /* Eliminar el espacio superior sobrante en móviles */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
 
 
 # ==========================================================
@@ -919,7 +932,7 @@ elif menu == "🛰️ Índices Satelitales":
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m._repr_html_(), height=650)
+                components.html(m._repr_html_(), height=900)
                 # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 
