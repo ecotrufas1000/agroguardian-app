@@ -1013,15 +1013,32 @@ if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
     # 1. Configuración de la IA
-    model = None
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        # Usamos el nombre completo del modelo para evitar el error 404
-        model = genai.GenerativeModel('models/gemini-1.5-flash') 
-    except Exception as e:
-        st.error(f"⚠️ Error de configuración: {e}")
-        st.stop()
+    from google import genai
+    from PIL import Image
+    import io
+
+    client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
+
+    img = Image.open(io.BytesIO(foto_final.getvalue()))
+
+    prompt = """
+    Actuá como Ingeniero Agrónomo especialista en fitopatología.
+
+    Analizá la imagen del cultivo y respondé:
+
+    1. Cultivo detectado
+    2. Posible plaga o enfermedad
+    3. Síntomas observados
+    4. Nivel de daño (bajo / medio / alto)
+    5. Tratamiento recomendado
+    """
+
+    response = client.models.generate_content(
+    model="gemini-1.5-flash",
+    contents=[prompt, img]
+    )
+
+    st.markdown(response.text)
 
     # --- PASO 1: Selección de Origen (Pestañas) ---
     st.write("Elegí cómo ingresar la imagen del cultivo:")
