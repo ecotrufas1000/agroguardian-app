@@ -1191,10 +1191,6 @@ if menu == "🔍 Diagnóstico IA":
     if st.session_state.resultado_analisis:
         st.markdown("### 📋 Resultado del Análisis")
         st.markdown(st.session_state.resultado_analisis)
-        
-        if st.session_state.resultado_analisis:
-    st.markdown("### 📋 Resultado del Análisis")
-    st.markdown(st.session_state.resultado_analisis)
 
     # Nombre de archivo con fecha
     from datetime import datetime
