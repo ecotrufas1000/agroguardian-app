@@ -34,7 +34,7 @@ from datetime import datetime
 import io
 
 buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
+doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
         rightMargin=2*cm,
