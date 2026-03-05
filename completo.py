@@ -1016,7 +1016,8 @@ if menu == "🔍 Diagnóstico IA":
     try:
         import google.generativeai as genai
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        #model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
     except Exception as e:
         st.error(f"⚠️ Error de configuración: {e}")
         st.stop()
