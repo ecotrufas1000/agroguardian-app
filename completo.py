@@ -908,14 +908,15 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
 
-                # Mapa base con atribución vacía para limpiar la pantalla
+                # Mapa base optimizado para tamaño completo y móvil
                 m = folium.Map(
                     location=[centro.y, centro.x],
-                    zoom_start=12,
+                    zoom_start=13, # Subimos a 13 para que el lote se vea más grande de entrada
                     tiles='OpenStreetMap',
-                    attr=' ' # Esto quita el texto de OpenStreetMap abajo a la derecha
+                    attr=' ',
+                    height='100%', # <--- ESTO fuerzo el alto al máximo
+                    width='100%'   # <--- ESTO fuerzo el ancho al máximo
                 )
-
                 # Capa WMS
                 folium.WmsTileLayer(
                     url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
