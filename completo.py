@@ -1007,22 +1007,21 @@ elif menu == "🛰️ Índices Satelitales":
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
-   # 1. Configuración de la IA (Unificada con tu Bot)
-model = None
-try:
-    import google.generativeai as genai
-    # Usamos la configuración estándar que ya tienes
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    
-    # CAMBIO CLAVE: Quitamos el prefijo 'models/' que suele causar el 404 en esta librería
-    model = genai.GenerativeModel('gemini-1.5-flash') 
-    
-except Exception as e:
-    st.error(f"⚠️ Error de configuración: {e}")
-    st.stop()
+    # 1. Configuración de la IA
+    model = None
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        # Usamos el nombre completo del modelo para evitar el error 404
+        model = genai.GenerativeModel('models/gemini-1.5-flash') 
+    except Exception as e:
+        st.error(f"⚠️ Error de configuración: {e}")
+        st.stop()
+
     # --- PASO 1: Selección de Origen (Pestañas) ---
     st.write("Elegí cómo ingresar la imagen del cultivo:")
     tab_cam, tab_gal = st.tabs(["📸 Cámara en Vivo", "📁 Subir de Galería"])
