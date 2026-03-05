@@ -1059,8 +1059,11 @@ if menu == "🔍 Diagnóstico IA":
 
                 # 2. Procesar la imagen
                 # foto_final es el archivo que viene del uploader o cámara
-                imagen_pil = Image.open(foto_final)
-            
+                #imagen_pil = Image.open(foto_final)
+                foto_final.seek(0)  # ✅ resetea el cursor del archivo
+                imagen_bytes = foto_final.read()
+                imagen_pil = Image.open(io.BytesIO(imagen_bytes))
+                
                 # 3. Llamada al nuevo cliente (SDK 2.0)
                 prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
             
