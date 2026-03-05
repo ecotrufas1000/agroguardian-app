@@ -15,6 +15,33 @@ from streamlit_folium import folium_static
 import folium
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
+st.markdown("""
+    <style>
+    /* Color de fondo de la página */
+    .stApp {
+        background-color: #f8f9fa;
+    }
+    /* Personalizar TODOS los botones */
+    div.stButton > button:first-child {
+        background-color: #2e7d32; /* Verde Agro */
+        color: white;
+        border-radius: 10px;
+        border: none;
+        transition: 0.3s;
+    }
+    /* Efecto al pasar el mouse */
+    div.stButton > button:first-child:hover {
+        background-color: #1b5e20;
+        border: none;
+        color: white;
+    }
+    /* Personalizar el botón de descarga específicamente */
+    .stDownloadButton > button {
+        background-color: #0277bd !important; /* Azul para descargas */
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 
 # ==========================================================
