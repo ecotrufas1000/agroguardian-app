@@ -173,7 +173,7 @@ except:
 with st.sidebar:
     # 1. Logo
     try:
-        st.image("logo.png", use_container_width=True)
+        st.image("logo1.png", use_container_width=True)
     except:
         st.markdown("<h2 style='text-align:center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
     
