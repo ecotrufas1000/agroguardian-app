@@ -1013,25 +1013,19 @@ elif menu == "🛰️ Índices Satelitales":
 #import google.generativeai as genai
 #from PIL import Image
 #import io
-from google import genai
+from google import genai  # Importación para SDK 2.0
 import streamlit as st
 
-# 1. Configuración con el nuevo SDK
-try:
-    # Creamos el cliente (como en tu bot)
-    client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
-except Exception as e:
-    st.error(f"⚠️ Error al conectar con Google GenAI: {e}")
-# Inicializar modelo
-model = None
+# 1. Configuración del Cliente
+client = None
 try:
     if "GOOGLE_API_KEY" in st.secrets:
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        # Usamos el nombre directo sin prefijos raros
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # En la versión nueva, creamos un objeto 'client'
+        client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
+    else:
+        st.error("🔑 Falta la clave de API en los Secrets.")
 except Exception as e:
-    st.error(f"Error de configuración IA: {e}")
-
+    st.error(f"⚠️ Error al conectar con la IA: {e}")
 # --- 2. SECCIÓN DEL MENÚ (Dentro de tu lógica de navegación) ---
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
