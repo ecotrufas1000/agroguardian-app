@@ -889,24 +889,32 @@ elif menu == "🛰️ Índices Satelitales":
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
             else:
                 depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
+        # --- EL SELECTOR (Asegurate que los nombres coincidan con Sentinel Hub) ---
         with c3:
+            # Importante: Sentinel espera "NDVI" y "NDWI". 
+            # Si escribís "NDI", el servidor no lo reconoce.
             indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Sincronizando {indice_sel}..."):
-                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
-                centro = gdf_loc.geometry.centroid.iloc[0]
-        
-                m = folium.Map(location=[centro.y, centro.x], zoom_start=12, tiles='OpenStreetMap', attr=' ')
+                # ... (resto del código de filtrado) ...
 
-                # --- CONFIGURACIÓN DINÁMICA DE FECHA Y SCRIPT ---
-                hoy = datetime.now().strftime('%Y-%m-%d')
-                
-                wms_params = {
-                    "transparent": True,
-                    "maxcc": 100,
-                    "time": f"2024-01-01/{hoy}"
-                }
+                # --- LA LLAMADA AL SATÉLITE ---
+                folium.WmsTileLayer(
+                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+                    layers=indice_sel, # <--- Esto envía "NDVI" o "NDWI"
+                    name=f"Sentinel-2 {indice_sel}",
+                    fmt="image/png",
+                    transparent=True,
+                    overlay=True,
+                    opacity=1.0,
+                    zindex=1000,
+                    version="1.1.1",
+                    # Usamos la fecha de hoy que ya calculamos
+                    time=f"2024-01-01/{datetime.now().strftime('%Y-%m-%d')}",
+                    maxcc=100,
+                    attr=' '
+                ).add_to(m)
 
                 # Inyectamos el script del NDWI (Blanco y Azul) para que no salga negro
                 if indice_sel == "NDWI":
