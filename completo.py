@@ -1010,10 +1010,18 @@ elif menu == "🛰️ Índices Satelitales":
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # --- 1. CONFIGURACIÓN AL INICIO DEL ARCHIVO (Fuera de cualquier IF) ---
-import google.generativeai as genai
-from PIL import Image
-import io
+#import google.generativeai as genai
+#from PIL import Image
+#import io
+from google import genai
+import streamlit as st
 
+# 1. Configuración con el nuevo SDK
+try:
+    # Creamos el cliente (como en tu bot)
+    client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
+except Exception as e:
+    st.error(f"⚠️ Error al conectar con Google GenAI: {e}")
 # Inicializar modelo
 model = None
 try:
