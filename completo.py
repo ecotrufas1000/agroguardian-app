@@ -924,6 +924,30 @@ elif menu == "🛰️ Índices Satelitales":
                     * ⚫ **Oscuros:** Agua profunda o sombras de nubes.
                     * ☁️ **Blanco Brillante:** Nubes o construcciones.
                     """)
+                    # --- GENERAR REPORTE DE DESCARGA ---
+                fecha_reporte = datetime.now().strftime('%d/%m/%Y')
+                
+                # Preparamos el contenido del reporte
+                texto_reporte = f"""
+                📊 INFORME DE MONITOREO SATELITAL
+                ---------------------------------
+                📍 Ubicación: {depto_sel}, {prov_sel}
+                📅 Fecha de Consulta: {fecha_reporte}
+                🛰️ Capa Analizada: {indice_sel}
+                ---------------------------------
+                Notas: 
+                - Este reporte confirma la visualización de 
+                  datos Sentinel-2 L2A procesados para {depto_sel}.
+                - El índice {indice_sel} fue generado dinámicamente.
+                """
+
+                # Creamos el botón de descarga
+                st.download_button(
+                    label=f"📥 Descargar Reporte {depto_sel}",
+                    data=texto_reporte,
+                    file_name=f"Reporte_{depto_sel}_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                )
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
