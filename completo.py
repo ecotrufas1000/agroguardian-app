@@ -1010,35 +1010,37 @@ elif menu == "🛰️ Índices Satelitales":
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
-    # 1. Configuración de la IA (Aseguramos que 'model' exista)
-    model = None # Inicializamos para evitar el error de "no definido"
+    # 1. Configuración de la IA
+    model = None
     try:
         import google.generativeai as genai
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash') # 1.5 es más estable para cuotas gratuitas
+        # Usamos el nombre completo del modelo para evitar el error 404
+        model = genai.GenerativeModel('models/gemini-1.5-flash') 
     except Exception as e:
-        st.error(f"⚠️ Error al configurar la IA: {e}")
+        st.error(f"⚠️ Error de configuración: {e}")
         st.stop()
 
-    # --- PASO 1: Captura de Imagen (Cámara + Galería) ---
-    st.write("Elegí el método para ingresar la muestra:")
-    tab_cam, tab_gal = st.tabs(["📸 Usar Cámara", "📁 Subir de Galería"])
+    # --- PASO 1: Selección de Origen (Pestañas) ---
+    st.write("Elegí cómo ingresar la imagen del cultivo:")
+    tab_cam, tab_gal = st.tabs(["📸 Cámara en Vivo", "📁 Subir de Galería"])
 
     with tab_cam:
         img_camera = st.camera_input("Capturar síntoma")
 
     with tab_gal:
-        img_upload = st.file_uploader("Elegí una foto ya guardada", type=['jpg', 'jpeg', 'png'])
+        # El uploader permite elegir fotos ya guardadas en el celu
+        img_upload = st.file_uploader("Seleccionar foto guardada", type=['jpg', 'jpeg', 'png'])
 
-    # Determinar qué imagen usar
+    # Determinamos cuál imagen procesar
     foto_final = img_camera if img_camera else img_upload
 
     if foto_final:
-        st.image(foto_final, caption="Muestra lista", use_container_width=True)
+        # Vista previa de la muestra
+        st.image(foto_final, caption="Muestra lista para análisis", use_container_width=True)
         
-        # Solo intentamos analizar si el modelo se configuró bien
-        if st.button("🧠 ANALIZAR CON IA", type="primary"):
-            if model is not None:
+        if st.button("🧠 INICIAR ANÁLISIS IA", type="primary"):
+            if model:
                 with st.status("Analizando patologías...", expanded=True) as status:
                     try:
                         img_bytes = foto_final.getvalue()
@@ -1048,20 +1050,21 @@ if menu == "🔍 Diagnóstico IA":
                         Actuá como un Ingeniero Agrónomo experto. 
                         Analizá esta imagen y entregá:
                         1. **Identificación**: Planta y problema (plaga/enfermedad).
-                        2. **Análisis**: Breve descripción de síntomas.
-                        3. **Acción**: Manejo o tratamiento recomendado.
+                        2. **Análisis**: Descripción breve de síntomas.
+                        3. **Acción**: Tratamiento sugerido.
                         """
                         
                         response = model.generate_content([prompt, image_parts[0]])
                         st.markdown(response.text)
                         status.update(label="✅ Análisis Completo", state="complete")
                     except Exception as e:
+                        # Manejo de error de cuota (429) o técnico
                         if "429" in str(e):
-                            st.error("🚨 Límite de mensajes alcanzado. Esperá 1 minuto.")
+                            st.error("🚨 Límite de mensajes alcanzado. Esperá un minuto.")
                         else:
                             st.error(f"Error en el análisis: {e}")
             else:
-                st.error("El modelo de IA no pudo iniciarse. Revisá tu API Key.")
+                st.error("Error: El modelo de IA no está disponible.")
 
     st.divider()
     if st.button("💾 GUARDAR EN BITÁCORA"):
