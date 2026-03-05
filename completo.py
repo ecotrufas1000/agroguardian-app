@@ -45,6 +45,10 @@ st.markdown("""
         color: white !important;
     }
 
+    /* 4. Agrandar mapa en celular */
+iframe {
+    height: 92vh !important;
+}
 
     </style>
 """, unsafe_allow_html=True)
