@@ -1004,3 +1004,65 @@ elif menu == "🛰️ Índices Satelitales":
                     mime="text/plain",
                 )
 #==========================================================
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# --- 1. CONFIGURACIÓN AL INICIO DEL ARCHIVO (Fuera de cualquier IF) ---
+import google.generativeai as genai
+from PIL import Image
+import io
+
+# Inicializar modelo
+model = None
+try:
+    if "GOOGLE_API_KEY" in st.secrets:
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        # Usamos el nombre directo sin prefijos raros
+        model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.error(f"Error de configuración IA: {e}")
+
+# --- 2. SECCIÓN DEL MENÚ (Dentro de tu lógica de navegación) ---
+if menu == "🔍 Diagnóstico IA":
+    st.header("🔍 Laboratorio Móvil")
+    
+    if model is None:
+        st.error("🚨 La IA no está configurada correctamente.")
+        st.stop()
+
+    # Selección de foto
+    tab_cam, tab_gal = st.tabs(["📸 Cámara", "📁 Galería"])
+
+    with tab_cam:
+        img_camera = st.camera_input("Capturar síntoma")
+    with tab_gal:
+        img_upload = st.file_uploader("Subir foto", type=['jpg', 'jpeg', 'png'])
+
+    # Elegir la imagen disponible
+    foto_final = img_camera if img_camera else img_upload
+
+    if foto_final:
+        # AQUÍ EL CAMBIO: width='stretch' reemplaza a use_container_width
+        st.image(foto_final, caption="Muestra seleccionada", width='stretch')
+        
+        if st.button("🧠 ANALIZAR", type="primary"):
+            with st.status("Analizando...", expanded=True) as status:
+                try:
+                    # Procesar con PIL para asegurar compatibilidad
+                    imagen_pil = Image.open(foto_final)
+                    
+                    prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
+                    
+                    # Llamada a Gemini 1.5 Flash
+                    response = model.generate_content([prompt, imagen_pil])
+                    
+                    st.markdown(response.text)
+                    status.update(label="✅ Análisis Completo", state="complete")
+                except Exception as e:
+                    st.error(f"Error en el análisis: {e}")
+
+    st.divider()
+    if st.button("🔄 REINICIAR"):
+        st.rerun()
