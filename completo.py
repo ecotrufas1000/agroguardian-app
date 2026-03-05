@@ -1051,21 +1051,30 @@ if menu == "🔍 Diagnóstico IA":
         st.image(foto_final, caption="Muestra seleccionada", width='stretch')
         
         if st.button("🧠 ANALIZAR", type="primary"):
-            with st.status("Analizando...", expanded=True) as status:
-                try:
-                    # Procesar con PIL para asegurar compatibilidad
-                    imagen_pil = Image.open(foto_final)
-                    
-                    prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
-                    
-                    # Llamada a Gemini 1.5 Flash
-                    response = model.generate_content([prompt, imagen_pil])
-                    
-                    st.markdown(response.text)
-                    status.update(label="✅ Análisis Completo", state="complete")
-                except Exception as e:
-                    st.error(f"Error en el análisis: {e}")
+    with st.status("Analizando...", expanded=True) as status:
+        try:
+            # 1. Importación necesaria AQUÍ mismo para estar seguros
+            from PIL import Image
+            import io
 
+            # 2. Procesar la imagen
+            # foto_final es el archivo que viene del uploader o cámara
+            imagen_pil = Image.open(foto_final)
+            
+            # 3. Llamada al nuevo cliente (SDK 2.0)
+            prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
+            
+            # Usamos el objeto 'client' que configuramos antes
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=[prompt, imagen_pil]
+            )
+            
+            st.markdown(response.text)
+            status.update(label="✅ Análisis Completo", state="complete")
+            
+        except Exception as e:
+            st.error(f"Error en el análisis: {e}")
     st.divider()
     if st.button("🔄 REINICIAR"):
         st.rerun()
