@@ -1021,6 +1021,10 @@ elif menu == "🛰️ Índices Satelitales":
 # --- 1. CONFIGURACIÓN AL INICIO DEL ARCHIVO (Fuera de cualquier IF) ---
 #import google.generativeai as genai
 #from PIL import Image
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
+# --- 1. CONFIGURACIÓN AL INICIO DEL ARCHIVO (Fuera de cualquier IF) ---
+#import google.generativeai as genai
+#from PIL import Image
 #import io
 from google import genai  # Importación para SDK 2.0
 import streamlit as st
