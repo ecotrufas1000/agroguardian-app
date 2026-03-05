@@ -23,6 +23,8 @@ import folium
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
 def generar_pdf(texto_analisis, nombre_imagen="muestra"):
+     if not texto_analisis:                        # ✅ agregá estas dos líneas
+         texto_analisis = "Sin contenido."         # ✅    
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
