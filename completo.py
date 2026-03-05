@@ -1006,11 +1006,22 @@ elif menu == "🛰️ Índices Satelitales":
 #==========================================================
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 # SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
-# --- SECCIÓN: DIAGNÓSTICO IA ---
+# SECCIÓN: DIAGNÓSTICO IA (PLAGAS Y ENFERMEDADES)
 if menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
     
-    # Creamos dos pestañas para que la interfaz sea limpia en el móvil
+    # 1. Configuración de la IA (Aseguramos que 'model' exista)
+    model = None # Inicializamos para evitar el error de "no definido"
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        model = genai.GenerativeModel('gemini-1.5-flash') # 1.5 es más estable para cuotas gratuitas
+    except Exception as e:
+        st.error(f"⚠️ Error al configurar la IA: {e}")
+        st.stop()
+
+    # --- PASO 1: Captura de Imagen (Cámara + Galería) ---
+    st.write("Elegí el método para ingresar la muestra:")
     tab_cam, tab_gal = st.tabs(["📸 Usar Cámara", "📁 Subir de Galería"])
 
     with tab_cam:
@@ -1019,45 +1030,42 @@ if menu == "🔍 Diagnóstico IA":
     with tab_gal:
         img_upload = st.file_uploader("Elegí una foto ya guardada", type=['jpg', 'jpeg', 'png'])
 
-    # Elegimos la foto que tenga contenido (prioriza la cámara si ambas tienen algo)
+    # Determinar qué imagen usar
     foto_final = img_camera if img_camera else img_upload
 
     if foto_final:
-        # Mostramos una vista previa de la imagen seleccionada
-        st.image(foto_final, caption="Muestra a analizar", use_container_width=True)
+        st.image(foto_final, caption="Muestra lista", use_container_width=True)
         
+        # Solo intentamos analizar si el modelo se configuró bien
         if st.button("🧠 ANALIZAR CON IA", type="primary"):
-            with st.status("Analizando patologías...", expanded=True) as status:
-                try:
-                    # Preparar imagen para Gemini
-                    img_bytes = foto_final.getvalue()
-                    image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
-                    
-                    # Prompt técnico para el Ingeniero Agrónomo Virtual
-                    prompt = """
-                    Actuá como un Ingeniero Agrónomo experto. 
-                    Analizá esta imagen de cultivo y entregá:
-                    1. **Identificación**: Nombre de la planta y problema detectado.
-                    2. **Análisis**: Breve descripción de los síntomas.
-                    3. **Acción**: Recomendación de manejo o tratamiento.
-                    Sé preciso y técnico.
-                    """
-                    
-                    response = model.generate_content([prompt, image_parts[0]])
-                    st.markdown(response.text)
-                    status.update(label="✅ Análisis Completo", state="complete")
-                    
-                except Exception as e:
-                    if "429" in str(e):
-                        st.error("🚨 Límite de mensajes alcanzado. Esperá un minuto.")
-                    else:
-                        st.error(f"Error técnico: {e}")
-    # --- BOTONES EXTRA ---
+            if model is not None:
+                with st.status("Analizando patologías...", expanded=True) as status:
+                    try:
+                        img_bytes = foto_final.getvalue()
+                        image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
+                        
+                        prompt = """
+                        Actuá como un Ingeniero Agrónomo experto. 
+                        Analizá esta imagen y entregá:
+                        1. **Identificación**: Planta y problema (plaga/enfermedad).
+                        2. **Análisis**: Breve descripción de síntomas.
+                        3. **Acción**: Manejo o tratamiento recomendado.
+                        """
+                        
+                        response = model.generate_content([prompt, image_parts[0]])
+                        st.markdown(response.text)
+                        status.update(label="✅ Análisis Completo", state="complete")
+                    except Exception as e:
+                        if "429" in str(e):
+                            st.error("🚨 Límite de mensajes alcanzado. Esperá 1 minuto.")
+                        else:
+                            st.error(f"Error en el análisis: {e}")
+            else:
+                st.error("El modelo de IA no pudo iniciarse. Revisá tu API Key.")
+
     st.divider()
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("💾 GUARDAR EN BITÁCORA"):
-            st.warning("⭐ Solo disponible para versión Pro")
+    if st.button("💾 GUARDAR EN BITÁCORA"):
+        st.warning("⭐ Solo disponible para versión Pro")
     with col2:
         if st.button("🔄 NUEVO ANÁLISIS"):
             st.rerun()
