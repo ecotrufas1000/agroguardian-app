@@ -905,7 +905,8 @@ elif menu == "🛰️ Índices Satelitales":
                 )
 
             # Fecha que quieres pedir a GIBS (hoy)
-            hoy = datetime.date.today().isoformat()
+            #hoy = datetime.date.today().isoformat()
+            hoy = "2025-02-01"
             # Capa NDVI regional (NASA MODIS, sin marca de agua)
             folium.TileLayer(
                 tiles=(
