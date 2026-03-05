@@ -45,14 +45,35 @@ st.markdown("""
         color: white !important;
     }
 
-    /* 4. Agrandar mapa en celular */
-iframe {
-    height: 92vh !important;
-}
 
     </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True
 
+st.markdown("""
+<style>
+
+/* quitar márgenes de la app */
+.block-container {
+    padding-top: 0rem;
+    padding-bottom: 0rem;
+    padding-left: 0rem;
+    padding-right: 0rem;
+}
+
+/* el mapa ocupa toda la pantalla */
+iframe {
+    width: 100vw !important;
+    height: 100vh !important;
+    border: none !important;
+}
+
+/* ocultar atribuciones */
+.leaflet-control-attribution {
+    display: none !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 # ==========================================================
 # FUNCIONES DE APOYO (Ahora sí, debajo de los imports)
 # ==========================================================
@@ -929,7 +950,12 @@ elif menu == "🛰️ Índices Satelitales":
                 folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m._repr_html_(), height=900)
+                #components.html(m._repr_html_(), height=900)
+                components.html(
+                    m.get_root().render(),
+                    height=1000,
+                    width=None
+                )
                 # --- SECCIÓN DE LEYENDAS DINÁMICAS ---
                 st.write("---")
                 
