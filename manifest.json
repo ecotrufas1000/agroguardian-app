@@ -1,0 +1,22 @@
+{
+  "name": "AgroGuardian",
+  "short_name": "AgroGuardian",
+  "description": "Diagnóstico agrícola inteligente",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d2b0d",
+  "theme_color": "#2d6a2d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
