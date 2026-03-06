@@ -1003,15 +1003,15 @@ elif menu == "🛰️ Índices Satelitales":
         c1, c2, c3 = st.columns([1, 1, 1])
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("📍 Provincia:", ["Seleccionar..."] + provincias)
+            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."] + provincias)
         with c2:
             if prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Seleccionar..."] + deptos)
+                depto_sel = st.selectbox("Departamento:", ["Seleccionar..."] + deptos)
             else:
-                depto_sel = st.selectbox("🏘️ Departamento:", ["Esperando..."], disabled=True)
+                depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("🌿 Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Calculando {indice_sel}..."):
