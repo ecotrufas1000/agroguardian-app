@@ -16,6 +16,15 @@ import plotly.express as px
 import urllib.parse
 import base64
 import datetime
+st.markdown("""
+    <link rel="manifest" href="https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AgroGuardian">
+    <meta name="theme-color" content="#2d6a2d">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png">
+""", unsafe_allow_html=True)
 from io import BytesIO
 from supabase import create_client
 from streamlit_folium import folium_static
