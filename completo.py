@@ -82,15 +82,16 @@ def generar_pdf(texto_analisis, nombre_imagen):
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
     story = []
 
-    # Encabezado
+    # Encabezado con logo
     from reportlab.platypus import Image as RLImage, Table, TableStyle
-    import urllib.request, tempfile, os
+    import urllib.request
+    import io as io_module
 
     try:
         logo_url = "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png"
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-        urllib.request.urlretrieve(logo_url, tmp.name)
-        logo = RLImage(tmp.name, width=40, height=40)
+        logo_bytes = urllib.request.urlopen(logo_url).read()
+        logo_buffer = io_module.BytesIO(logo_bytes)
+        logo = RLImage(logo_buffer, width=40, height=40)
         titulo_texto = Paragraph("AgroGuardian", estilo_titulo)
         tabla_header = Table([[logo, titulo_texto]], colWidths=[50, 400])
         tabla_header.setStyle(TableStyle([
@@ -98,10 +99,8 @@ def generar_pdf(texto_analisis, nombre_imagen):
             ('LEFTPADDING', (0,0), (-1,-1), 0),
         ]))
         story.append(tabla_header)
-        os.unlink(tmp.name)
     except:
         story.append(Paragraph("AgroGuardian", estilo_titulo))
-
     # ✅ Esto va FUERA del try/except, siempre se ejecuta
     story.append(Paragraph("Informe de Diagnóstico Agronómico", estilo_subtitulo))
     story.append(Paragraph(f"Fecha: {fecha}", estilo_subtitulo))
