@@ -83,55 +83,37 @@ def generar_pdf(texto_analisis, nombre_imagen):
     story = []
 
     # Encabezado
-    from reportlab.platypus import Image as RLImage
+    from reportlab.platypus import Image as RLImage, Table, TableStyle
+    import urllib.request, tempfile, os
 
-# Logo desde GitHub raw
-logo_url = "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png"
+    try:
+        logo_url = "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png"
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+        urllib.request.urlretrieve(logo_url, tmp.name)
+        logo = RLImage(tmp.name, width=40, height=40)
+        titulo_texto = Paragraph("AgroGuardian", estilo_titulo)
+        tabla_header = Table([[logo, titulo_texto]], colWidths=[50, 400])
+        tabla_header.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(tabla_header)
+        os.unlink(tmp.name)
+    except:
+        story.append(Paragraph("AgroGuardian", estilo_titulo))
 
-import urllib.request
-import tempfile
-import os
-
-try:
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-    urllib.request.urlretrieve(logo_url, tmp.name)
-    
-    logo = RLImage(tmp.name, width=40, height=40)  # ajustá width/height a gusto
-    
-    # Logo + título en la misma línea usando una tabla
-    from reportlab.platypus import Table, TableStyle
-    from reportlab.lib import colors
-    
-    titulo_texto = Paragraph("AgroGuardian", estilo_titulo)
-    tabla_header = Table(
-        [[logo, titulo_texto]],
-        colWidths=[50, 400]
-    )
-    tabla_header.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-        ('RIGHTPADDING', (0,0), (-1,-1), 10),
-    ]))
-    story.append(tabla_header)
-    os.unlink(tmp.name)
-except:
-    # Fallback si no carga el logo
-    story.append(Paragraph("AgroGuardian", estilo_titulo))
+    # ✅ Esto va FUERA del try/except, siempre se ejecuta
     story.append(Paragraph("Informe de Diagnóstico Agronómico", estilo_subtitulo))
     story.append(Paragraph(f"Fecha: {fecha}", estilo_subtitulo))
     story.append(Paragraph(f"Muestra: {nombre_imagen}", estilo_subtitulo))
     story.append(Spacer(1, 0.3*cm))
     story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#2d6a2d')))
     story.append(Spacer(1, 0.5*cm))
-
-    # Cuerpo del análisis
     story.append(Paragraph("Resultado del Análisis", styles['Heading2']))
     story.append(Spacer(1, 0.2*cm))
 
-    # Dividir por párrafos y agregar cada uno
     for parrafo in texto_analisis.split('\n'):
         if parrafo.strip():
-            # Escapar caracteres especiales para reportlab
             parrafo_limpio = parrafo.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             story.append(Paragraph(parrafo_limpio, estilo_cuerpo))
 
@@ -143,7 +125,6 @@ except:
     doc.build(story)
     buffer.seek(0)
     return buffer
-
 # Fuera de la función, inicializamos otras variables
 client = None
 
