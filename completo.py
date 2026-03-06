@@ -83,7 +83,40 @@ def generar_pdf(texto_analisis, nombre_imagen):
     story = []
 
     # Encabezado
-    story.append(Paragraph("🌿 AgroGuardian", estilo_titulo))
+    from reportlab.platypus import Image as RLImage
+
+# Logo desde GitHub raw
+logo_url = "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png"
+
+import urllib.request
+import tempfile
+import os
+
+try:
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+    urllib.request.urlretrieve(logo_url, tmp.name)
+    
+    logo = RLImage(tmp.name, width=40, height=40)  # ajustá width/height a gusto
+    
+    # Logo + título en la misma línea usando una tabla
+    from reportlab.platypus import Table, TableStyle
+    from reportlab.lib import colors
+    
+    titulo_texto = Paragraph("AgroGuardian", estilo_titulo)
+    tabla_header = Table(
+        [[logo, titulo_texto]],
+        colWidths=[50, 400]
+    )
+    tabla_header.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+    ]))
+    story.append(tabla_header)
+    os.unlink(tmp.name)
+except:
+    # Fallback si no carga el logo
+    story.append(Paragraph("AgroGuardian", estilo_titulo))
     story.append(Paragraph("Informe de Diagnóstico Agronómico", estilo_subtitulo))
     story.append(Paragraph(f"Fecha: {fecha}", estilo_subtitulo))
     story.append(Paragraph(f"Muestra: {nombre_imagen}", estilo_subtitulo))
