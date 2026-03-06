@@ -1195,32 +1195,31 @@ if menu == "🔍 Diagnóstico IA":
                     st.error(f"Error en el análisis: {e}")
                     status.update(label="❌ Error", state="error")
 
-    # 4. Mostrar resultado y botón de descarga (fuera del botón de analizar, pero dentro del menú)
+    # 4. Mostrar resultado y botón de descarga
     if st.session_state.resultado_analisis:
         st.markdown("### 📋 Resultado del Análisis")
         st.markdown(st.session_state.resultado_analisis)
 
-    # Nombre de archivo con fecha
-    from datetime import datetime
-    fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M")
-    nombre_archivo = f"diagnostico_agroguardian_{fecha_archivo}.pdf"
+        # Nombre de archivo con fecha
+        from datetime import datetime
+        fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M")
+        nombre_archivo = f"diagnostico_agroguardian_{fecha_archivo}.pdf"
 
-    # Generar PDF
-    pdf_buffer = generar_pdf(
-        st.session_state.resultado_analisis,
-        nombre_img = foto_final.name if foto_final and hasattr(foto_final, 'name') else "imagen"  # ✅
+        # Nombre de imagen seguro
+        nombre_img = foto_final.name if foto_final and hasattr(foto_final, 'name') else "imagen"
 
+        # Generar PDF
         pdf_buffer = generar_pdf(
             st.session_state.resultado_analisis,
-            nombre_imagen=nombre_img   # ✅ reemplazá la línea anterior por esta
+            nombre_imagen=nombre_img
         )
 
-    st.download_button(
-        label="📄 Descargar Informe PDF",
-        data=pdf_buffer,
-        file_name=nombre_archivo,
-        mime="application/pdf"
-    )
+        st.download_button(
+            label="📄 Descargar Informe PDF",
+            data=pdf_buffer,
+            file_name=nombre_archivo,
+            mime="application/pdf"
+        )
 
     st.divider()
     if st.button("🔄 REINICIAR"):
