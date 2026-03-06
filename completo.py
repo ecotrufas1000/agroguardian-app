@@ -885,9 +885,9 @@ elif menu == "❄️ Análisis de Heladas":
                     nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
                 with f_col3:
                     nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
-    
-            # ✅ El submit button va acá, directo en el form sin ningún if afuera
-            submitted = st.form_submit_button("Añadir a Bitácora")
+                submitted = st.form_submit_button("Añadir a Bitácora")
+        # ✅ El submit button va acá, directo en el form sin ningún if afuera
+        #submitted = st.form_submit_button("Añadir a Bitácora")
 
         # ✅ La lógica va FUERA del with form
         if submitted:
