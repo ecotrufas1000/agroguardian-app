@@ -32,9 +32,13 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 from datetime import datetime
 import io
+import io
+from datetime import datetime
+# (Asegúrate de tener todas las importaciones de reportlab aquí)
 
-buffer = io.BytesIO()
-doc = SimpleDocTemplate(
+def generar_pdf(texto_analisis, nombre_imagen):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
         rightMargin=2*cm,
@@ -106,7 +110,9 @@ doc = SimpleDocTemplate(
     doc.build(story)
     buffer.seek(0)
     return buffer
-client = None 
+
+# Fuera de la función, inicializamos otras variables
+client = None
 
 try:
     if "GOOGLE_API_KEY" in st.secrets:
