@@ -687,7 +687,7 @@ elif menu == "💧 Balance Hídrico":
         lat = LAT if LAT else -38.29
         lon = LON if LON else -57.55
         temp_media = st.session_state.clima_data['temp'] if 'clima_data' in st.session_state else 25.0
-        doy = datetime.datetime.now().timetuple().tm_yday
+        doy = datetime.now().timetuple().tm_yday
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
         ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
         eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
