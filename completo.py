@@ -17,13 +17,40 @@ import urllib.parse
 import base64
 import datetime
 st.markdown("""
-    <link rel="manifest" href="https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="AgroGuardian">
     <meta name="theme-color" content="#2d6a2d">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            const manifest = {
+                name: 'AgroGuardian',
+                short_name: 'AgroGuardian',
+                description: 'Diagnóstico agrícola inteligente',
+                start_url: '/',
+                display: 'standalone',
+                background_color: '#0d2b0d',
+                theme_color: '#2d6a2d',
+                icons: [{
+                    src: 'https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png',
+                    sizes: '192x192',
+                    type: 'image/png'
+                },
+                {
+                    src: 'https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png',
+                    sizes: '512x512',
+                    type: 'image/png'
+                }]
+            };
+            const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+            const manifestURL = URL.createObjectURL(blob);
+            document.querySelector('link[rel="manifest"]') 
+                ? document.querySelector('link[rel="manifest"]').href = manifestURL
+                : (() => { const l = document.createElement('link'); l.rel='manifest'; l.href=manifestURL; document.head.appendChild(l); })();
+        }
+    </script>
 """, unsafe_allow_html=True)
 from io import BytesIO
 from supabase import create_client
