@@ -1061,7 +1061,16 @@ elif menu == "🛰️ Índices Satelitales":
         col_prov = "NAME_1"
         col_depto = "NAME_2"
 
-        c1, c2, c3 = st.columns([1, 1, 1])
+        c1, c2, c3 = st.columns([1, 1, 1
+        st.markdown("""
+            <style>
+            /* Evita que el teclado se abra en los selectbox */
+            div[data-baseweb="select"] input {
+                caret-color: transparent !important;
+                pointer-events: none !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
             prov_sel = st.selectbox("Provincia:", ["Seleccionar..."] + provincias)
