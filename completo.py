@@ -880,7 +880,8 @@ elif menu == "❄️ Análisis de Heladas":
             with st.form("form_helada", clear_on_submit=True):
                 f_col1, f_col2, f_col3 = st.columns(3)
                 with f_col1:
-                    nueva_fecha = st.date_input("Fecha", value=datetime.datetime.now())
+                    #nueva_fecha = st.date_input("Fecha", value=datetime.datetime.now())
+                    nueva_fecha = st.date_input("Fecha", value=datetime.now())
                 with f_col2:
                     nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
                 with f_col3:
