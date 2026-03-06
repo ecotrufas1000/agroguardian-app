@@ -302,10 +302,9 @@ def obtener_clima_completo(lat, lon):
 #st.set_page_config(page_title="AgroGuardian Pro", layout="wide", page_icon="🛰️")
 st.set_page_config(
     page_title="AgroGuardian",
-    page_icon="https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png",
+    page_icon="🌿",
     layout="wide"
 )
-
 
 st.markdown("""
     <style>
