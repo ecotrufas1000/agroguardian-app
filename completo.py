@@ -443,7 +443,9 @@ elif menu == "🌧️ Pluviómetro":
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
-            hoy = datetime.datetime.now(datetime.timezone.utc)
+            #hoy = datetime.datetime.now(datetime.timezone.utc)
+            from datetime import datetime, timezone
+            hoy = datetime.now(timezone.utc)
 
             # --- MÉTRICAS RÁPIDAS ---
             df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
