@@ -880,23 +880,25 @@ elif menu == "❄️ Análisis de Heladas":
             with st.form("form_helada", clear_on_submit=True):
                 f_col1, f_col2, f_col3 = st.columns(3)
                 with f_col1:
-                    #nueva_fecha = st.date_input("Fecha", value=datetime.datetime.now())
                     nueva_fecha = st.date_input("Fecha", value=datetime.now())
                 with f_col2:
                     nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
                 with f_col3:
                     nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
-                
-                if st.form_submit_button("Añadir a Bitácora"):
-                    try:
-                        val_int = float(nueva_int.replace(',', '.'))
-                        datos_nuevos = {"Fecha": nueva_fecha.isoformat(), "Intensidad": val_int, "Duracion": nueva_dur}
-                        supabase.table("registros_heladas").insert(datos_nuevos).execute()
-                        st.success("✅ ¡Registrada!")
-                        st.rerun()
-                    except ValueError:
-                        st.error("❌ Escribí la temperatura con números (ej: -3.5)")
+    
+            # ✅ El submit button va acá, directo en el form sin ningún if afuera
+            submitted = st.form_submit_button("Añadir a Bitácora")
 
+        # ✅ La lógica va FUERA del with form
+        if submitted:
+            try:
+                val_int = float(nueva_int.replace(',', '.'))
+                datos_nuevos = {"Fecha": nueva_fecha.isoformat(), "Intensidad": val_int, "Duracion": nueva_dur}
+                supabase.table("registros_heladas").insert(datos_nuevos).execute()
+                st.success("✅ ¡Registrada!")
+                st.rerun()
+            except ValueError:
+                st.error("❌ Escribí la temperatura con números (ej: -3.5)")
         # 5. Registro Histórico (Desplegable y Borrado Automático)
         with st.expander("📋 Ver Historial de Registros", expanded=False):
             st.info("Para borrar: Seleccioná la fila y tocá la papelera 🗑️ arriba de la tabla.")
