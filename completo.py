@@ -849,7 +849,9 @@ elif menu == "❄️ Análisis de Heladas":
                     df_h = df_temp
             
         # 3. Cálculos de Resumen
-        hoy = datetime.datetime.now()
+        #hoy = datetime.datetime.now()
+        from datetime import datetime, timezone
+        hoy = datetime.now(timezone.utc)
         if not df_h.empty and pd.api.types.is_datetime64_any_dtype(df_h['Fecha']):
             df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
             
