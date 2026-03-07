@@ -831,7 +831,7 @@ elif menu == "❄️ Análisis de Heladas":
         with c1: st.metric("Temp. Actual", f"{clima['temp']}°C")
         with c2:
             if clima['temp'] < 3: st.error("⚠️ Riesgo de Helada")
-            else: st.success("✅ Sin riesgo
+            else: st.success("✅ Sin riesgo")
      # --- ANÁLISIS DE RIESGO AGROMETEREOLÓGICO ---
 if clima:
     st.markdown("<h3 style='font-size: 20px;'>🌡️ Análisis de Riesgo Actual</h3>", unsafe_allow_html=True)
