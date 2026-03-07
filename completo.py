@@ -445,12 +445,12 @@ if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control")
     
     if clima:
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1: st.metric("Temperatura", f"{clima['temp']} °C")
         with col2: st.metric("Humedad Rel.", f"{clima['hum']} %")
         with col3: st.metric("Pto. de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
-
+        with col4: st.metric("Presion", f"{clima['presion']} hPa") 
         st.divider() # <--- Estaba mal indentado antes
         c_a1, c_a2 = st.columns(2)
         
