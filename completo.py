@@ -914,13 +914,13 @@ if clima:
         consejo = "Sin condiciones de helada en las próximas horas."
 
     # --- Mostrar resultado ---
+    # --- Mostrar resultado ---
     if color == "error":
         st.error(f"**{nivel}** — {consejo}")
     elif color == "warning":
         st.warning(f"**{nivel}** — {consejo}")
     else:
         st.success(f"**{nivel}** — {consejo}")
-
     # Factores detallados
     with st.expander("🔍 Ver análisis detallado de factores"):
         for f in factores:
