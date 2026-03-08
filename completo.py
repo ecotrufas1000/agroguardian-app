@@ -482,7 +482,7 @@ elif menu == "🌧️ Pluviómetro":
 
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
-            df['fecha'] = pd.to_datetime(df['fecha'])
+            df['fecha'] = pd.to_datetime(df['fecha'], format='mixed', utc=True)
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
             from datetime import datetime, timezone
             hoy = datetime.now(timezone.utc)
