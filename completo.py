@@ -1153,16 +1153,18 @@ elif menu == "🛰️ Índices Satelitales":
         st.markdown("""
             <style>
             div[data-baseweb="select"] input {
-                caret-color: transparent !important;
+                opacity: 0 !important;
+                position: absolute !important;
                 pointer-events: none !important;
-                user-select: none !important;
-                -webkit-user-select: none !important;
-                font-size: 16px !important;
-            }
-            div[data-baseweb="select"] {
-                cursor: pointer !important;
             }
             </style>
+            <script>
+                document.addEventListener('focusin', function(e) {
+                    if (e.target.closest('[data-baseweb="select"]')) {
+                        setTimeout(() => e.target.blur(), 50);
+                    }
+            });
+            </script>
         """, unsafe_allow_html=True)
         with c1:
             provincias = sorted(gdf_argentina[col_prov].unique())
