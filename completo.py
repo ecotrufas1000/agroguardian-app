@@ -484,7 +484,6 @@ elif menu == "🌧️ Pluviómetro":
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'])
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
-            #hoy = datetime.datetime.now(datetime.timezone.utc)
             from datetime import datetime, timezone
             hoy = datetime.now(timezone.utc)
 
@@ -497,17 +496,15 @@ elif menu == "🌧️ Pluviómetro":
             c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
             c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
             c4.metric("📊 Registros", f"{len(df)} eventos")
-           # --- BOTÓN DE WHATSAPP CON TABLA DETALLADA ---
+
+            # --- BOTÓN DE WHATSAPP CON TABLA DETALLADA ---
             st.divider()
-            
-            # 1. Preparamos el detalle de los últimos 10 registros
             ultimos_registros = df.sort_values('fecha', ascending=False).head(10)
             detalle_tabla = ""
             for i, row in ultimos_registros.iterrows():
                 fecha_str = row['fecha'].strftime('%d/%m')
                 detalle_tabla += f"📍 {fecha_str}: {row['mm']:.1f} mm\n"
 
-            # 2. Construimos el mensaje completo
             mensaje_wa = (
                 f"🌱 *REPORTE AGROGUARDIAN*\n"
                 f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
@@ -522,12 +519,10 @@ elif menu == "🌧️ Pluviómetro":
                 f"🛰️ _Precision Lab v2.6_"
             )
             
-            # 3. Codificamos el mensaje para URL
             import urllib.parse
             mensaje_url = urllib.parse.quote(mensaje_wa)
             wa_url = f"https://wa.me/?text={mensaje_url}"
 
-            # 4. Botón visual mejorado
             st.markdown(f"""
                 <a href="{wa_url}" target="_blank" style="text-decoration: none;">
                     <div style="
@@ -543,7 +538,6 @@ elif menu == "🌧️ Pluviómetro":
                         justify-content: center;
                         gap: 12px;
                         box-shadow: 0px 6px 15px rgba(0,0,0,0.4);
-                        transition: transform 0.2s;
                     ">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="25px">
                         ENVIAR REPORTE + TABLA DIARIA
@@ -553,7 +547,7 @@ elif menu == "🌧️ Pluviómetro":
             st.write("")
             st.divider()
             
-            # Estilo común para gráficos
+            # --- GRÁFICOS ---
             estilo_grafico = dict(
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
@@ -562,67 +556,47 @@ elif menu == "🌧️ Pluviómetro":
                 margin=dict(l=10, r=10, t=30, b=20)
             )
 
-            # --- GRÁFICO 1: DIARIO ---
             st.subheader(f"📅 Detalle Diario — {hoy.strftime('%B %Y')}")
             df_mes['dia'] = df_mes['fecha'].dt.day
             df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
             fig1 = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
             fig1.update_traces(marker_color='#1f77b4')
             fig1.update_layout(**estilo_grafico)
-            
-            # MOSTRAR ESTÁTICO:
             st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
 
-            # --- GRÁFICO 2: MENSUAL ACUMULADO ---
             st.subheader(f"📊 Acumulado Mensual — Año {hoy.year}")
             meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
             mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             df_anual = pd.DataFrame({'Mes': meses_nombres, 'Prec_mm': mensual.values})
-
-            fig2 = px.bar(df_anual, x='Mes', y='Prec_mm', template="plotly_dark", 
+            fig2 = px.bar(df_anual, x='Mes', y='Prec_mm', template="plotly_dark",
                           text_auto='.1f', title="Distribución de Lluvias por Mes")
             fig2.update_traces(marker_color='#00ffc3', textposition="outside")
             fig2.update_layout(**estilo_grafico)
-            
-            # MOSTRAR ESTÁTICO:
             st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
-            
 
             st.divider()
 
-            # --- BOTÓN PARA PLANILLA DE DATOS (AÑADIDO EXCEL) ---
-            # --- BOTÓN PARA PLANILLA DE DATOS (ACTUALIZADO A EXCEL) ---
+            # --- PLANILLA EXCEL ---
             st.subheader("📂 Base de Datos Histórica")
             with st.expander("🔍 VER PLANILLA Y EXPORTAR"):
-                # 1. Limpiamos y preparamos los datos
                 df_display = df.copy()
-                # Quitamos la zona horaria para que Excel no tire error al exportar
                 df_display['fecha'] = df_display['fecha'].dt.tz_localize(None)
                 df_display = df_display.sort_values('fecha', ascending=False)
-                
-                # Mostramos una vista previa rápida en la app
                 st.dataframe(df_display[['fecha', 'lote', 'mm']], use_container_width=True)
 
-                # 2. Lógica para generar el archivo Excel en memoria
                 import io
                 output = io.BytesIO()
-                
-                # Usamos XlsxWriter como motor para darle un toque pro
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_display.to_excel(writer, index=False, sheet_name='Registros_Lluvia')
-                    
-                    # Ajuste automático de ancho de columnas (Opcional, pero queda muy pro)
                     workbook  = writer.book
                     worksheet = writer.sheets['Registros_Lluvia']
                     for i, col in enumerate(df_display.columns):
                         column_len = max(df_display[col].astype(str).map(len).max(), len(col)) + 2
                         worksheet.set_column(i, i, column_len)
-
                 excel_data = output.getvalue()
-                # --- EL ESTILO VA AQUÍ ---
+
                 st.markdown("""
                     <style>
-                    /* ESTADO NORMAL */
                     div.stDownloadButton > button {
                         background-color: #00ffc3 !important;
                         color: #000000 !important;
@@ -632,94 +606,134 @@ elif menu == "🌧️ Pluviómetro":
                         font-weight: bold !important;
                         width: 100% !important;
                     }
-                    
-                    /* ESTADO AL PASAR EL MOUSE Y AL HACER CLIC */
-                    /* Agregamos :active y :focus para que no cambie al clickear */
-                    div.stDownloadButton > button:hover, 
+                    div.stDownloadButton > button:hover,
                     div.stDownloadButton > button:active,
                     div.stDownloadButton > button:focus {
                         background-color: #0e1117 !important;
-                        color: #00ffc3 !important; /* El texto se vuelve verde */
+                        color: #00ffc3 !important;
                         border: 2px solid #00ffc3 !important;
-                    }
-
-                    /* BLOQUEO DE COLOR DE TEXTO (Para evitar el blanco del sistema) */
-                    div.stDownloadButton > button p,
-                    div.stDownloadButton > button:active p,
-                    div.stDownloadButton > button:focus p {
-                        color: inherit !important; 
                     }
                     </style>
                 """, unsafe_allow_html=True)
-                # 3. Botón de descarga
+
                 st.download_button(
                     label="📥 DESCARGAR PLANILLA EXCEL (.xlsx)",
                     data=excel_data,
                     file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    help="Haz clic para descargar el archivo compatible con Microsoft Excel"
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
-                
-            # --- SECCIÓN DE GESTIÓN Y EDICIÓN (REEMPLAZA TU st.dataframe ANTERIOR) ---
+
+            # --- GESTIÓN DE REGISTROS ---
             st.divider()
             st.subheader("📂 Gestión de Registros Históricos")
             st.info("💡 Hacé doble clic en los 'mm' para corregir o selecciona una fila y pulsá 'Suprimir' para borrar.")
-
-            # Preparar los datos para el editor
             df_editable = df.copy().sort_values('fecha', ascending=False)
-            
-            # El "Data Editor" es la herramienta clave de Streamlit para esto
             edited_df = st.data_editor(
-                df_editable[['id', 'fecha', 'lote', 'mm']], 
+                df_editable[['id', 'fecha', 'lote', 'mm']],
                 key="editor_lluvias",
-                num_rows="dynamic", # Permite borrar filas
+                num_rows="dynamic",
                 use_container_width=True,
-                disabled=["id", "fecha"], # Protegemos estos campos para que no se altere el tiempo
+                disabled=["id", "fecha"],
                 column_config={
                     "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
                     "fecha": st.column_config.DatetimeColumn("Fecha de Registro", format="DD/MM/YYYY HH:mm"),
                     "lote": "Lote/Identificación",
-                    "id": None # Mantenemos el ID oculto pero disponible para la lógica
+                    "id": None
                 }
             )
 
-            # --- LÓGICA DE ACTUALIZACIÓN EN SUPABASE ---
             c_save1, c_save2 = st.columns([1, 4])
             with c_save1:
                 if st.button("💾 GUARDAR CAMBIOS"):
                     try:
-                        # 1. Detectar FILAS BORRADAS
                         ids_originales = set(df['id'].tolist())
-                        ids_actuales = set(edited_df['id'].dropna().tolist()) # Evitamos los IDs de filas nuevas si las hubiera
+                        ids_actuales = set(edited_df['id'].dropna().tolist())
                         ids_a_borrar = list(ids_originales - ids_actuales)
-
                         for id_b in ids_a_borrar:
                             supabase.table("registros_lluvia").delete().eq("id", id_b).execute()
-
-                        # 2. Detectar CAMBIOS EN LOS VALORES (Edición)
-                        # Comparamos fila por fila los mm y el lote
                         for index, row in edited_df.iterrows():
-                            if pd.notnull(row['id']): # Solo registros que ya existían
+                            if pd.notnull(row['id']):
                                 supabase.table("registros_lluvia").update({
                                     "mm": row['mm'],
                                     "lote": row['lote']
                                 }).eq("id", row['id']).execute()
-
-                        # ... (viene del loop de actualización)
                         st.success("✅ ¡Base de Datos sincronizada!")
                         st.rerun()
-                        
                     except Exception as e:
                         st.error(f"Error al guardar: {e}")
 
-            st.divider() # Este cierra el bloque del botón y vuelve al flujo principal
+            # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---
+            st.divider()
+            st.markdown("### 🛰️ Registro Automático desde Satélite")
+            col_auto1, col_auto2 = st.columns([2, 1])
+
+            with col_auto1:
+                st.caption("Obtiene precipitaciones desde Open-Meteo usando tu ubicación GPS. Sin costo, sin límites.")
+
+            with col_auto2:
+                if st.button("📡 REGISTRAR HOY", type="primary"):
+                    try:
+                        import requests
+                        from datetime import date
+                        lat_auto = LAT if LAT else -38.29
+                        lon_auto = LON if LON else -57.55
+                        hoy_fecha = date.today().isoformat()
+                        url_meteo = (
+                            f"https://api.open-meteo.com/v1/forecast?"
+                            f"latitude={lat_auto}&longitude={lon_auto}"
+                            f"&daily=precipitation_sum"
+                            f"&timezone=America/Argentina/Buenos_Aires"
+                            f"&start_date={hoy_fecha}&end_date={hoy_fecha}"
+                        )
+                        r = requests.get(url_meteo).json()
+                        mm_hoy = r['daily']['precipitation_sum'][0] or 0.0
+                        supabase.table("registros_lluvia").insert({
+                            "fecha": hoy_fecha,
+                            "mm": mm_hoy,
+                            "lote": "🛰️ Automático (Open-Meteo)"
+                        }).execute()
+                        st.success(f"✅ Registrado: {mm_hoy:.1f} mm para hoy")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+
+            if st.button("📅 IMPORTAR ÚLTIMOS 7 DÍAS"):
+                try:
+                    import requests
+                    from datetime import date, timedelta
+                    lat_auto = LAT if LAT else -38.29
+                    lon_auto = LON if LON else -57.55
+                    fecha_fin = date.today().isoformat()
+                    fecha_ini = (date.today() - timedelta(days=7)).isoformat()
+                    url_meteo = (
+                        f"https://api.open-meteo.com/v1/forecast?"
+                        f"latitude={lat_auto}&longitude={lon_auto}"
+                        f"&daily=precipitation_sum"
+                        f"&timezone=America/Argentina/Buenos_Aires"
+                        f"&start_date={fecha_ini}&end_date={fecha_fin}"
+                    )
+                    r = requests.get(url_meteo).json()
+                    fechas = r['daily']['time']
+                    lluvias = r['daily']['precipitation_sum']
+                    registros = 0
+                    for fecha, mm in zip(fechas, lluvias):
+                        if mm and mm > 0:
+                            supabase.table("registros_lluvia").insert({
+                                "fecha": fecha,
+                                "mm": mm,
+                                "lote": "🛰️ Automático (Open-Meteo)"
+                            }).execute()
+                            registros += 1
+                    st.success(f"✅ Importados {registros} días con lluvia")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
         else:
             st.info("🛰️ No hay registros de lluvia cargados todavía.")
 
     except Exception as e:
-        st.error(f"Error al procesar los datos de lluvia: {e}")
-                        
+        st.error(f"Error al procesar los datos de lluvia: {e}")                        
 elif menu == "💧 Balance Hídrico":
     import folium
     from streamlit_folium import folium_static
