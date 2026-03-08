@@ -1152,10 +1152,15 @@ elif menu == "🛰️ Índices Satelitales":
         c1, c2, c3 = st.columns([1, 1, 1])
         st.markdown("""
             <style>
-            /* Evita que el teclado se abra en los selectbox */
             div[data-baseweb="select"] input {
                 caret-color: transparent !important;
                 pointer-events: none !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
+                font-size: 16px !important;
+            }
+            div[data-baseweb="select"] {
+                cursor: pointer !important;
             }
             </style>
         """, unsafe_allow_html=True)
