@@ -626,23 +626,24 @@ elif menu == "🌧️ Pluviómetro":
             # --- GESTIÓN DE REGISTROS ---
             st.divider()
             st.subheader("📂 Gestión de Registros Históricos")
-            st.info("💡 Hacé doble clic en los 'mm' para corregir o selecciona una fila y pulsá 'Suprimir' para borrar.")
-            df_editable = df.copy().sort_values('fecha', ascending=False)
-            edited_df = st.data_editor(
-                df_editable[['id', 'fecha', 'lote', 'mm']],
-                key="editor_lluvias",
-                num_rows="dynamic",
-                use_container_width=True,
-                disabled=["id", "fecha"],
-                column_config={
-                    "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
-                    "fecha": st.column_config.DatetimeColumn("Fecha de Registro", format="DD/MM/YYYY HH:mm"),
-                    "lote": "Lote/Identificación",
-                    "id": None
-                }
-            )
+            with st.expander("✏️ Ver y editar registros", expanded=False):  # ✅ expanded=False = oculto
+                st.info("💡 Hacé doble clic en los 'mm' para corregir o selecciona una fila y pulsá 'Suprimir' para borrar.")
+                df_editable = df.copy().sort_values('fecha', ascending=False)
+                    edited_df = st.data_editor(
+                    df_editable[['id', 'fecha', 'lote', 'mm']],
+                    key="editor_lluvias",
+                    num_rows="dynamic",
+                    use_container_width=True,
+                    disabled=["id", "fecha"],
+                    column_config={
+                        "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
+                        "fecha": st.column_config.DatetimeColumn("Fecha de Registro", format="DD/MM/YYYY HH:mm"),
+                        "lote": "Lote/Identificación",
+                        "id": None
+                    }
+                )
 
-            c_save1, c_save2 = st.columns([1, 4])
+                c_save1, c_save2 = st.columns([1, 4])
             with c_save1:
                 if st.button("💾 GUARDAR CAMBIOS"):
                     try:
