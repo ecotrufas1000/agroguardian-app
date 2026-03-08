@@ -629,7 +629,7 @@ elif menu == "🌧️ Pluviómetro":
             with st.expander("✏️ Ver y editar registros", expanded=False):  # ✅ expanded=False = oculto
                 st.info("💡 Hacé doble clic en los 'mm' para corregir o selecciona una fila y pulsá 'Suprimir' para borrar.")
                 df_editable = df.copy().sort_values('fecha', ascending=False)
-                    edited_df = st.data_editor(
+                edited_df = st.data_editor(
                     df_editable[['id', 'fecha', 'lote', 'mm']],
                     key="editor_lluvias",
                     num_rows="dynamic",
