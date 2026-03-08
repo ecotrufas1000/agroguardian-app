@@ -832,102 +832,89 @@ elif menu == "❄️ Análisis de Heladas":
         with c2:
             if clima['temp'] < 3: st.error("⚠️ Riesgo de Helada")
             else: st.success("✅ Sin riesgo")
-     # --- ANÁLISIS DE RIESGO AGROMETEREOLÓGICO ---
-if clima:
-    st.markdown("<h3 style='font-size: 20px;'>🌡️ Análisis de Riesgo Actual</h3>", unsafe_allow_html=True)
-    
-    temp = clima['temp']
-    rocio = clima['rocio']
-    viento = clima['v_vel']
-    hum = clima['hum']
-    
-    # --- Lógica de riesgo ---
-    diferencia_rocio = temp - rocio  # cuanto más chica, más riesgo
-    
-    # Puntos de riesgo
-    puntos = 0
-    factores = []
 
-    # 1. Temperatura
-    if temp <= 0:
-        puntos += 4
-        factores.append("🔴 Temperatura bajo cero — helada en curso")
-    elif temp <= 2:
-        puntos += 3
-        factores.append("🟠 Temperatura crítica (0-2°C) — riesgo muy alto")
-    elif temp <= 4:
-        puntos += 2
-        factores.append("🟡 Temperatura de alerta (2-4°C) — riesgo moderado")
-    elif temp <= 7:
-        puntos += 1
-        factores.append("🟢 Temperatura baja (4-7°C) — riesgo leve")
+        # --- ANÁLISIS DE RIESGO AGROMETEREOLÓGICO ---
+        st.markdown("<h3 style='font-size: 20px;'>🌡️ Análisis de Riesgo Actual</h3>", unsafe_allow_html=True)
+        
+        temp = clima['temp']
+        rocio = clima['rocio']
+        viento = clima['v_vel']
+        hum = clima['hum']
+        diferencia_rocio = temp - rocio
+        puntos = 0
+        factores = []
 
-    # 2. Diferencia temperatura-rocío (inversión térmica)
-    if diferencia_rocio < 2:
-        puntos += 3
-        factores.append("🔴 Punto de rocío muy cercano — inversión térmica probable")
-    elif diferencia_rocio < 4:
-        puntos += 2
-        factores.append("🟡 Diferencia temp-rocío baja — condensación posible")
-    elif diferencia_rocio < 6:
-        puntos += 1
-        factores.append("🟢 Diferencia temp-rocío moderada")
+        if temp <= 0:
+            puntos += 4
+            factores.append("🔴 Temperatura bajo cero — helada en curso")
+        elif temp <= 2:
+            puntos += 3
+            factores.append("🟠 Temperatura crítica (0-2°C) — riesgo muy alto")
+        elif temp <= 4:
+            puntos += 2
+            factores.append("🟡 Temperatura de alerta (2-4°C) — riesgo moderado")
+        elif temp <= 7:
+            puntos += 1
+            factores.append("🟢 Temperatura baja (4-7°C) — riesgo leve")
 
-    # 3. Viento (calma favorece helada)
-    if viento < 5:
-        puntos += 2
-        factores.append("🔴 Viento calmo — favorece inversión térmica y helada radiativa")
-    elif viento < 10:
-        puntos += 1
-        factores.append("🟡 Viento leve — mezcla de aire insuficiente")
-    else:
-        factores.append("🟢 Viento suficiente — reduce riesgo de helada radiativa")
+        if diferencia_rocio < 2:
+            puntos += 3
+            factores.append("🔴 Punto de rocío muy cercano — inversión térmica probable")
+        elif diferencia_rocio < 4:
+            puntos += 2
+            factores.append("🟡 Diferencia temp-rocío baja — condensación posible")
+        elif diferencia_rocio < 6:
+            puntos += 1
+            factores.append("🟢 Diferencia temp-rocío moderada")
 
-    # 4. Humedad (alta humedad + bajas temp = más riesgo)
-    if hum > 85 and temp < 5:
-        puntos += 2
-        factores.append("🔴 Alta humedad con temperatura baja — riesgo de escarcha")
-    elif hum > 70 and temp < 7:
-        puntos += 1
-        factores.append("🟡 Humedad elevada con temperatura baja")
+        if viento < 5:
+            puntos += 2
+            factores.append("🔴 Viento calmo — favorece inversión térmica y helada radiativa")
+        elif viento < 10:
+            puntos += 1
+            factores.append("🟡 Viento leve — mezcla de aire insuficiente")
+        else:
+            factores.append("🟢 Viento suficiente — reduce riesgo de helada radiativa")
 
-    # --- Nivel de riesgo final ---
-    if puntos >= 7:
-        nivel = "🚨 RIESGO EXTREMO"
-        color = "error"
-        consejo = "Activar sistemas de protección inmediatamente. Helada inminente o en curso."
-    elif puntos >= 5:
-        nivel = "🔴 RIESGO ALTO"
-        color = "error"
-        consejo = "Preparar sistemas de protección. Alta probabilidad de helada esta noche."
-    elif puntos >= 3:
-        nivel = "🟡 RIESGO MODERADO"
-        color = "warning"
-        consejo = "Monitorear cada 30 minutos. Posibilidad de helada en horas nocturnas."
-    elif puntos >= 1:
-        nivel = "🟢 RIESGO BAJO"
-        color = "success"  
-        consejo = "Condiciones desfavorables para helada. Mantener vigilancia."
-    else:
-        nivel = "✅ SIN RIESGO"
-        color = "success"
-        consejo = "Sin condiciones de helada en las próximas horas."
+        if hum > 85 and temp < 5:
+            puntos += 2
+            factores.append("🔴 Alta humedad con temperatura baja — riesgo de escarcha")
+        elif hum > 70 and temp < 7:
+            puntos += 1
+            factores.append("🟡 Humedad elevada con temperatura baja")
 
-    # --- Mostrar resultado ---
-    # --- Mostrar resultado ---
-    if color == "error":
-        st.error(f"**{nivel}** — {consejo}")
-    elif color == "warning":
-        st.warning(f"**{nivel}** — {consejo}")
-    else:
-        st.success(f"**{nivel}** — {consejo}")
-    # Factores detallados
-    with st.expander("🔍 Ver análisis detallado de factores"):
-        for f in factores:
-            st.markdown(f"- {f}")
-        st.caption(f"Puntaje de riesgo: {puntos}/11 | Temp: {temp}°C | Rocío: {rocio}°C | Viento: {viento} km/h | Humedad: {hum}%")
+        if puntos >= 7:
+            nivel = "🚨 RIESGO EXTREMO"
+            color = "error"
+            consejo = "Activar sistemas de protección inmediatamente. Helada inminente o en curso."
+        elif puntos >= 5:
+            nivel = "🔴 RIESGO ALTO"
+            color = "error"
+            consejo = "Preparar sistemas de protección. Alta probabilidad de helada esta noche."
+        elif puntos >= 3:
+            nivel = "🟡 RIESGO MODERADO"
+            color = "warning"
+            consejo = "Monitorear cada 30 minutos. Posibilidad de helada en horas nocturnas."
+        elif puntos >= 1:
+            nivel = "🟢 RIESGO BAJO"
+            color = "success"
+            consejo = "Condiciones desfavorables para helada. Mantener vigilancia."
+        else:
+            nivel = "✅ SIN RIESGO"
+            color = "success"
+            consejo = "Sin condiciones de helada en las próximas horas."
 
-    st.divider()
+        if color == "error":
+            st.error(f"**{nivel}** — {consejo}")
+        elif color == "warning":
+            st.warning(f"**{nivel}** — {consejo}")
+        else:
+            st.success(f"**{nivel}** — {consejo}")
+
+        with st.expander("🔍 Ver análisis detallado de factores"):
+            for f in factores:
+                st.markdown(f"- {f}")
+            st.caption(f"Puntaje de riesgo: {puntos}/11 | Temp: {temp}°C | Rocío: {rocio}°C | Viento: {viento} km/h | Humedad: {hum}%")
 
     st.divider()
 
@@ -944,8 +931,6 @@ if clima:
                 if not df_temp.empty:
                     df_h = df_temp
             
-        # 3. Cálculos de Resumen
-        #hoy = datetime.datetime.now()
         from datetime import datetime, timezone
         hoy = datetime.now(timezone.utc)
         if not df_h.empty and pd.api.types.is_datetime64_any_dtype(df_h['Fecha']):
@@ -963,14 +948,12 @@ if clima:
 
                 st.markdown("<h3 style='font-size: 20px;'>📊 Resumen del Ciclo</h3>", unsafe_allow_html=True)
                 fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
-                
                 st.info(f"❄️ **Más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')}) | ⏳ **Total Horas Frío:** {df_h_anio['Duracion'].sum():.1f} hs")
             else:
                 st.warning(f"No hay registros para el año {hoy.year}")
         else:
             st.info("A la espera de los primeros registros de heladas...")
 
-        # 4. Formulario de Carga (Para teclado de celular con signo menos)
         st.divider()
         with st.expander("➕ Registrar Nueva Helada", expanded=True):
             with st.form("form_helada", clear_on_submit=True):
@@ -982,10 +965,7 @@ if clima:
                 with f_col3:
                     nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
                 submitted = st.form_submit_button("Añadir a Bitácora")
-        # ✅ El submit button va acá, directo en el form sin ningún if afuera
-        #submitted = st.form_submit_button("Añadir a Bitácora")
 
-        # ✅ La lógica va FUERA del with form
         if submitted:
             try:
                 val_int = float(nueva_int.replace(',', '.'))
@@ -995,11 +975,10 @@ if clima:
                 st.rerun()
             except ValueError:
                 st.error("❌ Escribí la temperatura con números (ej: -3.5)")
-        # 5. Registro Histórico (Desplegable y Borrado Automático)
+
         with st.expander("📋 Ver Historial de Registros", expanded=False):
             st.info("Para borrar: Seleccioná la fila y tocá la papelera 🗑️ arriba de la tabla.")
             df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
-
             edited_h = st.data_editor(
                 df_display,
                 key="visor_heladas",
@@ -1008,12 +987,10 @@ if clima:
                 column_config={
                     "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
                     "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
-                    "Duracion": None, #st.column_config.NumberColumn("Horas", format="%.1f"),
+                    "Duracion": None,
                     "id": None 
                 }
             )
-
-            # Lógica de Borrado Automático (Sin botones extra)
             if len(edited_h) < len(df_display):
                 ids_originales = set(df_display['id'].dropna().tolist())
                 ids_actuales = set(edited_h['id'].dropna().tolist())
