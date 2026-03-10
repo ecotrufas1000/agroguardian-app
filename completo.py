@@ -971,44 +971,35 @@ elif menu == "🔍 Diagnóstico IA":
     with tab_cam:
         img_camera = st.camera_input("Capturar síntoma")
     with tab_gal:
-        img_upload = st.file_uploader("Subir foto", type=['jpg', 'jpeg', 'png'])
+        img_upload = st.file_uploader("Subir foto", type=['jpg','jpeg','png'])
 
-    foto_final = img_camera if img_camera else img_upload
+foto_final = img_camera if img_camera else img_upload
 
-    if foto_final:
-        st.image(foto_final, caption="Muestra seleccionada", use_container_width=True)
-        if st.button("ANALIZAR", type="primary"):
-            with st.status("Analizando...", expanded=True) as status:
-                try:
-                    from PIL import Image
-                    foto_final.seek(0)
-                    imagen_bytes = foto_final.read()
-                    imagen_pil = Image.open(io.BytesIO(imagen_bytes))
-                    prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
-                    for intento in range(3):
-                        try:
-                            response = client.models.generate_content(model="gemini-2.5-flash", contents=[imagen_pil, prompt])
-                            break
-                        except Exception as e:
-                            if "429" in str(e) and intento < 2:
-                                st.warning(f"Límite de API, reintentando... ({intento+1}/3)")
-                                import time
-                                time.sleep(5)
-                            else:
-                                raise e
-                    texto = ""
-                    try:
-                        texto = response.text
-                    except:
-                        try:
-                            texto = response.candidates[0].content.parts[0].text
-                        except:
-                            texto = "⚠️ No se pudo extraer el texto."
-                    st.session_state.resultado_analisis = texto
-                    status.update(label="✅ Análisis Completo", state="complete")
-                except Exception as e:
-                    st.error(f"Error en el análisis: {e}")
-                    status.update(label="❌ Error", state="error")
+if foto_final:
+    st.image(foto_final, caption="Muestra seleccionada", use_container_width=True)
+
+    if st.button("ANALIZAR", type="primary"):
+        with st.status("Analizando...", expanded=True) as status:
+            try:
+                from PIL import Image
+
+                imagen_pil = Image.open(foto_final)
+
+                prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
+
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[imagen_pil, prompt]
+                )
+
+                texto = response.text
+
+                st.session_state.resultado_analisis = texto
+                status.update(label="✅ Análisis Completo", state="complete")
+
+            except Exception as e:
+                st.error(f"Error en el análisis: {e}")
+                status.update(label="❌ Error", state="error")
 
     if st.session_state.resultado_analisis:
         st.markdown("### 📋 Resultado del Análisis")
