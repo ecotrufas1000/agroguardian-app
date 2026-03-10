@@ -616,62 +616,60 @@ elif menu == "🌧️ Pluviómetro":
             st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
 
             st.divider()
+            st.subheader("📂 Base de Datos de Lluvias")
 
-            st.divider()
-st.subheader("📂 Base de Datos de Lluvias")
+            st.info("💡 Podés editar o eliminar registros directamente desde la tabla.")
 
-st.info("💡 Podés editar o eliminar registros directamente desde la tabla.")
+            df_editable = df.copy().sort_values('fecha', ascending=False).reset_index(drop=True)
 
-df_editable = df.copy().sort_values('fecha', ascending=False).reset_index(drop=True)
+            edited_df = st.data_editor(
+                df_editable[['id','fecha','lote','mm']],
+                key="editor_lluvias",
+                num_rows="dynamic",
+                use_container_width=True,
+                disabled=["id","fecha"],
+                column_config={
+                    "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
+                    "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY HH:mm"),
+                    "lote": "Lote",
+                    "id": None
+                }
+            )
 
-edited_df = st.data_editor(
-    df_editable[['id','fecha','lote','mm']],
-    key="editor_lluvias",
-    num_rows="dynamic",
-    use_container_width=True,
-    disabled=["id","fecha"],
-    column_config={
-        "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
-        "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY HH:mm"),
-        "lote": "Lote",
-        "id": None
-    }
-)
+            col1, col2 = st.columns(2)
 
-col1, col2 = st.columns(2)
+            with col1:
+                if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
+                    try:
+                        for _, row in edited_df.iterrows():
+                            if pd.notnull(row['id']):
+                                supabase.table("registros_lluvia").update({
+                                    "mm": float(row['mm']),
+                                    "lote": str(row['lote'])
+                                }).eq("id", int(row['id'])).execute()
 
-with col1:
-    if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
-        try:
-            for _, row in edited_df.iterrows():
-                if pd.notnull(row['id']):
-                    supabase.table("registros_lluvia").update({
-                        "mm": float(row['mm']),
-                        "lote": str(row['lote'])
-                    }).eq("id", int(row['id'])).execute()
+                        st.success("✅ Cambios guardados")
+                        st.rerun()
 
-            st.success("✅ Cambios guardados")
-            st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {e}")
 
-        except Exception as e:
-            st.error(f"Error: {e}")
+            with col2:
 
-with col2:
+                import io
 
-    import io
+                output = io.BytesIO()
 
-    output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    edited_df.to_excel(writer, index=False)
 
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        edited_df.to_excel(writer, index=False)
-
-    st.download_button(
-        "📥 EXPORTAR EXCEL",
-        data=output.getvalue(),
-        file_name=f"Lluvias_{hoy.strftime('%Y-%m-%d')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
+                st.download_button(
+                    "📥 EXPORTAR EXCEL",
+                    data=output.getvalue(),
+                    file_name=f"Lluvias_{hoy.strftime('%Y-%m-%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
                 st.markdown("""
                     <style>
                     div.stDownloadButton > button {
