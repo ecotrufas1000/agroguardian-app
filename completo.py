@@ -974,7 +974,8 @@ elif menu == "🔍 Diagnóstico IA":
         img_camera = st.camera_input("Capturar síntoma")
 
     with tab_gal:
-        img_upload = st.file_uploader("Subir foto", type=['jpg','jpeg','png'])
+        img_upload = st.file_uploader("Subir foto", type=['jpg', 'jpeg', 'png'])
+        st.write("Upload detectado:", img_upload is not None)  # DEBUG
 
         if img_upload is not None:
             st.success("Imagen subida correctamente")
