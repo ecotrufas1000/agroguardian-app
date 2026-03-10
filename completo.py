@@ -524,27 +524,41 @@ elif menu == "🌧️ Pluviómetro":
             c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
             c4.metric("📊 Registros", f"{len(df)} eventos")
 
-            # --- BOTÓN DE WHATSAPP CON TABLA DETALLADA ---
-            st.divider()
-            ultimos_registros = df.sort_values('fecha', ascending=False).head(10)
-            detalle_tabla = ""
-            for i, row in ultimos_registros.iterrows():
-                fecha_str = row['fecha'].strftime('%d/%m')
-                detalle_tabla += f"📍 {fecha_str}: {row['mm']:.1f} mm\n"
+            # --- SECCIÓN CORREGIDA PARA WHATSAPP ---
 
-            mensaje_wa = (
-                f"🌱 *REPORTE AGROGUARDIAN*\n"
-                f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
-                f"--------------------------------\n"
-                f"💧 *RESUMEN:* \n"
-                f"• Mes: {df_mes['mm'].sum():.1f} mm\n"
-                f"• Año: {df_año['mm'].sum():.1f} mm\n"
-                f"--------------------------------\n"
-                f"📋 *ÚLTIMOS REGISTROS:* \n"
-                f"{detalle_tabla}"
-                f"--------------------------------\n"
-                f"🛰️ _Precision Lab v2.6_"
-            )
+st.divider()
+
+# 1. Filtramos solo los que tienen fecha válida para que no explote el strftime
+df_limpio = df[df['fecha'].notnull()].copy()
+
+# 2. Tomamos los últimos 10 registros reales
+ultimos = df_limpio.sort_values('fecha', ascending=False).head(10)
+
+detalle_tabla = ""
+for i, row in ultimos.iterrows():
+    try:
+        # Aquí es donde fallaba: ahora nos aseguramos que sea una fecha válida
+        f_str = row['fecha'].strftime('%d/%m')
+        detalle_tabla += f"📍 {f_str}: {row['mm']:.1f} mm\n"
+    except:
+        continue
+
+# 3. Armamos el mensaje final
+mensaje_wa = (
+    f"🌱 REPORTE AGROGUARDIAN\n"
+    f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
+    f"--------------------------------\n"
+    f"💧 RESUMEN: \n"
+    f"• Mes: {df_mes['mm'].sum():.1f} mm\n"
+    f"• Año: {df_año['mm'].sum():.1f} mm\n"
+    f"--------------------------------\n"
+    f"📋 ÚLTIMOS REGISTROS: \n"
+    f"{detalle_tabla if detalle_tabla else 'Sin datos'}"
+
+
+    f"--------------------------------\n"
+    f"🛰️ Precision Lab v2.6"
+)
             
             import urllib.parse
             mensaje_url = urllib.parse.quote(mensaje_wa)
