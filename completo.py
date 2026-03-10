@@ -361,29 +361,29 @@ import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 st.divider()
 
-    st.markdown("""
-        <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20técnico%20🌿" target="_blank" style="text-decoration:none;">
-            <div style="
-                background-color: #25D366;
-                color: white;
-                padding: 12px;
-                border-radius: 12px;
-                text-align: center;
-                font-weight: bold;
-                font-family: 'Courier New', monospace;
-                font-size: 13px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
-                box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
-                margin-top: 4px;
-            ">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20px">
-                SOPORTE TÉCNICO
-            </div>
-        </a>
-    """, unsafe_allow_html=True)
+st.markdown("""
+    <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20técnico%20🌿" target="_blank" style="text-decoration:none;">
+       <div style="
+          background-color: #25D366;
+          color: white;
+          padding: 12px;
+          border-radius: 12px;
+          text-align: center;
+          font-weight: bold;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
+          margin-top: 4px;
+       ">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20px">
+          SOPORTE TÉCNICO
+       </div>
+    </a>
+""", unsafe_allow_html=True)
 
 # ===============================
 # UBICACIÓN: GPS AUTOMÁTICO + MANUAL
