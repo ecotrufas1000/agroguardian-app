@@ -978,7 +978,7 @@ elif menu == "🔍 Diagnóstico IA":
         if img_upload is not None:
             st.success("Imagen subida correctamente")
 
-    foto_final = img_camera if img_camera else img_upload
+    foto_final = img_camera or img_upload
 
     if foto_final:
 
