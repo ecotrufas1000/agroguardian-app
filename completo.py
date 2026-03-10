@@ -673,22 +673,16 @@ elif menu == "🌧️ Pluviómetro":
 
                 if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
                     try:
-                        ids_originales = set(df_editable['id'].dropna().tolist())
-                        ids_actuales = set(edited_df['id'].dropna().tolist())
-                        ids_a_borrar = list(ids_originales - ids_actuales)
-                        for id_b in ids_a_borrar:
-                            supabase.table("registros_lluvia").delete().eq("id", id_b).execute()
                         for index, row in edited_df.iterrows():
                             if pd.notnull(row['id']):
                                 supabase.table("registros_lluvia").update({
-                                    "mm": row['mm'],
-                                    "lote": row['lote']
-                                }).eq("id", row['id']).execute()
-                        st.success(f"✅ Guardado — {len(ids_a_borrar)} fila(s) eliminada(s)")
+                                    "mm": float(row['mm']),
+                                    "lote": str(row['lote'])
+                                }).eq("id", int(row['id'])).execute()
+                        st.success("✅ Cambios guardados")
                         st.rerun()
                     except Exception as e:
                         st.error(f"Error al guardar: {e}")
-
                 # --- BORRADOR DE FILAS DEDICADO ---
                 st.divider()
                 st.markdown("🗑️ **Borrar registro específico**")
