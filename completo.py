@@ -976,7 +976,7 @@ elif menu == "🔍 Diagnóstico IA":
     foto_final = img_camera if img_camera else img_upload
 
     if foto_final:
-        st.image(foto_final, caption="Muestra seleccionada", width='stretch')
+        st.image(foto_final, caption="Muestra seleccionada", use_container_width=True)
         if st.button("ANALIZAR", type="primary"):
             with st.status("Analizando...", expanded=True) as status:
                 try:
