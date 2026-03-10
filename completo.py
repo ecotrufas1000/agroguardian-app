@@ -697,36 +697,7 @@ elif menu == "🌧️ Pluviómetro":
                         st.rerun()
                     except Exception as e:
                         st.error(f"Error al guardar: {e}")
-                # --- BORRADOR DE FILAS DEDICADO ---
-                st.divider()
-                st.markdown("🗑️ **Borrar registro específico**")
-
-                opciones = {}
-                for _, row in df_editable.iterrows():
-                    try:
-                        fecha_str = pd.Timestamp(row['fecha']).tz_convert(None).strftime('%d/%m/%Y')
-                    except:
-                        try:
-                            fecha_str = pd.Timestamp(row['fecha']).tz_localize(None).strftime('%d/%m/%Y')
-                        except:
-                            fecha_str = "Sin fecha"
-                    key = f"{fecha_str} — {row['lote']} — {row['mm']:.1f} mm"
-                    opciones[key] = row['id']
-
-                fila_seleccionada = st.selectbox(
-                    "Seleccioná el registro a eliminar:",
-                    options=list(opciones.keys()),
-                    key="selector_borrar"
-                )
-                if st.button("🗑️ ELIMINAR ESTE REGISTRO", type="primary", use_container_width=True):
-                    try:
-                        id_borrar = opciones[fila_seleccionada]
-                        supabase.table("registros_lluvia").delete().eq("id", id_borrar).execute()
-                        st.success("✅ Registro eliminado correctamente")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error al eliminar: {e}")
-
+                
             # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---
             st.divider()
             st.markdown("### 🛰️ Registro Automático desde Satélite")
