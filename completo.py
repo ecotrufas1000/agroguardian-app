@@ -546,20 +546,7 @@ elif menu == "🌧️ Pluviómetro":
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-            st.markdown("""
-                <style>
-                div.stDownloadButton > button {
-                    background-color: #00b4d8 !important;
-                    color: #000000 !important;
-                    border: none !important;
-                    border-radius: 8px !important;
-                    padding: 10px 20px !important;
-                    font-weight: bold !important;
-                    width: 100% !important;
-                    font-size: 14px !important;
-                }
-                </style>
-            """, unsafe_allow_html=True)
+            
 
             st.download_button(
                 label="📥 DESCARGAR EXCEL",
