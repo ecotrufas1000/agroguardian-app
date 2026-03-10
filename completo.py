@@ -982,7 +982,7 @@ elif menu == "🔍 Diagnóstico IA":
         type=['jpg', 'jpeg', 'png'],
         accept_multiple_files=False,
         key="uploader_galeria"
-        )
+    )
 
     # Mostrar imagen y botón analizar
     if st.session_state.foto_bytes:
