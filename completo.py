@@ -370,32 +370,20 @@ with st.sidebar:
 
     st.divider()
 
-# ===============================
-# UBICACIÓN: GPS AUTOMÁTICO + MANUAL
-# ===============================
-# ==========================================================
-# GPS automático con fallback a ubicación manual
-# ==========================================================
-# SECCIÓN GPS: Pon esto ANTES de la lógica del Menú
-# ==========================================================
-# ==========================================================
-# SECCIÓN GPS: Prioridad Selección Manual
-# ==========================================================
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
-st.divider()
 
-# ===============================
-# UBICACIÓN: GPS AUTOMÁTICO + MANUAL
-# 1. Inicializar variables de estado si no existen
+# ==========================================================
+# 1. Inicializar variables de estado (corre siempre, todas las secciones)
+# ==========================================================
 if 'lat' not in st.session_state:
     st.session_state.lat = -34.59
 if 'lon' not in st.session_state:
     st.session_state.lon = -58.50
 if 'modo_gps' not in st.session_state:
-    st.session_state.modo_gps = True  # Por defecto empieza en automático
+    st.session_state.modo_gps = True
 
-# 2. Intentar obtener ubicación automática (siempre corre de fondo)
+# 2. Obtener ubicación automática (corre siempre en silencio)
 loc = streamlit_js_eval(js_expressions="""
 new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
@@ -414,51 +402,18 @@ if loc and isinstance(loc, dict) and 'latitude' in loc:
 else:
     lat_auto, lon_auto = None, None
 
-# 4. LÓGICA DE DECISIÓN: ¿Qué coordenadas usamos?
+# 4. Lógica de decisión de coordenadas (corre siempre en silencio)
 if st.session_state.modo_gps and gps_disponible:
-    # Si el modo GPS está activo y hay señal, mandan los satélites
     st.session_state.lat = lat_auto
     st.session_state.lon = lon_auto
-    gps_color, man_color = "#00ffc3", "#222" # Verde el GPS
+    gps_color, man_color = "#00ffc3", "#222"
     g_text, m_text = "#000", "#666"
 else:
-    # Si apagamos el GPS o no hay señal, manda lo manual guardado en lat/lon
-    gps_color, man_color = "#222", "#00ffc3" # Verde lo Manual
+    gps_color, man_color = "#222", "#00ffc3"
     g_text, m_text = "#666", "#000"
 
-# 5. RENDER VISUAL DE PASTILLAS
-st.markdown(f"""
-<div style='display:flex; gap:12px; margin-bottom:12px;'>
-    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{gps_color}; color:{g_text}; flex:1; text-align:center;'>
-        🛰️ GPS Automático<br>{"Activo" if gps_disponible else "Buscando..."}
-    </div>
-    <div style='padding:10px; border-radius:14px; font-weight:bold; background:{man_color}; color:{m_text}; flex:1; text-align:center;'>
-        📍 Ubicación Manual<br>{st.session_state.lat:.4f} | {st.session_state.lon:.4f}
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# 6. EXPANDER PARA CONTROL TOTAL
-with st.expander("⚙️ Configurar Ubicación del Lote"):
-    c1, c2 = st.columns(2)
-    new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f")
-    new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f")
-    
-    col_btn1, col_btn2 = st.columns(2)
-    
-    if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
-        st.session_state.modo_gps = False  # Apagamos el GPS automático
-        st.session_state.lat = new_lat
-        st.session_state.lon = new_lon
-        st.success("Prioridad cambiada a Manual")
-        st.rerun()
-        
-    if col_btn2.button("🛰️ VOLVER A GPS AUTO", use_container_width=True):
-        st.session_state.modo_gps = True   # Volvemos a encender el GPS
-        st.rerun()
-
-st.divider()
-# 5. LÓGICA DE DATOS GLOBAL
+# ==========================================================
+# 5. DATOS GLOBALES (corre siempre, todas las secciones)
 # ==========================================================
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
@@ -467,38 +422,70 @@ clima = obtener_clima_completo(LAT, LON)
 if clima:
     st.session_state.clima_data = clima
 
-
+# ==========================================================
+# MENÚ: MONITOREO TOTAL
+# ==========================================================
 if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control")
-    
+
+    # --- PASTILLAS GPS (solo en esta sección) ---
+    st.markdown(f"""
+    <div style='display:flex; gap:12px; margin-bottom:12px;'>
+        <div style='padding:10px; border-radius:14px; font-weight:bold; background:{gps_color}; color:{g_text}; flex:1; text-align:center;'>
+            🛰️ GPS Automático<br>{"Activo" if gps_disponible else "Buscando..."}
+        </div>
+        <div style='padding:10px; border-radius:14px; font-weight:bold; background:{man_color}; color:{m_text}; flex:1; text-align:center;'>
+            📍 Ubicación Manual<br>{st.session_state.lat:.4f} | {st.session_state.lon:.4f}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.expander("⚙️ Configurar Ubicación del Lote"):
+        c1, c2 = st.columns(2)
+        new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f")
+        new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f")
+
+        col_btn1, col_btn2 = st.columns(2)
+
+        if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
+            st.session_state.modo_gps = False
+            st.session_state.lat = new_lat
+            st.session_state.lon = new_lon
+            st.success("Prioridad cambiada a Manual")
+            st.rerun()
+
+        if col_btn2.button("🛰️ VOLVER A GPS AUTO", use_container_width=True):
+            st.session_state.modo_gps = True
+            st.rerun()
+
+    st.divider()
+
+    # --- MÉTRICAS CLIMA ---
     if clima:
         col1, col2, col3, col4, col5 = st.columns(5)
         with col1: st.metric("Temperatura", f"{clima['temp']:.1f} °C")
         with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
         with col3: st.metric("Punto de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
-        with col4: st.metric("Presion", f"{clima['presion']} hPa") 
-        st.divider() # <--- Estaba mal indentado antes
+        with col5: st.metric("Presion", f"{clima['presion']} hPa")
+        st.divider()
         c_a1, c_a2 = st.columns(2)
-        
+
         with c_a1:
             delta_t = round(clima['temp'] - clima['rocio'], 1)
             st.markdown(f"**Delta T (Pulverización):** `{delta_t}`")
-            if 2 <= delta_t <= 8: 
+            if 2 <= delta_t <= 8:
                 st.success("✅ CONDICIONES ÓPTIMAS")
-            else: 
+            else:
                 st.warning("⚠️ PRECAUCIÓN: Delta T fuera de rango")
-        
+
         with c_a2:
-            # Ahora usamos la función que definimos arriba
             dir_texto = grados_a_direccion(clima['v_dir'])
             st.markdown(f"**Dirección:** `{dir_texto}` ({clima['v_dir']}°)")
-            
-            # Mantenemos tus flechas visuales
             if 315 <= clima['v_dir'] or clima['v_dir'] <= 45: st.info("⬆️ Viento Norte")
             elif 135 <= clima['v_dir'] <= 225: st.info("⬇️ Viento Sur")
             else: st.info("➡️ Viento Lateral")
-            
+
     else:
         st.info("📍 Vinculá el GPS para activar el monitoreo en tiempo real.")
 elif menu == "🌧️ Pluviómetro":
