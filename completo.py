@@ -370,68 +370,56 @@ if menu == "📊 Monitoreo Total":
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
     st.markdown("""
-    <style>
+<style>
 
-    /* MÉTRICAS */
-    [data-testid="stMetric"] {
-        background-color: #0b3d2e;
-        border-radius: 12px;
-        padding: 15px;
-        border: 1px solid #00ff9c30;
-    }
+/* TARJETAS MÉTRICAS (igual que Monitoreo) */
+[data-testid="stMetric"] {
+    background-color: #0e1117;
+    border: 1px solid #00ffc3;
+    border-radius: 12px;
+    padding: 15px;
+}
 
-    /* texto métricas */
-    [data-testid="stMetricLabel"] {
-        color: #00ff9c !important;
-    }
+/* TEXTO MÉTRICAS */
+[data-testid="stMetricLabel"] {
+    color: #00ffc3 !important;
+}
 
-    [data-testid="stMetricValue"] {
-        color: #00ff9c !important;
-        font-weight: bold;
-    }
+[data-testid="stMetricValue"] {
+    color: #00ffc3 !important;
+    font-weight: bold;
+}
 
-    /* BOTONES */
-    .stButton > button {
-        background-color: #0b3d2e !important;
-        color: #00ff9c !important;
-        border: 1px solid #00ff9c !important;
-        border-radius: 10px !important;
-        font-weight: bold;
-    }
+/* BOTONES */
+.stButton > button {
+    background-color: #0e1117 !important;
+    color: #00ffc3 !important;
+    border: 1px solid #00ffc3 !important;
+    border-radius: 10px !important;
+    font-weight: bold;
+}
 
-    .stButton > button:hover {
-        background-color: #00ff9c !important;
-        color: #0b3d2e !important;
-    }
+.stButton > button:hover {
+    background-color: #00ffc3 !important;
+    color: #0e1117 !important;
+}
 
-    /* DOWNLOAD BUTTON */
-    .stDownloadButton > button {
-        background-color: #0b3d2e !important;
-        color: #00ff9c !important;
-        border: 1px solid #00ff9c !important;
-        border-radius: 10px !important;
-        font-weight: bold;
-    }
+/* BOTÓN DESCARGA */
+.stDownloadButton > button {
+    background-color: #0e1117 !important;
+    color: #00ffc3 !important;
+    border: 1px solid #00ffc3 !important;
+    border-radius: 10px !important;
+    font-weight: bold;
+}
 
-    .stDownloadButton > button:hover {
-        background-color: #00ff9c !important;
-        color: #0b3d2e !important;
-    }
+.stDownloadButton > button:hover {
+    background-color: #00ffc3 !important;
+    color: #0e1117 !important;
+}
 
-    /* SELECTBOX */
-    .stSelectbox div[data-baseweb="select"] {
-        background-color: #0b3d2e;
-        border-radius: 8px;
-    }
-
-    /* INFO BOX */
-    .stAlert {
-        background-color: #0b3d2e;
-        color: #00ff9c;
-    }
-
-    </style>
-    """, unsafe_allow_html=True)
+</style>
+""", unsafe_allow_html=True)
     try:
         res = supabase.table("registros_lluvia").select("*").execute()
 
