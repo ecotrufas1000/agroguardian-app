@@ -346,7 +346,7 @@ with st.sidebar:
     )
 
     st.markdown("""
-        <a href="https://wa.me/5491154074144?text= 🔴%Hola%20AgroGuardian%2C%20necesito%20soporte%20técnico%20" target="_blank" style="text-decoration:none;">
+        <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20t%C3%A9cnico%20%F0%9F%8C%BF>
             <div style="
                 background-color: #25D366;
                 color: white;
@@ -362,7 +362,6 @@ with st.sidebar:
                 gap: 8px;
                 box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
                 margin-top: 8px;
-            ">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20px">
                 SOPORTE TÉCNICO
             </div>
