@@ -640,43 +640,41 @@ elif menu == "🌧️ Pluviómetro":
                 }
             )
 
-            col1, col2 = st.columns(2)
+            if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
+                try:
+                    for _, row in edited_df.iterrows():
+                        if pd.notnull(row['id']):
+                            supabase.table("registros_lluvia").update({
+                                "mm": float(row['mm']),
+                                "lote": str(row['lote'])
+                            }).eq("id", int(row['id'])).execute()
+                    st.success("✅ Cambios guardados")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
-            with col1:
-                if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
-                    try:
-                        for _, row in edited_df.iterrows():
-                            if pd.notnull(row['id']):
-                                supabase.table("registros_lluvia").update({
-                                    "mm": float(row['mm']),
-                                    "lote": str(row['lote'])
-                                }).eq("id", int(row['id'])).execute()
-                        st.success("✅ Cambios guardados")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+            st.markdown("""
+                <style>
+                div.stDownloadButton > button {
+                    background-color: #ff4b4b !important;
+                    color: white !important;
+                    border: none !important;
+                    border-radius: 8px !important;
+                    padding: 10px 20px !important;
+                    font-weight: bold !important;
+                    width: 100% !important;
+                    font-size: 14px !important;
+                }
+                </style>
+            """, unsafe_allow_html=True)
 
-            with col2:
-                st.markdown("""
-                    <style>
-                    div.stDownloadButton > button {
-                        background-color: #00ffc3 !important;
-                        color: #000000 !important;
-                        border: 2px solid #00ffc3 !important;
-                        border-radius: 8px !important;
-                        padding: 10px 20px !important;
-                        font-weight: bold !important;
-                        width: 100% !important;
-                    }
-                    </style>
-                """, unsafe_allow_html=True)
-
-                st.download_button(
-                    label="📥 DESCARGAR EXCEL",
-                    data=excel_data,
-                    file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
+            st.download_button(
+                label="📥 DESCARGAR EXCEL",
+                data=excel_data,
+                file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                use_container_width=True
+            )
 
             # --- BORRADOR DEDICADO ---
             st.divider()
