@@ -346,7 +346,7 @@ with st.sidebar:
     )
 
     st.markdown("""
-        <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20técnico%" target="_blank" style="text-decoration:none;">
+        <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20técnico" target="_blank" style="text-decoration:none;">
             <div style="                    
                 background-color: #25D366;
                 color: white;
