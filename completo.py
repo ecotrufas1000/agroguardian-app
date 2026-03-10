@@ -6,6 +6,7 @@ import os
 import math
 import datetime
 import pandas as pd
+import io
 import plotly.express as px
 import urllib.parse
 import base64
@@ -21,7 +22,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from datetime import datetime
-import io
+
 
 # ==========================================================
 # PWA / META TAGS
