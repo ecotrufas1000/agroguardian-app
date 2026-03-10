@@ -524,21 +524,12 @@ elif menu == "🌧️ Pluviómetro":
             c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
             c4.metric("📊 Registros", f"{len(df)} eventos")
 
-                       # --- SECCIÓN CORREGIDA PARA WHATSAPP ---
-
             st.divider()
 
-            # Asegurar que fecha sea datetime
-            df['fecha'] = pd.to_datetime(df['fecha'], errors='coerce')
-
-            # 1. Filtramos solo los que tienen fecha válida
+            # --- BOTÓN WHATSAPP ---
             df_limpio = df[df['fecha'].notnull()].copy()
-
-            # 2. Tomamos los últimos 10 registros reales
             ultimos = df_limpio.sort_values('fecha', ascending=False).head(10)
-
             detalle_tabla = ""
-
             for _, row in ultimos.iterrows():
                 try:
                     f_str = row['fecha'].strftime('%d/%m')
@@ -546,7 +537,6 @@ elif menu == "🌧️ Pluviómetro":
                 except:
                     continue
 
-            # 3. Armamos el mensaje final
             mensaje_wa = (
                 f"🌱 REPORTE AGROGUARDIAN\n"
                 f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
@@ -559,7 +549,6 @@ elif menu == "🌧️ Pluviómetro":
                 f"{detalle_tabla if detalle_tabla else 'Sin datos'}\n"
                 f"--------------------------------"
             )
-            
             import urllib.parse
             mensaje_url = urllib.parse.quote(mensaje_wa)
             wa_url = f"https://wa.me/?text={mensaje_url}"
@@ -587,7 +576,7 @@ elif menu == "🌧️ Pluviómetro":
             """, unsafe_allow_html=True)
             st.write("")
             st.divider()
-            
+
             # --- GRÁFICOS ---
             estilo_grafico = dict(
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -616,18 +605,33 @@ elif menu == "🌧️ Pluviómetro":
             st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
 
             st.divider()
-            st.subheader("📂 Base de Datos de Lluvias")
 
-            st.info("💡 Podés editar o eliminar registros directamente desde la tabla.")
+            # --- GENERAR EXCEL (antes de mostrarlo) ---
+            import io
+            df_excel = df.copy().sort_values('fecha', ascending=False)
+            df_excel['fecha'] = df_excel['fecha'].dt.tz_localize(None) if df_excel['fecha'].dt.tz is None else df_excel['fecha'].dt.tz_convert(None)
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df_excel[['fecha', 'lote', 'mm']].to_excel(writer, index=False, sheet_name='Registros_Lluvia')
+                workbook = writer.book
+                worksheet = writer.sheets['Registros_Lluvia']
+                for i, col in enumerate(['fecha', 'lote', 'mm']):
+                    column_len = max(df_excel[col].astype(str).map(len).max(), len(col)) + 2
+                    worksheet.set_column(i, i, column_len)
+            excel_data = output.getvalue()
+
+            # --- TABLA EDITABLE + BOTONES ---
+            st.subheader("📂 Base de Datos de Lluvias")
+            st.info("💡 Editá valores en la tabla. Para eliminar usá el selector de abajo.")
 
             df_editable = df.copy().sort_values('fecha', ascending=False).reset_index(drop=True)
 
             edited_df = st.data_editor(
-                df_editable[['id','fecha','lote','mm']],
+                df_editable[['id', 'fecha', 'lote', 'mm']],
                 key="editor_lluvias",
-                num_rows="dynamic",
+                num_rows="fixed",
                 use_container_width=True,
-                disabled=["id","fecha"],
+                disabled=["id", "fecha"],
                 column_config={
                     "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
                     "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY HH:mm"),
@@ -647,15 +651,12 @@ elif menu == "🌧️ Pluviómetro":
                                     "mm": float(row['mm']),
                                     "lote": str(row['lote'])
                                 }).eq("id", int(row['id'])).execute()
-
                         st.success("✅ Cambios guardados")
                         st.rerun()
-
                     except Exception as e:
                         st.error(f"Error: {e}")
 
             with col2:
-
                 st.markdown("""
                     <style>
                     div.stDownloadButton > button {
@@ -667,23 +668,47 @@ elif menu == "🌧️ Pluviómetro":
                         font-weight: bold !important;
                         width: 100% !important;
                     }
-                    div.stDownloadButton > button:hover,
-                    div.stDownloadButton > button:active,
-                    div.stDownloadButton > button:focus {
-                        background-color: #0e1117 !important;
-                        color: #00ffc3 !important;
-                        border: 2px solid #00ffc3 !important;
-                    }
                     </style>
                 """, unsafe_allow_html=True)
 
                 st.download_button(
-                    label="📥 DESCARGAR PLANILLA EXCEL (.xlsx)",
+                    label="📥 DESCARGAR EXCEL",
                     data=excel_data,
                     file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
-         
+
+            # --- BORRADOR DEDICADO ---
+            st.divider()
+            st.markdown("🗑️ **Borrar registro específico**")
+
+            opciones = {}
+            for _, row in df_editable.iterrows():
+                try:
+                    fecha_str = pd.Timestamp(row['fecha']).tz_convert(None).strftime('%d/%m/%Y')
+                except:
+                    try:
+                        fecha_str = pd.Timestamp(row['fecha']).tz_localize(None).strftime('%d/%m/%Y')
+                    except:
+                        fecha_str = "Sin fecha"
+                key = f"{fecha_str} — {row['lote']} — {row['mm']:.1f} mm"
+                opciones[key] = row['id']
+
+            fila_seleccionada = st.selectbox(
+                "Seleccioná el registro a eliminar:",
+                options=list(opciones.keys()),
+                key="selector_borrar"
+            )
+
+            if st.button("🗑️ ELIMINAR ESTE REGISTRO", type="primary", use_container_width=True):
+                try:
+                    id_borrar = opciones[fila_seleccionada]
+                    supabase.table("registros_lluvia").delete().eq("id", id_borrar).execute()
+                    st.success("✅ Registro eliminado correctamente")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error al eliminar: {e}")
+
             # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---
             st.divider()
             st.markdown("### 🛰️ Registro Automático desde Satélite")
@@ -695,7 +720,6 @@ elif menu == "🌧️ Pluviómetro":
             with col_auto2:
                 if st.button("📡 REGISTRAR HOY", type="primary"):
                     try:
-                        import requests
                         from datetime import date
                         lat_auto = LAT if LAT else -38.29
                         lon_auto = LON if LON else -57.55
@@ -721,7 +745,6 @@ elif menu == "🌧️ Pluviómetro":
 
             if st.button("📅 IMPORTAR ÚLTIMOS 7 DÍAS"):
                 try:
-                    import requests
                     from datetime import date, timedelta
                     lat_auto = LAT if LAT else -38.29
                     lon_auto = LON if LON else -57.55
