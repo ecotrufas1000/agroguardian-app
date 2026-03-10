@@ -694,7 +694,7 @@ elif menu == "🌧️ Pluviómetro":
                 st.markdown("🗑️ **Borrar registro específico**")
 
                 opciones = {
-                    f"{row['fecha'].strftime('%d/%m/%Y')} — {row['lote']} — {row['mm']:.1f} mm": row['id']
+                    f"{pd.to_datetime(row['fecha']).strftime('%d/%m/%Y') if pd.notnull(row['fecha']) else 'Sin fecha'} — {row['lote']} — {row['mm']:.1f} mm": row['id']
                     for _, row in df_editable.iterrows()
                 }
 
