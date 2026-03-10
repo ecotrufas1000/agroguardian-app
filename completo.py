@@ -649,59 +649,50 @@ elif menu == "🌧️ Pluviómetro":
                     file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
-
             # --- GESTIÓN DE REGISTROS ---
-st.divider()
-st.subheader("📂 Gestión de Registros Históricos")
-with st.expander("✏️ Ver y editar registros", expanded=False):
-    st.info("💡 Para borrar: seleccioná la fila tocando el número de fila y luego el ícono 🗑️ que aparece arriba.")
-    df_editable = df.copy().sort_values('fecha', ascending=False)
-    
-    edited_df = st.data_editor(
-        df_editable[['id', 'fecha', 'lote', 'mm']],
-        key="editor_lluvias",
-        num_rows="dynamic",
-        use_container_width=True,
-        disabled=["id", "fecha"],
-        column_config={
-            "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
-            "fecha": st.column_config.DatetimeColumn("Fecha de Registro", format="DD/MM/YYYY HH:mm"),
-            "lote": "Lote/Identificación",
-            "id": None
-        }
-    )
+            st.divider()
+            st.subheader("📂 Gestión de Registros Históricos")
+            with st.expander("✏️ Ver y editar registros", expanded=False):
+                st.info("💡 Para borrar: seleccioná la fila tocando el número de fila y luego el ícono 🗑️ que aparece arriba.")
+                df_editable = df.copy().sort_values('fecha', ascending=False)
+                
+                edited_df = st.data_editor(
+                    df_editable[['id', 'fecha', 'lote', 'mm']],
+                    key="editor_lluvias",
+                    num_rows="dynamic",
+                    use_container_width=True,
+                    disabled=["id", "fecha"],
+                    column_config={
+                        "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
+                        "fecha": st.column_config.DatetimeColumn("Fecha de Registro", format="DD/MM/YYYY HH:mm"),
+                        "lote": "Lote/Identificación",
+                        "id": None
+                    }
+                )
+                if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
+                    try:
+                        ids_originales = set(df_editable['id'].dropna().tolist())
+                        ids_actuales = set(edited_df['id'].dropna().tolist())
+                        ids_a_borrar = list(ids_originales - ids_actuales)
+                        for id_b in ids_a_borrar:
+                            supabase.table("registros_lluvia").delete().eq("id", id_b).execute()
+                        for index, row in edited_df.iterrows():
+                            if pd.notnull(row['id']):
+                                supabase.table("registros_lluvia").update({
+                                    "mm": row['mm'],
+                                    "lote": row['lote']
+                                }).eq("id", row['id']).execute()
+                        st.success(f"✅ Guardado — {len(ids_a_borrar)} fila(s) eliminada(s)")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error al guardar: {e}")
 
-    # ✅ GUARDAR Y BORRAR dentro del mismo expander
-    if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
-        try:
-            ids_originales = set(df_editable['id'].dropna().tolist())
-            ids_actuales = set(edited_df['id'].dropna().tolist())
-            ids_a_borrar = list(ids_originales - ids_actuales)
-            
-            # Borrar filas eliminadas
-            for id_b in ids_a_borrar:
-                supabase.table("registros_lluvia").delete().eq("id", id_b).execute()
-            
-            # Actualizar filas editadas
-            for index, row in edited_df.iterrows():
-                if pd.notnull(row['id']):
-                    supabase.table("registros_lluvia").update({
-                        "mm": row['mm'],
-                        "lote": row['lote']
-                    }).eq("id", row['id']).execute()
-            
-            st.success(f"✅ Guardado — {len(ids_a_borrar)} fila(s) eliminada(s)")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Error al guardar: {e}")
-            # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---
+            # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---   ← FUERA del expander, mismo nivel que st.divider()
             st.divider()
             st.markdown("### 🛰️ Registro Automático desde Satélite")
             col_auto1, col_auto2 = st.columns([2, 1])
-
             with col_auto1:
                 st.caption("Obtiene precipitaciones desde Open-Meteo usando tu ubicación GPS. Sin costo, sin límites.")
-
             with col_auto2:
                 if st.button("📡 REGISTRAR HOY", type="primary"):
                     try:
@@ -728,7 +719,7 @@ with st.expander("✏️ Ver y editar registros", expanded=False):
                         st.rerun()
                     except Exception as e:
                         st.error(f"Error: {e}")
-
+            # --- GESTIÓN DE REGISTROS ---
             if st.button("📅 IMPORTAR ÚLTIMOS 7 DÍAS"):
                 try:
                     import requests
