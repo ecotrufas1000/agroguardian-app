@@ -617,25 +617,61 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
-            # --- PLANILLA EXCEL ---
-            st.subheader("📂 Base de Datos Histórica")
-            with st.expander("🔍 VER PLANILLA Y EXPORTAR"):
-                df_display = df.copy()
-                df_display['fecha'] = df_display['fecha'].dt.tz_localize(None)
-                df_display = df_display.sort_values('fecha', ascending=False)
-                st.dataframe(df_display[['fecha', 'lote', 'mm']], use_container_width=True)
+            st.divider()
+st.subheader("📂 Base de Datos de Lluvias")
 
-                import io
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df_display.to_excel(writer, index=False, sheet_name='Registros_Lluvia')
-                    workbook  = writer.book
-                    worksheet = writer.sheets['Registros_Lluvia']
-                    for i, col in enumerate(df_display.columns):
-                        column_len = max(df_display[col].astype(str).map(len).max(), len(col)) + 2
-                        worksheet.set_column(i, i, column_len)
-                excel_data = output.getvalue()
+st.info("💡 Podés editar o eliminar registros directamente desde la tabla.")
 
+df_editable = df.copy().sort_values('fecha', ascending=False).reset_index(drop=True)
+
+edited_df = st.data_editor(
+    df_editable[['id','fecha','lote','mm']],
+    key="editor_lluvias",
+    num_rows="dynamic",
+    use_container_width=True,
+    disabled=["id","fecha"],
+    column_config={
+        "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
+        "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY HH:mm"),
+        "lote": "Lote",
+        "id": None
+    }
+)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
+        try:
+            for _, row in edited_df.iterrows():
+                if pd.notnull(row['id']):
+                    supabase.table("registros_lluvia").update({
+                        "mm": float(row['mm']),
+                        "lote": str(row['lote'])
+                    }).eq("id", int(row['id'])).execute()
+
+            st.success("✅ Cambios guardados")
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+with col2:
+
+    import io
+
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        edited_df.to_excel(writer, index=False)
+
+    st.download_button(
+        "📥 EXPORTAR EXCEL",
+        data=output.getvalue(),
+        file_name=f"Lluvias_{hoy.strftime('%Y-%m-%d')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
                 st.markdown("""
                     <style>
                     div.stDownloadButton > button {
@@ -663,41 +699,7 @@ elif menu == "🌧️ Pluviómetro":
                     file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
-
-            # --- GESTIÓN DE REGISTROS ---
-            st.divider()
-            st.subheader("📂 Gestión de Registros Históricos")
-            with st.expander("✏️ Ver y editar registros", expanded=False):
-                st.info("💡 Editá los valores en la tabla o usá el selector para borrar filas.")
-                df_editable = df.copy().sort_values('fecha', ascending=False).reset_index(drop=True)
-
-                edited_df = st.data_editor(
-                    df_editable[['id', 'fecha', 'lote', 'mm']],
-                    key="editor_lluvias",
-                    num_rows="dynamic",
-                    use_container_width=True,
-                    disabled=["id", "fecha"],
-                    column_config={
-                        "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
-                        "fecha": st.column_config.DatetimeColumn("Fecha de Registro", format="DD/MM/YYYY HH:mm"),
-                        "lote": "Lote/Identificación",
-                        "id": None
-                    }
-                )
-
-                if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
-                    try:
-                        for index, row in edited_df.iterrows():
-                            if pd.notnull(row['id']):
-                                supabase.table("registros_lluvia").update({
-                                    "mm": float(row['mm']),
-                                    "lote": str(row['lote'])
-                                }).eq("id", int(row['id'])).execute()
-                        st.success("✅ Cambios guardados")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error al guardar: {e}")
-                
+         
             # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---
             st.divider()
             st.markdown("### 🛰️ Registro Automático desde Satélite")
