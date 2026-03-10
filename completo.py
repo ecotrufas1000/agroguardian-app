@@ -968,27 +968,32 @@ elif menu == "🔍 Diagnóstico IA":
         st.session_state.resultado_analisis = None
 
     tab_cam, tab_gal = st.tabs(["📸 Cámara", "📁 Galería"])
+
     with tab_cam:
         img_camera = st.camera_input("Capturar síntoma")
+
     with tab_gal:
         img_upload = st.file_uploader("Subir foto", type=['jpg','jpeg','png'])
-        if img_upload:
+
+        if img_upload is not None:
             st.success("Imagen subida correctamente")
 
-foto_final = img_camera if img_camera else img_upload
+    foto_final = img_camera if img_camera else img_upload
 
-if foto_final:
-    st.image(foto_final, caption="Muestra seleccionada", use_container_width=True)
+    if foto_final:
 
-    if st.button("ANALIZAR", type="primary"):
-        with st.status("Analizando...", expanded=True) as status:
-            try:
-                from PIL import Image
+        st.image(foto_final, caption="Muestra seleccionada", use_container_width=True)
 
-                imagen_pil = Image.open(foto_final)
+        if st.button("ANALIZAR", type="primary"):
 
-                prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
+            with st.status("Analizando...", expanded=True) as status:
 
+                try:
+                    from PIL import Image
+
+                    imagen_pil = Image.open(foto_final)
+
+                    prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=[imagen_pil, prompt]
