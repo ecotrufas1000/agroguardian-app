@@ -978,7 +978,7 @@ elif menu == "🔍 Diagnóstico IA":
     # Galería abajo, fuera de tabs
     st.markdown("**📁 O subí una foto desde galería:**")
     img_upload = st.file_uploader(
-        Seleccionar imagen",
+        "Seleccionar imagen",
          type=['jpg', 'jpeg', 'png'],
          key="uploader_galeria"
     )
