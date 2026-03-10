@@ -656,23 +656,7 @@ elif menu == "🌧️ Pluviómetro":
 
             with col2:
 
-                import io
-
-                output = io.BytesIO()
-
-                df_export = edited_df.copy()
-                df_export['fecha'] = df_export['fecha'].dt.tz_localize(None)
-
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df_export.to_excel(writer, index=False)
-                excel_data = output.getvalue()
-                st.download_button(
-                    "📥 EXPORTAR EXCEL",
-                    data=output.getvalue(),
-                    file_name=f"Lluvias_{hoy.strftime('%Y-%m-%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+                
                 st.markdown("""
                     <style>
                     div.stDownloadButton > button {
