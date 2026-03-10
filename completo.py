@@ -656,34 +656,33 @@ elif menu == "🌧️ Pluviómetro":
 
             with col2:
 
-                
-                st.markdown("""
-                    <style>
-                    div.stDownloadButton > button {
-                        background-color: #00ffc3 !important;
-                        color: #000000 !important;
-                        border: 2px solid #00ffc3 !important;
-                        border-radius: 8px !important;
-                        padding: 10px 20px !important;
-                        font-weight: bold !important;
-                        width: 100% !important;
-                    }
-                    div.stDownloadButton > button:hover,
-                    div.stDownloadButton > button:active,
-                    div.stDownloadButton > button:focus {
-                        background-color: #0e1117 !important;
-                        color: #00ffc3 !important;
-                        border: 2px solid #00ffc3 !important;
-                    }
-                    </style>
-                """, unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+        div.stDownloadButton > button {
+            background-color: #00ffc3 !important;
+            color: #000000 !important;
+            border: 2px solid #00ffc3 !important;
+            border-radius: 8px !important;
+            padding: 10px 20px !important;
+            font-weight: bold !important;
+            width: 100% !important;
+        }
+        div.stDownloadButton > button:hover,
+        div.stDownloadButton > button:active,
+        div.stDownloadButton > button:focus {
+            background-color: #0e1117 !important;
+            color: #00ffc3 !important;
+            border: 2px solid #00ffc3 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-                st.download_button(
-                    label="📥 DESCARGAR PLANILLA EXCEL (.xlsx)",
-                    data=excel_data,
-                    file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
+    st.download_button(
+        label="📥 DESCARGAR PLANILLA EXCEL (.xlsx)",
+        data=excel_data,
+        file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
          
             # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---
             st.divider()
