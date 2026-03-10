@@ -970,27 +970,17 @@ elif menu == "🔍 Diagnóstico IA":
     if "foto_bytes" not in st.session_state:
         st.session_state.foto_bytes = None
 
-    # Cámara arriba
+    # Cámara (funciona en móvil y desktop)
     img_camera = st.camera_input("📸 Capturar síntoma")
     if img_camera is not None:
         st.session_state.foto_bytes = img_camera.read()
 
-    # Galería abajo, fuera de tabs
-    st.markdown("**📁 O subí una foto desde galería:**")
-    img_upload = st.file_uploader(
-        "Seleccionar imagen",
-         type=['jpg', 'jpeg', 'png'],
-         key="uploader_galeria"
-    )
-
+    # Galería solo para desktop
+    st.markdown("**💻 Desde computadora podés subir una foto:**")
+    img_upload = st.file_uploader("Seleccionar imagen", type=['jpg', 'jpeg', 'png'], key="uploader_galeria")
     if img_upload is not None:
-        st.write("Nombre:", img_upload.name)
-        st.write("Tamaño:", img_upload.size, "bytes")
         st.session_state.foto_bytes = img_upload.read()
-    else:
-        st.warning("Esperando imagen...")
 
-    # Mostrar imagen y botón analizar
     if st.session_state.foto_bytes:
         from PIL import Image
         import io
