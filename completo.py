@@ -643,7 +643,7 @@ elif menu == "🌧️ Pluviómetro":
             st.markdown("""
                 <style>
                 div.stDownloadButton > button {
-                    background-color:  #888 !important;
+                    background-color:  #00b4d8 !important;
                     color: white:#000000 !important;
                     border: none !important;
                     border-radius: 8px !important;
