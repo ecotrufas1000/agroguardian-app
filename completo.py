@@ -665,7 +665,7 @@ elif menu == "🌧️ Pluviómetro":
 
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_export.to_excel(writer, index=False)
-
+                excel_data = output.getvalue()
                 st.download_button(
                     "📥 EXPORTAR EXCEL",
                     data=output.getvalue(),
