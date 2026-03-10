@@ -962,52 +962,42 @@ elif menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
 
     if client is None:
-        st.error("🚨 La IA no está configurada correctamente. Revisa la conexión con Google GenAI.")
+        st.error("🚨 La IA no está configurada correctamente.")
         st.stop()
 
     if "resultado_analisis" not in st.session_state:
         st.session_state.resultado_analisis = None
+    if "foto_bytes" not in st.session_state:
+        st.session_state.foto_bytes = None
 
-    tab_cam, tab_gal = st.tabs(["📸 Cámara", "📁 Galería"])
+    # Cámara arriba
+    img_camera = st.camera_input("📸 Capturar síntoma")
+    if img_camera is not None:
+        st.session_state.foto_bytes = img_camera.read()
 
-    with tab_cam:
-        img_camera = st.camera_input("Capturar síntoma")
+    # Galería abajo, fuera de tabs
+    st.markdown("**📁 O subí una foto desde galería:**")
+    img_upload = st.file_uploader("Seleccionar imagen", type=['jpg', 'jpeg', 'png'], label_visibility="collapsed")
+    if img_upload is not None:
+        st.session_state.foto_bytes = img_upload.read()
 
-    with tab_gal:
-        img_upload = st.file_uploader("Subir foto", type=['jpg', 'jpeg', 'png'])
-        st.write("Upload detectado:", img_upload is not None)  # DEBUG
+    # Mostrar imagen y botón analizar
+    if st.session_state.foto_bytes:
+        from PIL import Image
+        import io
+        imagen_pil = Image.open(io.BytesIO(st.session_state.foto_bytes))
+        st.image(imagen_pil, caption="Muestra seleccionada", use_container_width=True)
 
-        if img_upload is not None:
-            st.success("Imagen subida correctamente")
-
-    foto_final = img_camera or img_upload
-
-    if foto_final:
-
-        st.image(foto_final, caption="Muestra seleccionada", use_container_width=True)
-
-        if st.button("ANALIZAR", type="primary"):
-
+        if st.button("🔬 ANALIZAR", type="primary", use_container_width=True):
             with st.status("Analizando...", expanded=True) as status:
-
                 try:
-                    from PIL import Image
-
-                    foto_final.seek(0)
-                    imagen_pil = Image.open(io.BytesIO(foto_final.read()))
-
                     prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
-
                     response = client.models.generate_content(
                         model="gemini-2.5-flash",
                         contents=[imagen_pil, prompt]
                     )
-
-                    texto = response.text
-                    st.session_state.resultado_analisis = texto
-
+                    st.session_state.resultado_analisis = response.text
                     status.update(label="✅ Análisis completo", state="complete")
-
                 except Exception as e:
                     st.error(f"Error en el análisis: {e}")
                     status.update(label="❌ Error", state="error")
@@ -1017,12 +1007,11 @@ elif menu == "🔍 Diagnóstico IA":
         st.markdown(st.session_state.resultado_analisis)
         from datetime import datetime
         fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M")
-        nombre_archivo = f"diagnostico_agroguardian_{fecha_archivo}.pdf"
-        nombre_img = foto_final.name if foto_final and hasattr(foto_final, 'name') else "imagen"
-        pdf_buffer = generar_pdf(st.session_state.resultado_analisis, nombre_imagen=nombre_img)
-        st.download_button(label="📄 Descargar Informe PDF", data=pdf_buffer, file_name=nombre_archivo, mime="application/pdf")
+        pdf_buffer = generar_pdf(st.session_state.resultado_analisis, nombre_imagen="imagen")
+        st.download_button(label="📄 Descargar Informe PDF", data=pdf_buffer, file_name=f"diagnostico_{fecha_archivo}.pdf", mime="application/pdf")
 
     st.divider()
     if st.button("🔄 REINICIAR"):
         st.session_state.resultado_analisis = None
+        st.session_state.foto_bytes = None
         st.rerun()
