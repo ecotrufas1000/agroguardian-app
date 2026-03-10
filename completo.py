@@ -994,19 +994,20 @@ elif menu == "🔍 Diagnóstico IA":
                     imagen_pil = Image.open(foto_final)
 
                     prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=[imagen_pil, prompt]
-                )
 
-                texto = response.text
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=[imagen_pil, prompt]
+                    )
 
-                st.session_state.resultado_analisis = texto
-                status.update(label="✅ Análisis Completo", state="complete")
+                    texto = response.text
+                    st.session_state.resultado_analisis = texto
 
-            except Exception as e:
-                st.error(f"Error en el análisis: {e}")
-                status.update(label="❌ Error", state="error")
+                    status.update(label="✅ Análisis completo", state="complete")
+
+                except Exception as e:
+                    st.error(f"Error en el análisis: {e}")
+                    status.update(label="❌ Error", state="error")
 
     if st.session_state.resultado_analisis:
         st.markdown("### 📋 Resultado del Análisis")
