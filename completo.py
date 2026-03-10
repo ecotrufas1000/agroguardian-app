@@ -680,7 +680,7 @@ elif menu == "🌧️ Pluviómetro":
 
             # --- BORRADOR DEDICADO ---
             st.divider()
-            st.markdown("🗑️ **Borrar registro específico**")
+            st.markdown(#"🗑️ **Borrar registro específico**")
 
             opciones = {}
             for _, row in df_editable.iterrows():
