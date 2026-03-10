@@ -660,8 +660,11 @@ elif menu == "🌧️ Pluviómetro":
 
                 output = io.BytesIO()
 
+                df_export = edited_df.copy()
+                df_export['fecha'] = df_export['fecha'].dt.tz_localize(None)
+
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    edited_df.to_excel(writer, index=False)
+                    df_export.to_excel(writer, index=False)
 
                 st.download_button(
                     "📥 EXPORTAR EXCEL",
