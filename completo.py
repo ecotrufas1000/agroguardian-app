@@ -991,7 +991,8 @@ elif menu == "🔍 Diagnóstico IA":
                 try:
                     from PIL import Image
 
-                    imagen_pil = Image.open(foto_final)
+                    foto_final.seek(0)
+                    imagen_pil = Image.open(io.BytesIO(foto_final.read()))
 
                     prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
 
