@@ -978,11 +978,17 @@ elif menu == "🔍 Diagnóstico IA":
     # Galería abajo, fuera de tabs
     st.markdown("**📁 O subí una foto desde galería:**")
     img_upload = st.file_uploader(
-        "Seleccionar imagen", 
-        type=['jpg', 'jpeg', 'png'],
-        accept_multiple_files=False,
-        key="uploader_galeria"
+        Seleccionar imagen",
+         type=['jpg', 'jpeg', 'png'],
+         key="uploader_galeria"
     )
+
+    if img_upload is not None:
+        st.write("Nombre:", img_upload.name)
+        st.write("Tamaño:", img_upload.size, "bytes")
+        st.session_state.foto_bytes = img_upload.read()
+    else:
+        st.warning("Esperando imagen...")
 
     # Mostrar imagen y botón analizar
     if st.session_state.foto_bytes:
