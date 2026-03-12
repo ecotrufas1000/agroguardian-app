@@ -340,8 +340,8 @@ if st.session_state.modo_gps:
 LAT = st.session_state.lat
 LON = st.session_state.lon
 
-st.write("LAT actual:", LAT)
-st.write("LON actual:", LON)
+#st.write("LAT actual:", LAT)
+#st.write("LON actual:", LON)
 
 
 # ==========================
@@ -349,7 +349,7 @@ st.write("LON actual:", LON)
 # ==========================
 clima = obtener_clima_completo(LAT, LON)
 
-st.write("CLIMA:", clima)
+#st.write("CLIMA:", clima)
 # Colores de pastillas
 if st.session_state.modo_gps and gps_disponible:
     gps_color, man_color = "#00ffc3", "#222"
