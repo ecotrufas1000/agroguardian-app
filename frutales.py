@@ -22,8 +22,22 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from datetime import datetime
+import streamlit as st
+from inicializacion_supabase import get_supabase_client
 
+# -----------------------------
+# Conexión a Supabase
+# -----------------------------
+@st.cache_resource
+def conectar():
+    return get_supabase_client()
 
+supabase = conectar()
+
+if supabase is None:
+    st.warning("⚠️ Error de conexión con Supabase.")
+else:
+    st.success("✅ Conexión con Supabase establecida.")
 # ==========================================================
 # PWA / META TAGS
 # ==========================================================
@@ -231,7 +245,7 @@ with st.sidebar:
         ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora", "🛰️ Índices Satelitales", "🔍 Diagnóstico IA"],
         key="menu_principal"
     )
-
+    
     import streamlit.components.v1 as components_sidebar
     components_sidebar.html("""
         <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20tecnico" target="_blank" style="text-decoration:none;">
@@ -256,62 +270,101 @@ with st.sidebar:
             </div>
         </a>
     """, height=60)
+    
 
     st.divider()
 
 # ==========================================================
 # GPS - INICIALIZACIÓN (corre siempre, en silencio)
 # ==========================================================
+#INICIALIZACIÓN
+# ==========================
 if 'lat' not in st.session_state:
     st.session_state.lat = -34.59
+
 if 'lon' not in st.session_state:
     st.session_state.lon = -58.50
+
 if 'modo_gps' not in st.session_state:
-    st.session_state.modo_gps = True
+    st.session_state.modo_gps = False  # empieza en manual
 
-loc = streamlit_js_eval(js_expressions="""
-new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
-        (err) => resolve({error: err.message}),
-        {enableHighAccuracy: true, timeout: 5000}
-    )
-})
-""", key='get_loc_auto')
 
+# ==========================
+# ENTRADA MANUAL DE COORDENADAS
+# ==========================
+st.session_state.lat = st.number_input(
+    "Latitud",
+    value=st.session_state.lat,
+    format="%.6f"
+)
+
+st.session_state.lon = st.number_input(
+    "Longitud",
+    value=st.session_state.lon,
+    format="%.6f"
+)
+
+
+# ==========================
+# GPS AUTOMÁTICO (OPCIONAL)
+# ==========================
 gps_disponible = False
-if loc and isinstance(loc, dict) and 'latitude' in loc:
-    lat_auto, lon_auto = loc['latitude'], loc['longitude']
-    gps_disponible = True
-else:
-    lat_auto, lon_auto = None, None
 
+if st.session_state.modo_gps:
+    loc = streamlit_js_eval(
+        js_expressions="""
+        new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
+                (err) => resolve({error: err.message}),
+                {enableHighAccuracy: true, timeout: 15000}
+            )
+        })
+        """,
+        key="get_loc_auto"
+    )
+
+    if loc and isinstance(loc, dict) and "latitude" in loc:
+        st.session_state.lat = loc["latitude"]
+        st.session_state.lon = loc["longitude"]
+        gps_disponible = True
+    else:
+        st.warning(
+            f"No se pudo obtener GPS: {loc.get('error') if isinstance(loc, dict) else 'desconocido'}"
+        )
+
+
+# ==========================
+# COORDENADAS FINALES
+# ==========================
+LAT = st.session_state.lat
+LON = st.session_state.lon
+
+st.write("LAT actual:", LAT)
+st.write("LON actual:", LON)
+
+
+# ==========================
+# CLIMA
+# ==========================
+clima = obtener_clima_completo(LAT, LON)
+
+st.write("CLIMA:", clima)
+# Colores de pastillas
 if st.session_state.modo_gps and gps_disponible:
-    st.session_state.lat = lat_auto
-    st.session_state.lon = lon_auto
     gps_color, man_color = "#00ffc3", "#222"
     g_text, m_text = "#000", "#666"
 else:
     gps_color, man_color = "#222", "#00ffc3"
     g_text, m_text = "#666", "#000"
 
-# ==========================================================
-# DATOS GLOBALES (corre siempre)
-# ==========================================================
-LAT = st.session_state.get('lat')
-LON = st.session_state.get('lon')
-clima = obtener_clima_completo(LAT, LON)
-
-if clima:
-    st.session_state.clima_data = clima
-
-# ==========================================================
+# ===========================
 # MENÚ: MONITOREO TOTAL
-# ==========================================================
+# ===========================
 if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control")
 
-    # Pastillas GPS (solo aquí)
+    # Pastillas GPS
     st.markdown(f"""
     <div style='display:flex; gap:12px; margin-bottom:12px;'>
         <div style='padding:10px; border-radius:14px; font-weight:bold; background:{gps_color}; color:{g_text}; flex:1; text-align:center;'>
@@ -328,16 +381,17 @@ if menu == "📊 Monitoreo Total":
         new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f")
         new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f")
         col_btn1, col_btn2 = st.columns(2)
+
         if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
             st.session_state.modo_gps = False
             st.session_state.lat = new_lat
             st.session_state.lon = new_lon
             st.success("Prioridad cambiada a Manual")
             st.rerun()
+
         if col_btn2.button("🛰️ VOLVER A GPS AUTO", use_container_width=True):
             st.session_state.modo_gps = True
             st.rerun()
-
     st.divider()
 
     if clima:
@@ -679,7 +733,7 @@ elif menu == "💧 Balance Hídrico":
         st.error(f"Error en Balance Hídrico: {e}")
 
 # ==========================================================
-# MENÚ: RADAR GRANIZO
+# MENÚ: RADAR GRANIZO|
 # ==========================================================
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
@@ -1137,6 +1191,7 @@ elif menu == "❄️ Análisis de Heladas":
 
     except Exception as e:
         st.error(f"Error en el módulo: {e}")
+
 
 # ==========================================================
 # MENÚ: BITÁCORA

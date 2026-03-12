@@ -1,12 +1,25 @@
+# Core de Streamlit
 streamlit
 streamlit-folium
-streamlit-js-eval
 folium
-requests
-matplotlib
+
+# Datos y APIs
 pandas
+requests
 supabase
+plotly
 pyTelegramBotAPI
-google-generativeai
-Pillow
+google-genai
 python-dotenv
+
+# Visualización / documentos
+Pillow
+flask
+reportlab
+xlsxwriter
+streamlit-js-eval
+
+# Librerías geoespaciales (precompiladas, sin compilar GDAL)
+shapely
+pyproj
+pyogrio
