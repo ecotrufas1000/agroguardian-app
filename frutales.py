@@ -835,8 +835,18 @@ elif menu == "❄️ Análisis de Heladas":
                 "Plena floración":      -2.0,
                 "Fruto cuajado":        -1.5,
             }
+        },
+         "🥜 Pistacho": {
+        "estados": {
+            "Yema dormida": -15.0,
+            "Yema hinchada": -6.5,
+            "Brote verde": -3.5,
+            "Floración": -2.5,
+            "Cuaje": -1.8,
+            "Fruto joven": -1.5,
         }
     }
+}
     # ==========================================================
     # SELECTOR DE CULTIVO Y ESTADO FENOLÓGICO
     # ==========================================================
