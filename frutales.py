@@ -379,16 +379,16 @@ if menu == "📊 Monitoreo Total":
         new_lat = c1.number_input(
             "Latitud",
             value=st.session_state.lat,
-             format="%.6f",
-             Key="lat_config"
-             )
+            format="%.6f",
+            key="lat_config"
+        )
 
         new_lon = c2.number_input(
             "Longitud",
-             value=st.session_state.lon,
-             format="%.6f",
-             key="lon_config"
-             )
+            value=st.session_state.lon,
+            format="%.6f",
+            key="lon_config"
+        )
 
         if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
             st.session_state.modo_gps = False
