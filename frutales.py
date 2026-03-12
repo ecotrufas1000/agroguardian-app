@@ -294,13 +294,15 @@ if 'modo_gps' not in st.session_state:
 st.session_state.lat = st.number_input(
     "Latitud",
     value=st.session_state.lat,
-    format="%.6f"
+    format="%.6f,
+    key="lat_global"
 )
 
 st.session_state.lon = st.number_input(
     "Longitud",
     value=st.session_state.lon,
-    format="%.6f"
+    format="%.6f,
+    key="lon_global"
 )
 
 
@@ -377,8 +379,19 @@ if menu == "📊 Monitoreo Total":
 
     with st.expander("⚙️ Configurar Ubicación del Lote"):
         c1, c2 = st.columns(2)
-        new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f")
-        new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f")
+        new_lat = c1.number_input(
+            "Latitud",
+             value=st.session_state.lat,
+            format="%.6f",
+            key="lat_config"
+        )
+
+        new_lon = c2.number_input(
+            "Longitud",
+             value=st.session_state.lon,
+             format="%.6f",
+             key="lon_config"
+        )
         col_btn1, col_btn2 = st.columns(2)
 
         if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
