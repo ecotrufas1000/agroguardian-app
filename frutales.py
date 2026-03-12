@@ -844,7 +844,7 @@ elif menu == "❄️ Análisis de Heladas":
             "Fruto joven": -1.5,
             }
         },
-         "Pecan": {
+         "🌰 Pecan": {
         "estados": {
         "Yema dormida": -18.0,
         "Yema hinchada": -8.0,
