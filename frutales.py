@@ -374,7 +374,7 @@ if menu == "📊 Monitoreo Total":
     </div>
     """, unsafe_allow_html=True)
 
-    with st.expander("⚙️ Configurar Ubicación del Lote"):
+with st.expander("⚙️ Configurar Ubicación del Lote"):
 
     c1, c2 = st.columns(2)
 
