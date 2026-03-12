@@ -245,7 +245,7 @@ with st.sidebar:
         ["📊 Monitoreo Total", "🌧️ Pluviómetro", "💧 Balance Hídrico", "⛈️ Radar Granizo", "❄️ Análisis de Heladas", "📝 Bitácora", "🛰️ Índices Satelitales", "🔍 Diagnóstico IA"],
         key="menu_principal"
     )
-    
+
     import streamlit.components.v1 as components_sidebar
     components_sidebar.html("""
         <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20tecnico" target="_blank" style="text-decoration:none;">
@@ -270,7 +270,6 @@ with st.sidebar:
             </div>
         </a>
     """, height=60)
-    
 
     st.divider()
 
@@ -295,16 +294,15 @@ if 'modo_gps' not in st.session_state:
 st.session_state.lat = st.number_input(
     "Latitud",
     value=st.session_state.lat,
-    format="%.6f",
-    key="lat_global"
+    format="%.6f"
 )
 
 st.session_state.lon = st.number_input(
     "Longitud",
     value=st.session_state.lon,
-    format="%.6f",
-    key="lon_global"
+    format="%.6f"
 )
+
 
 # ==========================
 # GPS AUTOMÁTICO (OPCIONAL)
@@ -358,7 +356,6 @@ if st.session_state.modo_gps and gps_disponible:
 else:
     gps_color, man_color = "#222", "#00ffc3"
     g_text, m_text = "#666", "#000"
-
 # ===========================
 # MENÚ: MONITOREO TOTAL
 # ===========================
