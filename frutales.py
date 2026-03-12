@@ -294,17 +294,16 @@ if 'modo_gps' not in st.session_state:
 st.session_state.lat = st.number_input(
     "Latitud",
     value=st.session_state.lat,
-    format="%.6f,
+    format="%.6f",
     key="lat_global"
 )
 
 st.session_state.lon = st.number_input(
     "Longitud",
     value=st.session_state.lon,
-    format="%.6f,
+    format="%.6f",
     key="lon_global"
 )
-
 
 # ==========================
 # GPS AUTOMÁTICO (OPCIONAL)
