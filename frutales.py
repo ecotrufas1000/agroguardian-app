@@ -842,6 +842,16 @@ elif menu == "❄️ Análisis de Heladas":
             "Floración": -2.5,
             "Cuaje": -1.8,
             "Fruto joven": -1.5,
+            }
+        },
+         "Pecan": {
+        "estados": {
+        "Yema dormida": -18.0,
+        "Yema hinchada": -8.0,
+        "Brotación": -4.0,
+        "Hoja expandiéndose": -2.5,
+        "Floración": -2.0,
+        "Fruto cuajado": -1.5,
         }
     }
 }
