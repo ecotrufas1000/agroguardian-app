@@ -827,7 +827,7 @@ elif menu == "❄️ Análisis de Heladas":
             }
         },
     },
-         "🌰 Almendro": {
+        "🌰 Almendro": {
             "estados": {
                 "Yema dormida":        -15.0,
                 "Yema hinchada":        -6.0,
