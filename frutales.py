@@ -375,31 +375,35 @@ if menu == "📊 Monitoreo Total":
     """, unsafe_allow_html=True)
 
     with st.expander("⚙️ Configurar Ubicación del Lote"):
-        c1, c2 = st.columns(2)
-        new_lat = c1.number_input(
-            "Latitud",
-            value=st.session_state.lat,
-            format="%.6f",
-            key="lat_config"
-        )
 
-        new_lon = c2.number_input(
-            "Longitud",
-            value=st.session_state.lon,
-            format="%.6f",
-            key="lon_config"
-        )
+    c1, c2 = st.columns(2)
 
-        if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
-            st.session_state.modo_gps = False
-            st.session_state.lat = new_lat
-            st.session_state.lon = new_lon
-            st.success("Prioridad cambiada a Manual")
-            st.rerun()
+    new_lat = c1.number_input(
+        "Latitud",
+        value=st.session_state.lat,
+        format="%.6f",
+        key="lat_config"
+    )
 
-        if col_btn2.button("🛰️ VOLVER A GPS AUTO", use_container_width=True):
-            st.session_state.modo_gps = True
-            st.rerun()
+    new_lon = c2.number_input(
+        "Longitud",
+        value=st.session_state.lon,
+        format="%.6f",
+        key="lon_config"
+    )
+
+    col_btn1, col_btn2 = st.columns(2)
+
+    if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
+        st.session_state.modo_gps = False
+        st.session_state.lat = new_lat
+        st.session_state.lon = new_lon
+        st.success("Prioridad cambiada a Manual")
+        st.rerun()
+
+    if col_btn2.button("🛰️ VOLVER A GPS AUTO", use_container_width=True):
+        st.session_state.modo_gps = True
+        st.rerun()
     st.divider()
 
     if clima:
