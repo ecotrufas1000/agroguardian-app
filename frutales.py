@@ -826,8 +826,18 @@ elif menu == "❄️ Análisis de Heladas":
                 "Fruto cuajado":        -1.1,
             }
         },
+    },
+         "🌰 Almendro": {
+            "estados": {
+                "Yema dormida":        -15.0,
+                "Yema hinchada":        -6.0,
+                "Botón rosado":         -4.0,
+                "Flor abierta":         -2.2,
+                "Plena floración":      -2.0,
+                "Fruto cuajado":        -1.5,
+            }
+        }
     }
-
     # ==========================================================
     # SELECTOR DE CULTIVO Y ESTADO FENOLÓGICO
     # ==========================================================
@@ -1099,6 +1109,7 @@ elif menu == "❄️ Análisis de Heladas":
             "🍒 Cerezo":    1000,
             "🍐 Peral":     1100,
             "🫐 Ciruelo":    700,
+            "🌰 Almendro":  1000,
         }
         req = REQUERIMIENTOS_FRIO.get(cultivo_sel, 1000)
         porcentaje = min(100, round((horas_frio / req) * 100))
