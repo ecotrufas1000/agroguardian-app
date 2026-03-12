@@ -826,7 +826,6 @@ elif menu == "❄️ Análisis de Heladas":
                 "Fruto cuajado":        -1.1,
             }
         },
-    },
         "🌰 Almendro": {
             "estados": {
                 "Yema dormida":        -15.0,
