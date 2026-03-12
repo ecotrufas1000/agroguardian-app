@@ -356,9 +356,7 @@ if st.session_state.modo_gps and gps_disponible:
 else:
     gps_color, man_color = "#222", "#00ffc3"
     g_text, m_text = "#666", "#000"
-# ===========================
-# MENÚ: MONITOREO TOTAL
-# ===========================
+
 # ===========================
 # MENÚ: MONITOREO TOTAL
 # ===========================
@@ -378,23 +376,9 @@ if menu == "📊 Monitoreo Total":
     """, unsafe_allow_html=True)
 
     with st.expander("⚙️ Configurar Ubicación del Lote"):
-
         c1, c2 = st.columns(2)
-
-        new_lat = c1.number_input(
-            "Latitud",
-            value=st.session_state.lat,
-            format="%.6f",
-            key="lat_config"
-        )
-
-        new_lon = c2.number_input(
-            "Longitud",
-            value=st.session_state.lon,
-            format="%.6f",
-            key="lon_config"
-        )
-
+        new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f")
+        new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f")
         col_btn1, col_btn2 = st.columns(2)
 
         if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
@@ -433,7 +417,6 @@ if menu == "📊 Monitoreo Total":
             else: st.info("➡️ Viento Lateral")
     else:
         st.info("📍 Vinculá el GPS para activar el monitoreo en tiempo real.")
-
 # ==========================================================
 # MENÚ: PLUVIÓMETRO
 # ==========================================================
