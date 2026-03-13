@@ -26,7 +26,25 @@ from datetime import datetime, timedelta
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
+st.markdown("""
+<style>
 
+/* Botón cerrar sesión */
+div.stButton > button {
+    background-color: #0066ff;
+    color: #ff9900;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+}
+
+div.stButton > button:hover {
+    background-color: #0052cc;
+    color: #ff9900;
+}
+
+</style>
+""", unsafe_allow_html=True)
 # ==========================================================
 # 2. SUPABASE
 # ==========================================================
