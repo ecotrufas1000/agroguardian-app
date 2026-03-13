@@ -21,7 +21,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ==========================================================
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
@@ -39,48 +39,49 @@ except:
 
 # ==========================================================
 # 3. SESSION STATE - LOGIN CON COOKIES
+#    Usamos streamlit-cookies-controller en lugar de
+#    extra_streamlit_components para evitar el iframe blanco
+#    y los bugs con delete().
+#    Instalá con: pip install streamlit-cookies-controller
 # ==========================================================
-import extra_streamlit_components as stx
-from datetime import timedelta
+from streamlit_cookies_controller import CookieController
 
-cookie_manager = stx.CookieManager()
+cookie_manager = CookieController()
 
+# Inicializar session_state con valores por defecto
 if "usuario" not in st.session_state:
-    st.session_state.usuario = cookie_manager.get("ag_usuario")
+    st.session_state.usuario = None
 if "user_id" not in st.session_state:
-    st.session_state.user_id = cookie_manager.get("ag_user_id")
+    st.session_state.user_id = None
+if "cookies_cargadas" not in st.session_state:
+    st.session_state.cookies_cargadas = False
+
+# Leer cookies solo una vez al inicio (no sobreescribir si ya hay sesión activa)
+if not st.session_state.cookies_cargadas:
+    cookie_usuario = cookie_manager.get("ag_usuario")
+    cookie_user_id = cookie_manager.get("ag_user_id")
+    if cookie_usuario:
+        st.session_state.usuario = cookie_usuario
+    if cookie_user_id:
+        st.session_state.user_id = cookie_user_id
+    st.session_state.cookies_cargadas = True
 
 # ==========================================================
 # 4. FUNCIONES DE LOGIN
 # ==========================================================
-# 4. FUNCIONES DE LOGIN
-# ==========================================================
-from datetime import datetime, timedelta
-
-
 def login(email, password):
     try:
         res = supabase.auth.sign_in_with_password(
             {"email": email, "password": password}
         )
-
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
 
-        cookie_manager.set(
-            "ag_usuario",
-            res.user.email,
-            expires_at=datetime.now() + timedelta(days=30)
-        )
-
-        cookie_manager.set(
-            "ag_user_id",
-            res.user.id,
-            expires_at=datetime.now() + timedelta(days=30)
-        )
+        expires = datetime.now() + timedelta(days=30)
+        cookie_manager.set("ag_usuario", res.user.email, expires=expires)
+        cookie_manager.set("ag_user_id", res.user.id, expires=expires)
 
         return True
-
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
         return False
@@ -91,7 +92,6 @@ def registrar(email, password, nombre, campo, localidad):
         res = supabase.auth.sign_up(
             {"email": email, "password": password}
         )
-
         user_id = res.user.id
 
         supabase.table("perfiles").insert({
@@ -104,61 +104,39 @@ def registrar(email, password, nombre, campo, localidad):
         st.session_state.usuario = email
         st.session_state.user_id = user_id
 
-        cookie_manager.set(
-            "ag_usuario",
-            email,
-            expires_at=datetime.now() + timedelta(days=30)
-        )
-
-        cookie_manager.set(
-            "ag_user_id",
-            user_id,
-            expires_at=datetime.now() + timedelta(days=30)
-        )
+        expires = datetime.now() + timedelta(days=30)
+        cookie_manager.set("ag_usuario", email, expires=expires)
+        cookie_manager.set("ag_user_id", user_id, expires=expires)
 
         return True
-
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
         return False
 
 
 def cerrar_sesion():
-    cookie_manager.delete("ag_usuario", key="delete_usuario")
-    cookie_manager.delete("ag_user_id", key="delete_user_id")
-
-    supabase.auth.sign_out()
-
+    # Limpiar session_state
     st.session_state.usuario = None
     st.session_state.user_id = None
+    st.session_state.cookies_cargadas = False
 
+    # Eliminar cookies seteándolas con expiración en el pasado
+    expires_pasado = datetime.now() - timedelta(days=1)
+    cookie_manager.set("ag_usuario", "", expires=expires_pasado)
+    cookie_manager.set("ag_user_id", "", expires=expires_pasado)
+
+    supabase.auth.sign_out()
     st.rerun()
 
+
 # ==========================================================
 # 5. PANTALLA DE LOGIN (si no está logueado, para acá)
 # ==========================================================
-# 5. PANTALLA DE LOGIN (si no está logueado, para acá)
-# ==========================================================
-if st.session_state.usuario is None:
+if not st.session_state.usuario:
     st.markdown("""
         <style>
             .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
             h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div style='text-align:center; padding:40px;'>
-        <div style='display:flex; align-items:center; justify-content:center; gap:12px;'>
-            <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
-            <h1 style='color:#00ffc3; font-family:monospace; margin:0;font-size:22px;'>AgroGuardian</h1>
-        </div>
-        <p style='color:#888; font-family:monospace;font-size:15px;'>Precision Lab v2.6</p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-        <style>
-            .stApp { background-color: #0d1117 !important; }
             .stTextInput > div > div > input {
                 background-color: #161b22 !important;
                 color: #00ffc3 !important;
@@ -186,39 +164,60 @@ if st.session_state.usuario is None:
         </style>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div style='text-align:center; padding:40px;'>
+        <div style='display:flex; align-items:center; justify-content:center; gap:12px;'>
+            <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
+            <h1 style='color:#00ffc3; font-family:monospace; margin:0;font-size:22px;'>AgroGuardian</h1>
+        </div>
+        <p style='color:#888; font-family:monospace;font-size:15px;'>Precision Lab v2.6</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
 
+    # ── Tab Login ──────────────────────────────────────────
     with tab1:
         col1, col2 = st.columns(2)
         with col1:
             email = st.text_input("Email", key="login_email")
-    with col2:
-        password = st.text_input("Contraseña", type="password", key="login_pass")
-    if st.button("INGRESAR", use_container_width=True):
-        if login(email, password):
-            st.rerun()
+        with col2:
+            password = st.text_input("Contraseña", type="password", key="login_pass")
+        if st.button("INGRESAR", use_container_width=True):
+            if login(email, password):
+                st.rerun()
 
+    # ── Tab Registro ───────────────────────────────────────
     with tab2:
         col1, col2 = st.columns(2)
         with col1:
             nombre = st.text_input("Nombre completo", key="reg_nombre")
             campo = st.text_input("Nombre del campo", key="reg_campo")
             localidad = st.text_input("Localidad", key="reg_localidad")
-    with col2:
-        email_r = st.text_input("Email", key="reg_email")
-        pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
-        pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
-    if st.button("CREAR CUENTA", use_container_width=True):
-        if pass_r != pass_r2:
-            st.error("❌ Las contraseñas no coinciden")
-        elif len(pass_r) < 6:
-            st.error("❌ La contraseña debe tener al menos 6 caracteres")
-        else:
-            if registrar(email_r, pass_r, nombre, campo, localidad):
-                st.success("✅ Cuenta creada. Podés iniciar sesión.")
-                st.rerun()
-    st.stop()  # No muestra nada más si no está logueado
+        with col2:
+            email_r = st.text_input("Email", key="reg_email")
+            pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
+            pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
+        if st.button("CREAR CUENTA", use_container_width=True):
+            if pass_r != pass_r2:
+                st.error("❌ Las contraseñas no coinciden")
+            elif len(pass_r) < 6:
+                st.error("❌ La contraseña debe tener al menos 6 caracteres")
+            else:
+                if registrar(email_r, pass_r, nombre, campo, localidad):
+                    st.success("✅ Cuenta creada. Podés iniciar sesión.")
+                    st.rerun()
 
+    st.stop()
+
+# ==========================================================
+# 6. APP PRINCIPAL (solo llega acá si está logueado)
+# ==========================================================
+# Tu código de la app va acá...
+# Ejemplo de botón de cerrar sesión en el sidebar:
+# with st.sidebar:
+#     if st.button("Cerrar sesión"):
+#         cerrar_sesion()
 
 # ==========================================================
 # 6. PWA / META TAGS (solo si está logueado)
