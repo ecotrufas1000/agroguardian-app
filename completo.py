@@ -38,17 +38,6 @@ except:
     st.stop()
 
 # ==========================================================
-import extra_streamlit_components as stx
-
-# ==========================================================
-# 3. SESSION STATE - LOGIN CON COOKIES
-# ==========================================================
-cookie_manager = stx.CookieManager()
-
-if "usuario" not in st.session_state:
-    st.session_state.usuario = cookie_manager.get("ag_usuario")
-if "user_id" not in st.session_state:
-    st.session_state.user_id = cookie_manager.get("ag_user_id")
 # ==========================================================
 # 4. FUNCIONES DE LOGIN
 # ==========================================================
@@ -88,6 +77,92 @@ def cerrar_sesion():
     st.session_state.usuario = None
     st.session_state.user_id = None
     st.rerun()
+
+# ==========================================================
+# 5. PANTALLA DE LOGIN (si no está logueado, para acá)
+# ==========================================================
+# 5. PANTALLA DE LOGIN (si no está logueado, para acá)
+# ==========================================================
+if st.session_state.usuario is None:
+    st.markdown("""
+        <style>
+            .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
+            h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style='text-align:center; padding:40px;'>
+        <div style='display:flex; align-items:center; justify-content:center; gap:12px;'>
+            <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
+            <h1 style='color:#00ffc3; font-family:monospace; margin:0;font-size:22px;'>AgroGuardian</h1>
+        </div>
+        <p style='color:#888; font-family:monospace;font-size:15px;'>Precision Lab v2.6</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+            .stApp { background-color: #0d1117 !important; }
+            .stTextInput > div > div > input {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #30363d !important;
+                border-radius: 8px !important;
+            }
+            .stButton > button {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #00ffc3 !important;
+                border-radius: 8px !important;
+                font-weight: bold;
+            }
+            .stButton > button:hover {
+                background-color: #00ffc3 !important;
+                color: #0d1117 !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: #00ffc3 !important;
+                font-family: monospace !important;
+            }
+            .stTabs [data-baseweb="tab-panel"] {
+                background-color: #0d1117 !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
+
+    with tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            email = st.text_input("Email", key="login_email")
+    with col2:
+        password = st.text_input("Contraseña", type="password", key="login_pass")
+    if st.button("INGRESAR", use_container_width=True):
+        if login(email, password):
+            st.rerun()
+
+    with tab2:
+        col1, col2 = st.columns(2)
+        with col1:
+            nombre = st.text_input("Nombre completo", key="reg_nombre")
+            campo = st.text_input("Nombre del campo", key="reg_campo")
+            localidad = st.text_input("Localidad", key="reg_localidad")
+    with col2:
+        email_r = st.text_input("Email", key="reg_email")
+        pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
+        pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
+    if st.button("CREAR CUENTA", use_container_width=True):
+        if pass_r != pass_r2:
+            st.error("❌ Las contraseñas no coinciden")
+        elif len(pass_r) < 6:
+            st.error("❌ La contraseña debe tener al menos 6 caracteres")
+        else:
+            if registrar(email_r, pass_r, nombre, campo, localidad):
+                st.success("✅ Cuenta creada. Podés iniciar sesión.")
+                st.rerun()
+    st.stop()  # No muestra nada más si no está logueado
+
 
 # ==========================================================
 # 5. PANTALLA DE LOGIN (si no está logueado, para acá)
