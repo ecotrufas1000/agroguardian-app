@@ -39,30 +39,37 @@ except:
 # ==========================================================
 # 3. SESSION STATE
 # ==========================================================
+# 3. SESSION STATE
+# ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
+if "sesion_cargada" not in st.session_state:
+    st.session_state.sesion_cargada = False
+
 
 # ==========================================================
-# 4. LEER SESIÓN DESDE localStorage (via JS)
-#    streamlit_js_eval ya está en tu requirements.txt
-#    localStorage persiste aunque cierres el tab/browser
+# 4. LEER SESIÓN DESDE localStorage
 # ==========================================================
-if st.session_state.usuario is None:
+if not st.session_state.sesion_cargada:
+
     val_usuario = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_usuario")',
         key="ls_get_usuario"
     )
+
     val_user_id = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_user_id")',
         key="ls_get_user_id"
     )
+
     if val_usuario:
         st.session_state.usuario = val_usuario
         st.session_state.user_id = val_user_id
-        st.rerun()
 
+    st.session_state.sesion_cargada = True
+    st.rerun()
 # ==========================================================
 # 5. FUNCIONES DE AUTH
 # ==========================================================
