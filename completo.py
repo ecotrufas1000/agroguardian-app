@@ -65,23 +65,27 @@ if st.session_state.cerrando_sesion:
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
 # ==========================================================
+# ==========================================================
+# 5. VERIFICAR SESIÓN ANTES DE MOSTRAR LOGIN
+# ==========================================================
 if st.session_state.usuario is None:
+
+    st.markdown("🔐 Verificando sesión...")
 
     val_usuario = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_usuario")',
-        key="ls_get_usuario"
+        key="check_usuario"
     )
 
     val_user_id = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_user_id")',
-        key="ls_get_user_id"
+        key="check_userid"
     )
 
     if val_usuario not in [None, "null", ""]:
-        st.session_state.usuario = str(val_usuario).replace('"', '')
-        st.session_state.user_id = str(val_user_id).replace('"', '')
+        st.session_state.usuario = str(val_usuario).replace('"','')
+        st.session_state.user_id = str(val_user_id).replace('"','')
         st.rerun()
-
 # ==========================================================
 # 6. FUNCIONES DE AUTH
 # ==========================================================
