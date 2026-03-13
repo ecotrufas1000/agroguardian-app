@@ -1113,9 +1113,7 @@ elif menu == "❄️ Análisis de Heladas":
     except Exception as e:
         st.error(f"Error en el módulo: {e}")
 # ==========================================================
-# MENÚ: BITÁCORA
-# ==========================================================
-elif menu == "📝 Bitácora":
+#elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
 
     with st.form("nueva_nota", clear_on_submit=False):
@@ -1140,7 +1138,14 @@ elif menu == "📝 Bitácora":
                     t_act = clima['temp'] if clima else 0
                     v_act = clima['v_vel'] if clima else 0
                     nota_final = f"[{detalle_extra}] {nota_adicional}" if detalle_extra else nota_adicional
-                    datos = {"tarea": tarea, "lote": lote, "nota": nota_final, "clima_temp": t_act, "clima_viento": v_act}
+                    datos = {
+                        "tarea": tarea,
+                        "lote": lote,
+                        "nota": nota_final,
+                        "clima_temp": t_act,
+                        "clima_viento": v_act,
+                        "productor_id": st.session_state.user_id  # ← asociar al usuario
+                    }
                     supabase.table("bitacora").insert(datos).execute()
                     st.success(f"✅ ¡{tarea} registrada con éxito!")
                     link_wa = generar_link_whatsapp(tarea, lote, t_act, v_act, nota_final)
@@ -1160,12 +1165,16 @@ elif menu == "📝 Bitácora":
 
     with st.expander("📂 VER HISTORIAL COMPLETO DE ACTIVIDADES"):
         try:
-            res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
+            # FILTRAR POR USUARIO LOGUEADO
+            res = supabase.table("bitacora").select("*").eq("productor_id", st.session_state.user_id).order("fecha", desc=True).execute()
             if res.data:
                 df_bit = pd.DataFrame(res.data)
                 df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
                 st.dataframe(df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']], use_container_width=True,
-                    column_config={"clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"), "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")})
+                    column_config={
+                        "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
+                        "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")
+                    })
             else:
                 st.info("No hay registros cargados.")
         except Exception as e:
