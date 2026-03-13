@@ -104,10 +104,6 @@ def registrar(email, password, nombre, campo, localidad):
 def cerrar_sesion():
     st.session_state.usuario = None
     st.session_state.user_id = None
-    streamlit_js_eval(
-        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
-        key="ls_remove_sesion"
-    )
     try:
         supabase.auth.sign_out()
     except:
@@ -202,8 +198,22 @@ if st.session_state.usuario is None:
 with st.sidebar:
     st.markdown(f"👤 **{st.session_state.usuario}**")
     if st.button("🚪 Cerrar sesión"):
-        cerrar_sesion()
+        st.session_state.cerrar = True
 
+# Ejecutar el JS de localStorage fuera del botón
+if st.session_state.get("cerrar"):
+    st.session_state.cerrar = False
+    st.session_state.usuario = None
+    st.session_state.user_id = None
+    streamlit_js_eval(
+        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
+        key="ls_remove_sesion"
+    )
+    try:
+        supabase.auth.sign_out()
+    except:
+        pass
+    st.rerun()
 # ==========================================================
 # PWA / META TAGS
 # ==========================================================
