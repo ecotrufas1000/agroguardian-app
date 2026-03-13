@@ -1,12 +1,10 @@
 import streamlit as st
-import extra_streamlit_components as stx
-from datetime import datetime, timedelta
-
 from google import genai
 import requests
 import json
 import os
 import math
+import datetime
 import pandas as pd
 import io
 import plotly.express as px
@@ -14,35 +12,27 @@ import urllib.parse
 import base64
 from io import BytesIO
 from supabase import create_client
-from streamlit_folium import folium_static, st_folium
+from streamlit_folium import folium_static
 import folium
+from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-
-
+from datetime import datetime
+# Dentro del with st.sidebar:
+st.markdown(f"👤 **{st.session_state.usuario}**")
+if st.button("🚪 Cerrar sesión"):
+    cerrar_sesion()
 # ==========================================================
-# COOKIE MANAGER
-# ==========================================================
-
-cookie_manager = stx.CookieManager(key="cookie_manager")
-
-if "usuario" not in st.session_state:
-    st.session_state.usuario = cookie_manager.get("ag_usuario")
-
-if "user_id" not in st.session_state:
-    st.session_state.user_id = cookie_manager.get("ag_user_id")
-
-# ==========================================================
-# 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
+# CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
 
 # ==========================================================
-# 2. SUPABASE - CONEXIÓN
+# SUPABASE - CONEXIÓN
 # ==========================================================
 try:
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
@@ -51,89 +41,19 @@ except:
     st.stop()
 
 # ==========================================================
-# 3. SESSION STATE
-# ==========================================================
-# 3. SESSION STATE
+# LOGIN / REGISTRO
 # ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
-if "sesion_cargada" not in st.session_state:
-    st.session_state.sesion_cargada = False
-if "usuario" not in st.session_state:
-    st.session_state.usuario = cookie_manager.get("ag_usuario")
-
-if "user_id" not in st.session_state:
-    st.session_state.user_id = cookie_manager.get("ag_user_id")
-
-
-# ==========================================================
-# 4. LEER SESIÓN DESDE localStorage
-# ==========================================================
-if not st.session_state.sesion_cargada:
-
-    val_usuario = streamlit_js_eval(
-        js_expressions='localStorage.getItem("ag_usuario")',
-        key="ls_get_usuario"
-    )
-
-    val_user_id = streamlit_js_eval(
-        js_expressions='localStorage.getItem("ag_user_id")',
-        key="ls_get_user_id"
-    )
-
-    if val_usuario:
-        st.session_state.usuario = val_usuario
-        st.session_state.user_id = val_user_id
-
-    st.session_state.sesion_cargada = True
-    st.rerun()
-# ==========================================================
-# 5. FUNCIONES DE AUTH
-# ==========================================================
-def guardar_sesion_local(email, user_id):
-    """Guarda en localStorage del browser"""
-    streamlit_js_eval(
-        js_expressions=f'localStorage.setItem("ag_usuario", "{email}"); localStorage.setItem("ag_user_id", "{user_id}");',
-        key="ls_set_sesion"
-    )
-
-def borrar_sesion_local():
-    """Borra de localStorage del browser"""
-    streamlit_js_eval(
-        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
-        key="ls_remove_sesion"
-    )
 
 def login(email, password):
     try:
-        res = supabase.auth.sign_in_with_password(
-            {"email": email, "password": password}
-        )
-
-        # guardar en session_state
+        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
-
-        # guardar en localStorage
-        guardar_sesion_local(res.user.email, res.user.id)
-
-        # guardar cookie persistente
-        cookie_manager.set(
-            "ag_usuario",
-            res.user.email,
-            expires_at=datetime.now() + timedelta(days=30)
-        )
-
-        cookie_manager.set(
-            "ag_user_id",
-            res.user.id,
-            expires_at=datetime.now() + timedelta(days=30)
-        )
-
         return True
-
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
         return False
@@ -142,168 +62,66 @@ def registrar(email, password, nombre, campo, localidad):
     try:
         res = supabase.auth.sign_up({"email": email, "password": password})
         user_id = res.user.id
-
         supabase.table("perfiles").insert({
             "id": user_id,
             "nombre": nombre,
             "campo": campo,
             "localidad": localidad
         }).execute()
-
         st.session_state.usuario = email
         st.session_state.user_id = user_id
-        guardar_sesion_local(email, user_id)
         return True
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
         return False
 
-
 def cerrar_sesion():
-    cookie_manager.delete("ag_usuario")
-    cookie_manager.delete("ag_user_id")
-
+    supabase.auth.sign_out()
     st.session_state.usuario = None
     st.session_state.user_id = None
-
-    borrar_sesion_local()
-
-    try:
-        supabase.auth.sign_out()
-    except:
-        pass
-
     st.rerun()
-# ==========================================================
-# 6. PANTALLA DE LOGIN
-# ==========================================================
-if not st.session_state.usuario:
-    st.markdown("""
-        <style>
-            .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
-            h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
-            .stTextInput > div > div > input {
-                background-color: #161b22 !important;
-                color: #00ffc3 !important;
-                border: 1px solid #30363d !important;
-                border-radius: 8px !important;
-            }
-            .stButton > button {
-                background-color: #161b22 !important;
-                color: #00ffc3 !important;
-                border: 1px solid #00ffc3 !important;
-                border-radius: 8px !important;
-                font-weight: bold;
-            }
-            .stButton > button:hover {
-                background-color: #00ffc3 !important;
-                color: #0d1117 !important;
-            }
-            .stTabs [data-baseweb="tab"] {
-                color: #00ffc3 !important;
-                font-family: monospace !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
 
+# --- PANTALLA DE LOGIN ---
+if st.session_state.usuario is None:
     st.markdown("""
-    <div style='text-align:center; padding:40px;'>
-        <div style='display:flex; align-items:center; justify-content:center; gap:12px;'>
-            <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
-            <h1 style='color:#00ffc3; font-family:monospace; margin:0;font-size:22px;'>AgroGuardian</h1>
+        <div style='text-align:center; padding:40px;'>
+            <h1 style='color:#00ffc3; font-family:monospace;'>🌿 AgroGuardian</h1>
+            <p style='color:#888;'>Precision Lab v2.6</p>
         </div>
-        <p style='color:#888; font-family:monospace;font-size:15px;'>Precision Lab v2.6</p>
-    </div>
     """, unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
 
     with tab1:
-        col1, col2 = st.columns(2)
-        with col1:
-            email = st.text_input("Email", key="login_email")
-        with col2:
-            password = st.text_input("Contraseña", type="password", key="login_pass")
-        if st.button("INGRESAR", width="stretch"):
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Contraseña", type="password", key="login_pass")
+        if st.button("INGRESAR", use_container_width=True):
             if login(email, password):
                 st.rerun()
 
     with tab2:
-        col1, col2 = st.columns(2)
-        with col1:
-            nombre = st.text_input("Nombre completo", key="reg_nombre")
-            campo = st.text_input("Nombre del campo", key="reg_campo")
-            localidad = st.text_input("Localidad", key="reg_localidad")
-        with col2:
-            email_r = st.text_input("Email", key="reg_email")
-            pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
-            pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
-        if st.button("CREAR CUENTA", width="stretch"):
+        nombre = st.text_input("Nombre completo", key="reg_nombre")
+        campo = st.text_input("Nombre del campo", key="reg_campo")
+        localidad = st.text_input("Localidad", key="reg_localidad")
+        email_r = st.text_input("Email", key="reg_email")
+        pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
+        pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
+        if st.button("CREAR CUENTA", use_container_width=True):
             if pass_r != pass_r2:
                 st.error("❌ Las contraseñas no coinciden")
             elif len(pass_r) < 6:
                 st.error("❌ La contraseña debe tener al menos 6 caracteres")
             else:
                 if registrar(email_r, pass_r, nombre, campo, localidad):
-                    st.success("✅ Cuenta creada. Podés iniciar sesión.")
+                    st.success("✅ Cuenta creada correctamente")
                     st.rerun()
 
-    st.stop()
+    st.stop()  # ← Si no está logueado, no muestra nada más
+
+# --- USUARIO LOGUEADO: continúa el resto de la app ---
 
 # ==========================================================
-# 7. APP PRINCIPAL (solo llega acá si está logueado)
-# ==========================================================
-# Tu código de la app va acá...
-# Botón de cerrar sesión en sidebar:
-# with st.sidebar:
-#     if st.button("Cerrar sesión"):
-#         cerrar_sesion()
-
-# ==========================================================
-# 7. APP PRINCIPAL (solo llega acá si está logueado)
-# ==========================================================
-# Tu código de la app va acá...
-# Botón de cerrar sesión en sidebar:
-# with st.sidebar:
-#     if st.button("Cerrar sesión"):
-#         cerrar_sesion()
-
-# ==========================================================
-# 8. APP PRINCIPAL (solo llega acá si está logueado)
-# ==========================================================
-# Tu código de la app va acá...
-# Botón de cerrar sesión en sidebar:
-# with st.sidebar:
-#     if st.button("Cerrar sesión"):
-#         cerrar_sesion()
-
-# ==========================================================
-# 8. APP PRINCIPAL (solo llega acá si está logueado)
-# ==========================================================
-# Tu código de la app va acá...
-# Botón de cerrar sesión en sidebar:
-# with st.sidebar:
-#     if st.button("Cerrar sesión"):
-#         cerrar_sesion()
-# ==========================================================
-# 8. APP PRINCIPAL (solo llega acá si está logueado)
-# ==========================================================
-# Tu código de la app va acá...
-# Botón de cerrar sesión en sidebar:
-# with st.sidebar:
-#     if st.button("Cerrar sesión"):
-#         cerrar_sesion()
-# ==========================================================
-# 6. APP PRINCIPAL (solo llega acá si está logueado)
-# ==========================================================
-# Tu código de la app va acá...
-# Ejemplo de botón de cerrar sesión en el sidebar:
-# with st.sidebar:
-#     if st.button("Cerrar sesión"):
-#         cerrar_sesion()
-
-# ==========================================================
-# 6. PWA / META TAGS (solo si está logueado)
+# PWA / META TAGS
 # ==========================================================
 st.markdown("""
     <meta name="mobile-web-app-capable" content="yes">
@@ -343,7 +161,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 7. FUNCIÓN PDF
+# FUNCIÓN PDF
 # ==========================================================
 def generar_pdf(texto_analisis, nombre_imagen="muestra"):
     if not texto_analisis:
@@ -406,7 +224,7 @@ def generar_pdf(texto_analisis, nombre_imagen="muestra"):
     return buffer
 
 # ==========================================================
-# 8. CLIENTE GOOGLE GENAI
+# CLIENTE GOOGLE GENAI
 # ==========================================================
 client = None
 try:
@@ -416,8 +234,10 @@ except Exception as e:
     st.error(f"Error al configurar el cliente: {e}")
 
 # ==========================================================
-# 9. ESTILOS
+# CONFIGURACIÓN DE PÁGINA
 # ==========================================================
+st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
+
 st.markdown("""
     <style>
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
@@ -432,7 +252,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 10. FUNCIONES DE APOYO
+# FUNCIONES DE APOYO
 # ==========================================================
 def grados_a_direccion(grados):
     try:
@@ -482,7 +302,16 @@ def get_sentinel_token():
         return None
 
 # ==========================================================
-# 11. SIDEBAR
+# CONEXIÓN BASE DE DATOS
+# ==========================================================
+try:
+    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+except:
+    st.error("🚨 Error de conexión con Supabase.")
+    st.stop()
+
+# ==========================================================
+# SIDEBAR
 # ==========================================================
 with st.sidebar:
     try:
@@ -491,9 +320,6 @@ with st.sidebar:
         st.markdown("<h2 style='text-align:center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
 
     st.markdown("<p style='text-align:center; font-size:10px; opacity:0.7;'>PRECISION LAB v2.6</p>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center; font-size:11px; color:#00ffc3;'>👤 {st.session_state.usuario}</p>", unsafe_allow_html=True)
-    if st.button("🚪 Cerrar sesión", use_container_width=True):
-        cerrar_sesion()
     st.divider()
 
     menu = st.radio(
@@ -530,7 +356,7 @@ with st.sidebar:
     st.divider()
 
 # ==========================================================
-# 12. GPS
+# GPS - INICIALIZACIÓN (corre siempre, en silencio)
 # ==========================================================
 if 'lat' not in st.session_state:
     st.session_state.lat = -34.59
@@ -566,7 +392,7 @@ else:
     g_text, m_text = "#666", "#000"
 
 # ==========================================================
-# 13. DATOS GLOBALES
+# DATOS GLOBALES (corre siempre)
 # ==========================================================
 LAT = st.session_state.get('lat')
 LON = st.session_state.get('lon')
@@ -581,6 +407,7 @@ if clima:
 if menu == "📊 Monitoreo Total":
     st.header("📊 Tablero de Control")
 
+    # Pastillas GPS (solo aquí)
     st.markdown(f"""
     <div style='display:flex; gap:12px; margin-bottom:12px;'>
         <div style='padding:10px; border-radius:14px; font-weight:bold; background:{gps_color}; color:{g_text}; flex:1; text-align:center;'>
@@ -594,8 +421,8 @@ if menu == "📊 Monitoreo Total":
 
     with st.expander("⚙️ Configurar Ubicación del Lote"):
         c1, c2 = st.columns(2)
-        new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f", key="lat_manual")
-        new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f", key="lon_manual")
+        new_lat = c1.number_input("Latitud", value=st.session_state.lat, format="%.6f")
+        new_lon = c2.number_input("Longitud", value=st.session_state.lon, format="%.6f")
         col_btn1, col_btn2 = st.columns(2)
         if col_btn1.button("📍 USAR ESTA UBICACIÓN MANUAL", use_container_width=True):
             st.session_state.modo_gps = False
@@ -641,14 +468,26 @@ elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
     st.markdown("""
 <style>
+
+/* TARJETAS MÉTRICAS (igual que Monitoreo) */
 [data-testid="stMetric"] {
     background-color: #0e1117;
     border: 1px solid #00ffc3;
     border-radius: 12px;
     padding: 15px;
 }
-[data-testid="stMetricLabel"] { color: #00ffc3 !important; }
-[data-testid="stMetricValue"] { color: #00ffc3 !important; font-weight: bold; }
+
+/* TEXTO MÉTRICAS */
+[data-testid="stMetricLabel"] {
+    color: #00ffc3 !important;
+}
+
+[data-testid="stMetricValue"] {
+    color: #00ffc3 !important;
+    font-weight: bold;
+}
+
+/* BOTONES */
 .stButton > button {
     background-color: #0e1117 !important;
     color: #00ffc3 !important;
@@ -656,7 +495,13 @@ elif menu == "🌧️ Pluviómetro":
     border-radius: 10px !important;
     font-weight: bold;
 }
-.stButton > button:hover { background-color: #00ffc3 !important; color: #0e1117 !important; }
+
+.stButton > button:hover {
+    background-color: #00ffc3 !important;
+    color: #0e1117 !important;
+}
+
+/* BOTÓN DESCARGA */
 .stDownloadButton > button {
     background-color: #0e1117 !important;
     color: #00ffc3 !important;
@@ -664,7 +509,12 @@ elif menu == "🌧️ Pluviómetro":
     border-radius: 10px !important;
     font-weight: bold;
 }
-.stDownloadButton > button:hover { background-color: #00ffc3 !important; color: #0e1117 !important; }
+
+.stDownloadButton > button:hover {
+    background-color: #00ffc3 !important;
+    color: #0e1117 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
     try:
@@ -688,6 +538,7 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
+            # --- BOTÓN WHATSAPP ---
             df_limpio = df[df['fecha'].notnull()].copy()
             ultimos = df_limpio.sort_values('fecha', ascending=False).head(10)
             detalle_tabla = ""
@@ -724,6 +575,7 @@ elif menu == "🌧️ Pluviómetro":
             st.write("")
             st.divider()
 
+            # --- GRÁFICOS ---
             estilo_grafico = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#00ffc3"), height=350, margin=dict(l=10, r=10, t=30, b=20))
 
             st.subheader(f"📅 Detalle Diario — {hoy.strftime('%B %Y')}")
@@ -745,6 +597,7 @@ elif menu == "🌧️ Pluviómetro":
 
             st.divider()
 
+            # --- GENERAR EXCEL ---
             df_excel = df.copy().sort_values('fecha', ascending=False)
             df_excel['fecha'] = df_excel['fecha'].dt.tz_convert(None)
             output = io.BytesIO()
@@ -757,6 +610,7 @@ elif menu == "🌧️ Pluviómetro":
                     worksheet.set_column(i, i, column_len)
             excel_data = output.getvalue()
 
+            # --- TABLA EDITABLE ---
             st.subheader("📂 Base de Datos de Lluvias")
             st.info("💡 Editá valores en la tabla. Para eliminar usá el selector de abajo.")
 
@@ -789,6 +643,8 @@ elif menu == "🌧️ Pluviómetro":
                 except Exception as e:
                     st.error(f"Error: {e}")
 
+            
+
             st.download_button(
                 label="📥 DESCARGAR EXCEL",
                 data=excel_data,
@@ -797,6 +653,7 @@ elif menu == "🌧️ Pluviómetro":
                 use_container_width=True
             )
 
+            # --- BORRADOR ---
             st.divider()
 
             opciones = {}
@@ -822,6 +679,7 @@ elif menu == "🌧️ Pluviómetro":
                 except Exception as e:
                     st.error(f"Error al eliminar: {e}")
 
+            # --- REGISTRO AUTOMÁTICO SATELITAL ---
             st.divider()
             st.markdown("### 🛰️ Registro Automático desde Satélite")
             col_auto1, col_auto2 = st.columns([2, 1])
@@ -839,12 +697,7 @@ elif menu == "🌧️ Pluviómetro":
                         url_meteo = (f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&daily=precipitation_sum&timezone=America/Argentina/Buenos_Aires&start_date={hoy_fecha}&end_date={hoy_fecha}")
                         r = requests.get(url_meteo).json()
                         mm_hoy = r['daily']['precipitation_sum'][0] or 0.0
-                        supabase.table("registros_lluvia").insert({
-                            "fecha": hoy_fecha,
-                            "mm": mm_hoy,
-                            "lote": "🛰️ Automático (Open-Meteo)",
-                            "productor_id": st.session_state.user_id
-                        }).execute()
+                        supabase.table("registros_lluvia").insert({"fecha": hoy_fecha, "mm": mm_hoy, "lote": "🛰️ Automático (Open-Meteo)"}).execute()
                         st.success(f"✅ Registrado: {mm_hoy:.1f} mm para hoy")
                         st.rerun()
                     except Exception as e:
@@ -864,12 +717,7 @@ elif menu == "🌧️ Pluviómetro":
                     registros = 0
                     for fecha, mm in zip(fechas, lluvias):
                         if mm and mm > 0:
-                            supabase.table("registros_lluvia").insert({
-                                "fecha": fecha,
-                                "mm": mm,
-                                "lote": "🛰️ Automático (Open-Meteo)",
-                                "productor_id": st.session_state.user_id
-                            }).execute()
+                            supabase.table("registros_lluvia").insert({"fecha": fecha, "mm": mm, "lote": "🛰️ Automático (Open-Meteo)"}).execute()
                             registros += 1
                     st.success(f"✅ Importados {registros} días con lluvia")
                     st.rerun()
@@ -1017,19 +865,9 @@ elif menu == "❄️ Análisis de Heladas":
     st.divider()
 
     try:
-        #res_h = supabase.table("registros_heladas").select("*").execute()
-        #df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
-        # SELECT - filtrar por usuario
-        res_h = supabase.table("registros_heladas").select("*").eq("productor_id", st.session_state.user_id).execute()
+        res_h = supabase.table("registros_heladas").select("*").execute()
+        df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
 
-        # INSERT - agregar productor_id
-        supabase.table("registros_heladas").insert({
-            "Fecha": nueva_fecha.isoformat(),
-            "Intensidad": val_int,
-            "Duracion": nueva_dur,
-            "productor_id": st.session_state.user_id
-        }).execute()
-    
         if res_h.data:
             df_temp = pd.DataFrame(res_h.data)
             if 'Fecha' in df_temp.columns:
@@ -1119,14 +957,7 @@ elif menu == "📝 Bitácora":
                     t_act = clima['temp'] if clima else 0
                     v_act = clima['v_vel'] if clima else 0
                     nota_final = f"[{detalle_extra}] {nota_adicional}" if detalle_extra else nota_adicional
-                    datos = {
-                        "tarea": tarea,
-                        "lote": lote,
-                        "nota": nota_final,
-                        "clima_temp": t_act,
-                        "clima_viento": v_act,
-                        "productor_id": st.session_state.user_id
-                    }
+                    datos = {"tarea": tarea, "lote": lote, "nota": nota_final, "clima_temp": t_act, "clima_viento": v_act}
                     supabase.table("bitacora").insert(datos).execute()
                     st.success(f"✅ ¡{tarea} registrada con éxito!")
                     link_wa = generar_link_whatsapp(tarea, lote, t_act, v_act, nota_final)
@@ -1146,7 +977,7 @@ elif menu == "📝 Bitácora":
 
     with st.expander("📂 VER HISTORIAL COMPLETO DE ACTIVIDADES"):
         try:
-            res = supabase.table("bitacora").select("*").eq("productor_id", st.session_state.user_id).order("fecha", desc=True).execute()
+            res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
             if res.data:
                 df_bit = pd.DataFrame(res.data)
                 df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
@@ -1235,10 +1066,12 @@ elif menu == "🔍 Diagnóstico IA":
     if "foto_bytes" not in st.session_state:
         st.session_state.foto_bytes = None
 
+    # Cámara (funciona en móvil y desktop)
     img_camera = st.camera_input("📸 Capturar síntoma")
     if img_camera is not None:
         st.session_state.foto_bytes = img_camera.read()
 
+    # Galería solo para desktop
     st.markdown("**💻 Desde computadora podés subir una foto:**")
     img_upload = st.file_uploader("Seleccionar imagen", type=['jpg', 'jpeg', 'png'], key="uploader_galeria")
     if img_upload is not None:
