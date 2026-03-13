@@ -19,3 +19,4 @@ pyproj
 geopandas>=0.13
 fiona>=1.9
 extra-streamlit-components
+streamlit-cookies-controller
