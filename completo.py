@@ -39,8 +39,6 @@ except:
 
 # ==========================================================
 # 3. OCULTAR EL IFRAME BLANCO DE stx
-#    extra_streamlit_components renderiza un iframe invisible
-#    que genera la pantalla blanca. Lo ocultamos con CSS.
 # ==========================================================
 st.markdown("""
     <style>
@@ -52,13 +50,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 4. COOKIE MANAGER - instancia única con cache
+# 4. COOKIE MANAGER - en session_state para instancia única
 # ==========================================================
-@st.cache_resource
-def get_cookie_manager():
-    return stx.CookieManager(key="ag_cookie_manager")
+if "cookie_manager" not in st.session_state:
+    st.session_state.cookie_manager = stx.CookieManager(key="ag_cookie_manager")
 
-cookie_manager = get_cookie_manager()
+cookie_manager = st.session_state.cookie_manager
 
 # ==========================================================
 # 5. SESSION STATE
@@ -70,7 +67,7 @@ if "user_id" not in st.session_state:
 if "cookies_leidas" not in st.session_state:
     st.session_state.cookies_leidas = False
 
-# Leer cookies solo la primera vez por sesión de browser
+# Leer cookies solo la primera vez
 if not st.session_state.cookies_leidas:
     try:
         val_usuario = cookie_manager.get("ag_usuario")
@@ -135,7 +132,7 @@ def cerrar_sesion():
     st.session_state.user_id = None
     st.session_state.cookies_leidas = False
 
-    # 2. Expirar cookies (más confiable que .delete())
+    # 2. Expirar cookies con fecha pasada (más confiable que .delete())
     expired = datetime.now() - timedelta(days=1)
     try:
         cookie_manager.set("ag_usuario", "", expires_at=expired, key="expire_usuario")
@@ -152,7 +149,7 @@ def cerrar_sesion():
     st.rerun()
 
 # ==========================================================
-# 7. PANTALLA DE LOGIN (si no está logueado, para acá)
+# 7. PANTALLA DE LOGIN
 # ==========================================================
 if not st.session_state.usuario:
     st.markdown("""
@@ -227,6 +224,14 @@ if not st.session_state.usuario:
 
     st.stop()
 
+# ==========================================================
+# 8. APP PRINCIPAL (solo llega acá si está logueado)
+# ==========================================================
+# Tu código de la app va acá...
+# Botón de cerrar sesión en sidebar:
+# with st.sidebar:
+#     if st.button("Cerrar sesión"):
+#         cerrar_sesion()
 # ==========================================================
 # 8. APP PRINCIPAL (solo llega acá si está logueado)
 # ==========================================================
