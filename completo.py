@@ -50,7 +50,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 4. COOKIE MANAGER - en session_state para instancia única
+# 4. COOKIE MANAGER - instancia única en session_state
 # ==========================================================
 if "cookie_manager" not in st.session_state:
     st.session_state.cookie_manager = stx.CookieManager(key="ag_cookie_manager")
@@ -58,16 +58,25 @@ if "cookie_manager" not in st.session_state:
 cookie_manager = st.session_state.cookie_manager
 
 # ==========================================================
-# 5. SESSION STATE
+# 5. SESSION STATE + LECTURA DE COOKIES
+#
+#    stx necesita UN render previo antes de poder leer cookies.
+#    Usamos un flag de "primer render" para hacer el rerun
+#    automático y en el segundo render ya puede leer bien.
 # ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
+if "primer_render" not in st.session_state:
+    # Primera vez que carga: hacer rerun para que stx se inicialice
+    st.session_state.primer_render = True
+    st.rerun()
+
 if "cookies_leidas" not in st.session_state:
     st.session_state.cookies_leidas = False
 
-# Leer cookies solo la primera vez
+# En el segundo render, leer cookies
 if not st.session_state.cookies_leidas:
     try:
         val_usuario = cookie_manager.get("ag_usuario")
@@ -127,12 +136,11 @@ def registrar(email, password, nombre, campo, localidad):
 
 
 def cerrar_sesion():
-    # 1. Limpiar session_state
     st.session_state.usuario = None
     st.session_state.user_id = None
     st.session_state.cookies_leidas = False
+    st.session_state.primer_render = False
 
-    # 2. Expirar cookies con fecha pasada (más confiable que .delete())
     expired = datetime.now() - timedelta(days=1)
     try:
         cookie_manager.set("ag_usuario", "", expires_at=expired, key="expire_usuario")
@@ -140,7 +148,6 @@ def cerrar_sesion():
     except:
         pass
 
-    # 3. Cerrar sesión en Supabase
     try:
         supabase.auth.sign_out()
     except:
@@ -223,6 +230,15 @@ if not st.session_state.usuario:
                     st.rerun()
 
     st.stop()
+
+# ==========================================================
+# 8. APP PRINCIPAL (solo llega acá si está logueado)
+# ==========================================================
+# Tu código de la app va acá...
+# Botón de cerrar sesión en sidebar:
+# with st.sidebar:
+#     if st.button("Cerrar sesión"):
+#         cerrar_sesion()
 
 # ==========================================================
 # 8. APP PRINCIPAL (solo llega acá si está logueado)
