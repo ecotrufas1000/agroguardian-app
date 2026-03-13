@@ -109,11 +109,11 @@ if st.session_state.usuario is None:
                 st.rerun()
 
     with tab2:
-    col1, col2 = st.columns(2)
-    with col1:
-        nombre = st.text_input("Nombre completo", key="reg_nombre")
-        campo = st.text_input("Nombre del campo", key="reg_campo")
-        localidad = st.text_input("Localidad", key="reg_localidad")
+        col1, col2 = st.columns(2)
+        with col1:
+            nombre = st.text_input("Nombre completo", key="reg_nombre")
+            campo = st.text_input("Nombre del campo", key="reg_campo")
+            localidad = st.text_input("Localidad", key="reg_localidad")
     with col2:
         email_r = st.text_input("Email", key="reg_email")
         pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
