@@ -84,7 +84,7 @@ def cerrar_sesion():
 # ==========================================================
 # 5. PANTALLA DE LOGIN (si no está logueado, para acá)
 # ==========================================================
- 5. PANTALLA DE LOGIN (si no está logueado, para acá)
+# 5. PANTALLA DE LOGIN (si no está logueado, para acá)
 # ==========================================================
 if st.session_state.usuario is None:
     st.markdown("""
