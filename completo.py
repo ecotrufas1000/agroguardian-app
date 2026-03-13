@@ -1,4 +1,7 @@
 import streamlit as st
+import extra_streamlit_components as stx
+from datetime import datetime, timedelta
+
 from google import genai
 import requests
 import json
@@ -11,29 +14,27 @@ import urllib.parse
 import base64
 from io import BytesIO
 from supabase import create_client
-from streamlit_folium import folium_static
+from streamlit_folium import folium_static, st_folium
 import folium
-import extra_streamlit_components as stx
-from datetime import datetime, timedelta
-cookie_manager = stx.CookieManager()
-import extra_streamlit_components as stx
-
-cookie_manager = stx.CookieManager()
-
-if "usuario" not in st.session_state:
-    st.session_state.usuario = cookie_manager.get("ag_usuario")
-
-if "user_id" not in st.session_state:
-    st.session_state.user_id = cookie_manager.get("ag_user_id")
-
-from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from datetime import datetime, timedelta
+
+
+# ==========================================================
+# COOKIE MANAGER
+# ==========================================================
+
+cookie_manager = stx.CookieManager(key="cookie_manager")
+
+if "usuario" not in st.session_state:
+    st.session_state.usuario = cookie_manager.get("ag_usuario")
+
+if "user_id" not in st.session_state:
+    st.session_state.user_id = cookie_manager.get("ag_user_id")
 
 # ==========================================================
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
