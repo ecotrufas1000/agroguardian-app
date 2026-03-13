@@ -38,24 +38,22 @@ except:
     st.stop()
 
 # ==========================================================
-# 3. SESSION STATE - LOGIN
+import extra_streamlit_components as stx
+
 # ==========================================================
+# 3. SESSION STATE - LOGIN CON COOKIES
+# ==========================================================
+cookie_manager = stx.CookieManager()
+
 if "usuario" not in st.session_state:
-    st.session_state.usuario = None
+    st.session_state.usuario = cookie_manager.get("ag_usuario")
 if "user_id" not in st.session_state:
-    st.session_state.user_id = None
-# Recuperar sesión guardada
-if st.session_state.usuario is None:
-    try:
-        session = supabase.auth.get_session()
-        if session and session.user:
-            st.session_state.usuario = session.user.email
-            st.session_state.user_id = session.user.id
-    except:
-        pass
+    st.session_state.user_id = cookie_manager.get("ag_user_id")
 # ==========================================================
 # 4. FUNCIONES DE LOGIN
 # ==========================================================
+cookie_manager.set("ag_usuario", res.user.email, expires_at=datetime.now() + datetime.timedelta(days=30))
+cookie_manager.set("ag_user_id", res.user.id, expires_at=datetime.now() + datetime.timedelta(days=30))
 def login(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
@@ -84,6 +82,8 @@ def registrar(email, password, nombre, campo, localidad):
         return False
 
 def cerrar_sesion():
+    cookie_manager.delete("ag_usuario")
+    cookie_manager.delete("ag_user_id")
     supabase.auth.sign_out()
     st.session_state.usuario = None
     st.session_state.user_id = None
