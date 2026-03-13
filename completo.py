@@ -79,6 +79,7 @@ def registrar(email, password, nombre, campo, localidad):
         st.session_state.user_id = user_id
         cookie_manager.set("ag_usuario", email, expires_at=datetime.now() + timedelta(days=30))
         cookie_manager.set("ag_user_id", user_id, expires_at=datetime.now() + timedelta(days=30))
+        st.write("DEBUG:", res.user.email, res.user.id)
         return True
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
