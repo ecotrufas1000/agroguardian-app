@@ -23,9 +23,6 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 from datetime import datetime
 # Dentro del with st.sidebar:
-st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
-if st.button("🚪 Cerrar sesión"):
-    cerrar_sesion()
 # ==========================================================
 # CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
