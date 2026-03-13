@@ -84,6 +84,8 @@ def cerrar_sesion():
 # ==========================================================
 # 5. PANTALLA DE LOGIN (si no está logueado, para acá)
 # ==========================================================
+ 5. PANTALLA DE LOGIN (si no está logueado, para acá)
+# ==========================================================
 if st.session_state.usuario is None:
     st.markdown("""
         <style>
@@ -163,6 +165,7 @@ if st.session_state.usuario is None:
                 st.success("✅ Cuenta creada. Podés iniciar sesión.")
                 st.rerun()
     st.stop()  # No muestra nada más si no está logueado
+
 
 # ==========================================================
 # 6. PWA / META TAGS (solo si está logueado)
