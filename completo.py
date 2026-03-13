@@ -102,11 +102,14 @@ if st.session_state.usuario is None:
     tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
 
     with tab1:
-        email = st.text_input("Email", key="login_email")
+        col1, col2 = st.columns(2)
+        with col1:
+            email = st.text_input("Email", key="login_email")
+    with col2:
         password = st.text_input("Contraseña", type="password", key="login_pass")
-        if st.button("INGRESAR", use_container_width=True):
-            if login(email, password):
-                st.rerun()
+    if st.button("INGRESAR", use_container_width=True):
+        if login(email, password):
+            st.rerun()
 
     with tab2:
         col1, col2 = st.columns(2)
