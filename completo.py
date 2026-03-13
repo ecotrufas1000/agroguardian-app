@@ -985,8 +985,6 @@ elif menu == "⛈️ Radar Granizo":
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
 
 # ==========================================================
-# MENÚ: ANÁLISIS DE HELADAS
-# ==========================================================
 elif menu == "❄️ Análisis de Heladas":
     st.markdown("<h2 style='font-size: 24px;'>❄️ Heladas Agrometeorológicas</h2>", unsafe_allow_html=True)
 
@@ -1040,7 +1038,8 @@ elif menu == "❄️ Análisis de Heladas":
     st.divider()
 
     try:
-        res_h = supabase.table("registros_heladas").select("*").execute()
+        # FILTRAR POR USUARIO LOGUEADO
+        res_h = supabase.table("registros_heladas").select("*").eq("productor_id", st.session_state.user_id).execute()
         df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
 
         if res_h.data:
@@ -1083,7 +1082,12 @@ elif menu == "❄️ Análisis de Heladas":
         if submitted:
             try:
                 val_int = float(nueva_int.replace(',', '.'))
-                supabase.table("registros_heladas").insert({"Fecha": nueva_fecha.isoformat(), "Intensidad": val_int, "Duracion": nueva_dur}).execute()
+                supabase.table("registros_heladas").insert({
+                    "Fecha": nueva_fecha.isoformat(),
+                    "Intensidad": val_int,
+                    "Duracion": nueva_dur,
+                    "productor_id": st.session_state.user_id  # ← asociar al usuario
+                }).execute()
                 st.success("✅ ¡Registrada!")
                 st.rerun()
             except ValueError:
@@ -1093,7 +1097,12 @@ elif menu == "❄️ Análisis de Heladas":
             st.info("Para borrar: Seleccioná la fila y tocá la papelera 🗑️ arriba de la tabla.")
             df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
             edited_h = st.data_editor(df_display, key="visor_heladas", num_rows="dynamic", use_container_width=True,
-                column_config={"Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"), "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"), "Duracion": None, "id": None})
+                column_config={
+                    "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
+                    "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
+                    "Duracion": None,
+                    "id": None
+                })
             if len(edited_h) < len(df_display):
                 ids_originales = set(df_display['id'].dropna().tolist())
                 ids_actuales = set(edited_h['id'].dropna().tolist())
@@ -1103,7 +1112,6 @@ elif menu == "❄️ Análisis de Heladas":
 
     except Exception as e:
         st.error(f"Error en el módulo: {e}")
-
 # ==========================================================
 # MENÚ: BITÁCORA
 # ==========================================================
