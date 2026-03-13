@@ -4,7 +4,6 @@ import requests
 import json
 import os
 import math
-import datetime
 import pandas as pd
 import io
 import plotly.express as px
@@ -21,15 +20,15 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from datetime import datetime
-# Dentro del with st.sidebar:
+from datetime import datetime, timedelta
+
 # ==========================================================
-# CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
+# 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
 
 # ==========================================================
-# SUPABASE - CONEXIÓN
+# 2. SUPABASE
 # ==========================================================
 try:
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
@@ -38,14 +37,31 @@ except:
     st.stop()
 
 # ==========================================================
-# LOGIN / REGISTRO
+# 3. SESSION STATE — inicializar siempre primero
 # ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
+if "cerrando_sesion" not in st.session_state:
+    st.session_state.cerrando_sesion = False
 
-# Leer localStorage solo si no hay sesión activa
+# ==========================================================
+# 4. LIMPIAR localStorage si se está cerrando sesión
+#    (debe ir ANTES de leer localStorage)
+# ==========================================================
+if st.session_state.cerrando_sesion:
+    streamlit_js_eval(
+        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
+        key="ls_remove_sesion"
+    )
+    st.session_state.cerrando_sesion = False
+    st.stop()  # Detiene acá, el próximo rerun arranca limpio
+
+# ==========================================================
+# 5. RESTAURAR SESIÓN DESDE localStorage
+#    Solo si no hay sesión activa y no se está cerrando
+# ==========================================================
 if st.session_state.usuario is None:
     val_usuario = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_usuario")',
@@ -60,9 +76,9 @@ if st.session_state.usuario is None:
         st.session_state.user_id = val_user_id
         st.rerun()
 
-# ================================================================
-# FUNCIONES DE AUTH
-# ================================================================
+# ==========================================================
+# 6. FUNCIONES DE AUTH
+# ==========================================================
 def login(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
@@ -76,6 +92,7 @@ def login(email, password):
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
         return False
+
 
 def registrar(email, password, nombre, campo, localidad):
     try:
@@ -98,26 +115,28 @@ def registrar(email, password, nombre, campo, localidad):
         st.error(f"❌ Error al registrarse: {e}")
         return False
 
+
 def cerrar_sesion():
     st.session_state.usuario = None
     st.session_state.user_id = None
+    st.session_state.cerrando_sesion = True  # activa limpieza de localStorage
     try:
         supabase.auth.sign_out()
     except:
         pass
-    st.rerun()
+    st.rerun()  # vuelve arriba, paso 4 limpia localStorage y hace st.stop()
 
-# ================================================================
-# PANTALLA DE LOGIN — solo si no está logueado
-# ================================================================
+# ==========================================================
+# 7. PANTALLA DE LOGIN
+# ==========================================================
 if st.session_state.usuario is None:
 
-    # CSS fondo oscuro — aplicado DENTRO del bloque de login
     st.markdown("""
         <style>
             .stApp { background-color: #0d1117 !important; }
             section[data-testid="stSidebar"] { display: none !important; }
-            h1, h2, h3, p, label, div { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
+            header[data-testid="stHeader"] { background: #0d1117 !important; }
+            h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
             .stTextInput > div > div > input {
                 background-color: #161b22 !important;
                 color: #00ffc3 !important;
@@ -139,8 +158,6 @@ if st.session_state.usuario is None:
                 color: #00ffc3 !important;
                 font-family: monospace !important;
             }
-            /* Ocultar header de Streamlit en login */
-            header[data-testid="stHeader"] { background: #0d1117 !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -186,16 +203,16 @@ if st.session_state.usuario is None:
                     st.success("✅ Cuenta creada correctamente")
                     st.rerun()
 
-    st.stop()  # ← Nada de la app principal se renderiza si no está logueado
+    st.stop()
 
-# ================================================================
-# APP PRINCIPAL — solo llega acá si está logueado
-# El sidebar va ACÁ, después del st.stop()
-# ================================================================
+# ==========================================================
+# 8. APP PRINCIPAL — solo llega acá si está logueado
+# ==========================================================
 with st.sidebar:
-    st.markdown(f"👤 **{st.session_state.usuario}**")
+    st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
     if st.button("🚪 Cerrar sesión"):
-        st.session_state.cerrar = True
+        cerrar_sesion()
+
 
 # Ejecutar el JS de localStorage fuera del botón
 if st.session_state.get("cerrar"):
