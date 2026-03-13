@@ -598,74 +598,84 @@ if menu == "📊 Monitoreo Total":
         st.info("📍 Vinculá el GPS para activar el monitoreo en tiempo real.")
 
 # ==========================================================
-# MENÚ: PLUVIÓMETRO
-# ==========================================================
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
     st.markdown("""
-<style>
+    <style>
+    [data-testid="stMetric"] {
+        background-color: #0e1117;
+        border: 1px solid #00ffc3;
+        border-radius: 12px;
+        padding: 15px;
+    }
+    [data-testid="stMetricLabel"] { color: #00ffc3 !important; }
+    [data-testid="stMetricValue"] { color: #00ffc3 !important; font-weight: bold; }
+    .stButton > button {
+        background-color: #0e1117 !important;
+        color: #00ffc3 !important;
+        border: 1px solid #00ffc3 !important;
+        border-radius: 10px !important;
+        font-weight: bold;
+    }
+    .stButton > button:hover {
+        background-color: #00ffc3 !important;
+        color: #0e1117 !important;
+    }
+    .stDownloadButton > button {
+        background-color: #0e1117 !important;
+        color: #00ffc3 !important;
+        border: 1px solid #00ffc3 !important;
+        border-radius: 10px !important;
+        font-weight: bold;
+    }
+    .stDownloadButton > button:hover {
+        background-color: #00ffc3 !important;
+        color: #0e1117 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-/* TARJETAS MÉTRICAS (igual que Monitoreo) */
-[data-testid="stMetric"] {
-    background-color: #0e1117;
-    border: 1px solid #00ffc3;
-    border-radius: 12px;
-    padding: 15px;
-}
+    # --- FORMULARIO DE CARGA MANUAL ---
+    st.subheader("➕ Registrar Lluvia Manual")
+    with st.form("form_lluvia", clear_on_submit=True):
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            fecha_input = st.date_input("📅 Fecha", value=datetime.now().date())
+        with col_f2:
+            mm_input = st.number_input("💧 Milímetros (mm)", min_value=0.0, step=0.5, format="%.1f")
+        with col_f3:
+            lote_input = st.text_input("🗺️ Lote / Sector", placeholder="Ej: Lote 3")
+        submitted = st.form_submit_button("💾 GUARDAR REGISTRO", use_container_width=True)
+        if submitted:
+            try:
+                supabase.table("registros_lluvia").insert({
+                    "fecha": fecha_input.isoformat(),
+                    "mm": mm_input,
+                    "lote": lote_input if lote_input else "Sin lote",
+                    "productor_id": st.session_state.user_id
+                }).execute()
+                st.success(f"✅ Registrado: {mm_input:.1f} mm el {fecha_input.strftime('%d/%m/%Y')}")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error al guardar: {e}")
 
-/* TEXTO MÉTRICAS */
-[data-testid="stMetricLabel"] {
-    color: #00ffc3 !important;
-}
+    st.divider()
 
-[data-testid="stMetricValue"] {
-    color: #00ffc3 !important;
-    font-weight: bold;
-}
-
-/* BOTONES */
-.stButton > button {
-    background-color: #0e1117 !important;
-    color: #00ffc3 !important;
-    border: 1px solid #00ffc3 !important;
-    border-radius: 10px !important;
-    font-weight: bold;
-}
-
-.stButton > button:hover {
-    background-color: #00ffc3 !important;
-    color: #0e1117 !important;
-}
-
-/* BOTÓN DESCARGA */
-.stDownloadButton > button {
-    background-color: #0e1117 !important;
-    color: #00ffc3 !important;
-    border: 1px solid #00ffc3 !important;
-    border-radius: 10px !important;
-    font-weight: bold;
-}
-
-.stDownloadButton > button:hover {
-    background-color: #00ffc3 !important;
-    color: #0e1117 !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
     try:
+        # FILTRAR POR USUARIO LOGUEADO
         res = supabase.table("registros_lluvia").select("*").eq("productor_id", st.session_state.user_id).execute()
 
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'], format='mixed', utc=True)
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
-            from datetime import datetime, timezone
+            from datetime import timezone
             hoy = datetime.now(timezone.utc)
 
             df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
             df_año = df[df['fecha'].dt.year == hoy.year].copy()
 
+            # --- MÉTRICAS ---
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("💧 Este Mes", f"{df_mes['mm'].sum():.1f} mm")
             c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
@@ -702,7 +712,10 @@ elif menu == "🌧️ Pluviómetro":
 
             st.markdown(f"""
                 <a href="{wa_url}" target="_blank" style="text-decoration: none;">
-                    <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-family: 'Segoe UI'; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0px 6px 15px rgba(0,0,0,0.4);">
+                    <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px;
+                        text-align: center; font-weight: bold; font-family: 'Segoe UI';
+                        display: flex; align-items: center; justify-content: center; gap: 12px;
+                        box-shadow: 0px 6px 15px rgba(0,0,0,0.4);">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="25px">
                         ENVIAR REPORTE + TABLA DIARIA
                     </div>
@@ -712,7 +725,11 @@ elif menu == "🌧️ Pluviómetro":
             st.divider()
 
             # --- GRÁFICOS ---
-            estilo_grafico = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#00ffc3"), height=350, margin=dict(l=10, r=10, t=30, b=20))
+            estilo_grafico = dict(
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#00ffc3"), height=350,
+                margin=dict(l=10, r=10, t=30, b=20)
+            )
 
             st.subheader(f"📅 Detalle Diario — {hoy.strftime('%B %Y')}")
             df_mes['dia'] = df_mes['fecha'].dt.day
@@ -726,14 +743,15 @@ elif menu == "🌧️ Pluviómetro":
             meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
             mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             df_anual = pd.DataFrame({'Mes': meses_nombres, 'Prec_mm': mensual.values})
-            fig2 = px.bar(df_anual, x='Mes', y='Prec_mm', template="plotly_dark", text_auto='.1f', title="Distribución de Lluvias por Mes")
+            fig2 = px.bar(df_anual, x='Mes', y='Prec_mm', template="plotly_dark",
+                          text_auto='.1f', title="Distribución de Lluvias por Mes")
             fig2.update_traces(marker_color='#00ffc3', textposition="outside")
             fig2.update_layout(**estilo_grafico)
             st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
 
             st.divider()
 
-            # --- GENERAR EXCEL ---
+            # --- EXCEL ---
             df_excel = df.copy().sort_values('fecha', ascending=False)
             df_excel['fecha'] = df_excel['fecha'].dt.tz_convert(None)
             output = io.BytesIO()
@@ -779,8 +797,6 @@ elif menu == "🌧️ Pluviómetro":
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-            
-
             st.download_button(
                 label="📥 DESCARGAR EXCEL",
                 data=excel_data,
@@ -789,9 +805,8 @@ elif menu == "🌧️ Pluviómetro":
                 use_container_width=True
             )
 
-            # --- BORRADOR ---
+            # --- ELIMINAR REGISTRO ---
             st.divider()
-
             opciones = {}
             for _, row in df_editable.iterrows():
                 try:
@@ -804,7 +819,11 @@ elif menu == "🌧️ Pluviómetro":
                 key = f"{fecha_str} — {row['lote']} — {row['mm']:.1f} mm"
                 opciones[key] = row['id']
 
-            fila_seleccionada = st.selectbox("Seleccioná el registro a eliminar:", options=list(opciones.keys()), key="selector_borrar")
+            fila_seleccionada = st.selectbox(
+                "Seleccioná el registro a eliminar:",
+                options=list(opciones.keys()),
+                key="selector_borrar"
+            )
 
             if st.button("🗑️ ELIMINAR ESTE REGISTRO", type="primary", use_container_width=True):
                 try:
@@ -815,7 +834,7 @@ elif menu == "🌧️ Pluviómetro":
                 except Exception as e:
                     st.error(f"Error al eliminar: {e}")
 
-            # --- REGISTRO AUTOMÁTICO SATELITAL ---
+            # --- REGISTRO SATELITAL ---
             st.divider()
             st.markdown("### 🛰️ Registro Automático desde Satélite")
             col_auto1, col_auto2 = st.columns([2, 1])
@@ -830,13 +849,20 @@ elif menu == "🌧️ Pluviómetro":
                         lat_auto = LAT if LAT else -38.29
                         lon_auto = LON if LON else -57.55
                         hoy_fecha = date.today().isoformat()
-                        url_meteo = (f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&daily=precipitation_sum&timezone=America/Argentina/Buenos_Aires&start_date={hoy_fecha}&end_date={hoy_fecha}")
+                        url_meteo = (
+                            f"https://api.open-meteo.com/v1/forecast?"
+                            f"latitude={lat_auto}&longitude={lon_auto}"
+                            f"&daily=precipitation_sum"
+                            f"&timezone=America/Argentina/Buenos_Aires"
+                            f"&start_date={hoy_fecha}&end_date={hoy_fecha}"
+                        )
                         r = requests.get(url_meteo).json()
                         mm_hoy = r['daily']['precipitation_sum'][0] or 0.0
                         supabase.table("registros_lluvia").insert({
                             "fecha": hoy_fecha,
                             "mm": mm_hoy,
-                            "lote": "🛰️ Automático (Open-Meteo)","productor_id": st.session_state.user_id
+                            "lote": "🛰️ Automático (Open-Meteo)",
+                            "productor_id": st.session_state.user_id
                         }).execute()
                         st.success(f"✅ Registrado: {mm_hoy:.1f} mm para hoy")
                         st.rerun()
@@ -850,14 +876,25 @@ elif menu == "🌧️ Pluviómetro":
                     lon_auto = LON if LON else -57.55
                     fecha_fin = date.today().isoformat()
                     fecha_ini = (date.today() - timedelta(days=7)).isoformat()
-                    url_meteo = (f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&daily=precipitation_sum&timezone=America/Argentina/Buenos_Aires&start_date={fecha_ini}&end_date={fecha_fin}")
+                    url_meteo = (
+                        f"https://api.open-meteo.com/v1/forecast?"
+                        f"latitude={lat_auto}&longitude={lon_auto}"
+                        f"&daily=precipitation_sum"
+                        f"&timezone=America/Argentina/Buenos_Aires"
+                        f"&start_date={fecha_ini}&end_date={fecha_fin}"
+                    )
                     r = requests.get(url_meteo).json()
                     fechas = r['daily']['time']
                     lluvias = r['daily']['precipitation_sum']
                     registros = 0
                     for fecha, mm in zip(fechas, lluvias):
                         if mm and mm > 0:
-                            supabase.table("registros_lluvia").insert({"fecha": hoy_fecha, "mm": mm_hoy, "lote": "🛰️ Automático (Open-Meteo)", "productor_id": st.session_state.user_id}).execute()
+                            supabase.table("registros_lluvia").insert({
+                                "fecha": fecha,
+                                "mm": mm,
+                                "lote": "🛰️ Automático (Open-Meteo)",
+                                "productor_id": st.session_state.user_id
+                            }).execute()
                             registros += 1
                     st.success(f"✅ Importados {registros} días con lluvia")
                     st.rerun()
@@ -865,12 +902,10 @@ elif menu == "🌧️ Pluviómetro":
                     st.error(f"Error: {e}")
 
         else:
-            st.info("🛰️ No hay registros de lluvia cargados todavía.")
+            st.info("🌧️ Todavía no tenés registros de lluvia. Usá el formulario de arriba para cargar el primero.")
 
     except Exception as e:
-        st.error(f"Error al procesar los datos de lluvia: {e}")
-
-# ==========================================================
+        st.error(f"Error al procesar los datos de lluvia: {e}")# ==========================================================
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
 elif menu == "💧 Balance Hídrico":
