@@ -438,7 +438,7 @@ elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
     st.markdown("""
 <style>
-
+usuario_id = st.session_state.get("usuario_id", "demo_user")
 /* TARJETAS MÉTRICAS (igual que Monitoreo) */
 [data-testid="stMetric"] {
     background-color: #0e1117;
@@ -488,8 +488,13 @@ elif menu == "🌧️ Pluviómetro":
 </style>
 """, unsafe_allow_html=True)
     try:
-        res = supabase.table("registros_lluvia").select("*").execute()
+        #res = supabase.table("registros_lluvia").select("*").execute()
+        usuario_id = st.session_state.get("usuario_id", "demo_user")
 
+        res = supabase.table("registros_lluvia") \
+        .select("*") \
+        .eq("productor_id", usuario_id) \
+        .execute()
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
             df['fecha'] = pd.to_datetime(df['fecha'], format='mixed', utc=True)
@@ -667,7 +672,14 @@ elif menu == "🌧️ Pluviómetro":
                         url_meteo = (f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&daily=precipitation_sum&timezone=America/Argentina/Buenos_Aires&start_date={hoy_fecha}&end_date={hoy_fecha}")
                         r = requests.get(url_meteo).json()
                         mm_hoy = r['daily']['precipitation_sum'][0] or 0.0
-                        supabase.table("registros_lluvia").insert({"fecha": hoy_fecha, "mm": mm_hoy, "lote": "🛰️ Automático (Open-Meteo)"}).execute()
+                        #supabase.table("registros_lluvia").insert({"fecha": hoy_fecha, "mm": mm_hoy, "lote": "🛰️ Automático (Open-Meteo)"}).execute()
+                        usuario_id = st.session_state.get("usuario_id", "demo_user")
+                        supabase.table("registros_lluvia").insert({
+                            "fecha": hoy_fecha,
+                            "mm": mm_hoy,
+                            "lote": "🛰️ Automático (Open-Meteo)",
+                            "productor_id": usuario_id
+                        }).execute()
                         st.success(f"✅ Registrado: {mm_hoy:.1f} mm para hoy")
                         st.rerun()
                     except Exception as e:
