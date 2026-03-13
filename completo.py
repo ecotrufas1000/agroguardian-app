@@ -857,7 +857,7 @@ elif menu == "🌧️ Pluviómetro":
                     registros = 0
                     for fecha, mm in zip(fechas, lluvias):
                         if mm and mm > 0:
-                            supabase.table("registros_lluvia").insert({"fecha": fecha, "mm": mm, "lote": "🛰️ Automático (Open-Meteo), "productor_id": st.session_state.user_id"}).execute()
+                            supabase.table("registros_lluvia").insert({"fecha": hoy_fecha, "mm": mm_hoy, "lote": "🛰️ Automático (Open-Meteo)", "productor_id": st.session_state.user_id}).execute()
                             registros += 1
                     st.success(f"✅ Importados {registros} días con lluvia")
                     st.rerun()
