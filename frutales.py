@@ -106,6 +106,20 @@ def generar_pdf(texto_analisis, nombre_imagen="muestra"):
     from reportlab.platypus import Image as RLImage, Table, TableStyle
     import urllib.request
     import io as io_module
+    def obtener_pronostico(lat, lon):
+
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=temperature_2m,dewpoint_2m,windspeed_10m&forecast_days=1"
+
+    r = requests.get(url)
+
+    data = r.json()
+
+    temps = data["hourly"]["temperature_2m"]
+    dew = data["hourly"]["dewpoint_2m"]
+    wind = data["hourly"]["windspeed_10m"]
+    time = data["hourly"]["time"]
+
+    return temps, dew, wind, time
 
     try:
         logo_url = "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png"
