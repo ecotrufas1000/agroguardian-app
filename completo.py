@@ -4,7 +4,6 @@ import requests
 import json
 import os
 import math
-import datetime
 import pandas as pd
 import io
 import plotly.express as px
@@ -22,6 +21,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from datetime import datetime, timedelta
+import extra_streamlit_components as stx
 
 # ==========================================================
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
@@ -38,36 +38,53 @@ except:
     st.stop()
 
 # ==========================================================
-# 3. SESSION STATE - LOGIN CON COOKIES
-#    Usamos streamlit-cookies-controller en lugar de
-#    extra_streamlit_components para evitar el iframe blanco
-#    y los bugs con delete().
-#    Instalá con: pip install streamlit-cookies-controller
+# 3. OCULTAR EL IFRAME BLANCO DE stx
+#    extra_streamlit_components renderiza un iframe invisible
+#    que genera la pantalla blanca. Lo ocultamos con CSS.
 # ==========================================================
-from streamlit_cookies_controller import CookieController
+st.markdown("""
+    <style>
+        iframe[title="extra_streamlit_components.CookieManager.cookie_manager"] {
+            display: none !important;
+            height: 0 !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-cookie_manager = CookieController()
+# ==========================================================
+# 4. COOKIE MANAGER - instancia única con cache
+# ==========================================================
+@st.cache_resource
+def get_cookie_manager():
+    return stx.CookieManager(key="ag_cookie_manager")
 
-# Inicializar session_state con valores por defecto
+cookie_manager = get_cookie_manager()
+
+# ==========================================================
+# 5. SESSION STATE
+# ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
-if "cookies_cargadas" not in st.session_state:
-    st.session_state.cookies_cargadas = False
+if "cookies_leidas" not in st.session_state:
+    st.session_state.cookies_leidas = False
 
-# Leer cookies solo una vez al inicio (no sobreescribir si ya hay sesión activa)
-if not st.session_state.cookies_cargadas:
-    cookie_usuario = cookie_manager.get("ag_usuario")
-    cookie_user_id = cookie_manager.get("ag_user_id")
-    if cookie_usuario:
-        st.session_state.usuario = cookie_usuario
-    if cookie_user_id:
-        st.session_state.user_id = cookie_user_id
-    st.session_state.cookies_cargadas = True
+# Leer cookies solo la primera vez por sesión de browser
+if not st.session_state.cookies_leidas:
+    try:
+        val_usuario = cookie_manager.get("ag_usuario")
+        val_user_id = cookie_manager.get("ag_user_id")
+        if val_usuario:
+            st.session_state.usuario = val_usuario
+        if val_user_id:
+            st.session_state.user_id = val_user_id
+    except:
+        pass
+    st.session_state.cookies_leidas = True
 
 # ==========================================================
-# 4. FUNCIONES DE LOGIN
+# 6. FUNCIONES DE AUTH
 # ==========================================================
 def login(email, password):
     try:
@@ -78,9 +95,8 @@ def login(email, password):
         st.session_state.user_id = res.user.id
 
         expires = datetime.now() + timedelta(days=30)
-        cookie_manager.set("ag_usuario", res.user.email, expires=expires)
-        cookie_manager.set("ag_user_id", res.user.id, expires=expires)
-
+        cookie_manager.set("ag_usuario", res.user.email, expires_at=expires, key="set_usuario_login")
+        cookie_manager.set("ag_user_id", res.user.id, expires_at=expires, key="set_user_id_login")
         return True
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
@@ -105,9 +121,8 @@ def registrar(email, password, nombre, campo, localidad):
         st.session_state.user_id = user_id
 
         expires = datetime.now() + timedelta(days=30)
-        cookie_manager.set("ag_usuario", email, expires=expires)
-        cookie_manager.set("ag_user_id", user_id, expires=expires)
-
+        cookie_manager.set("ag_usuario", email, expires_at=expires, key="set_usuario_reg")
+        cookie_manager.set("ag_user_id", user_id, expires_at=expires, key="set_user_id_reg")
         return True
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
@@ -115,22 +130,29 @@ def registrar(email, password, nombre, campo, localidad):
 
 
 def cerrar_sesion():
-    # Limpiar session_state
+    # 1. Limpiar session_state
     st.session_state.usuario = None
     st.session_state.user_id = None
-    st.session_state.cookies_cargadas = False
+    st.session_state.cookies_leidas = False
 
-    # Eliminar cookies seteándolas con expiración en el pasado
-    expires_pasado = datetime.now() - timedelta(days=1)
-    cookie_manager.set("ag_usuario", "", expires=expires_pasado)
-    cookie_manager.set("ag_user_id", "", expires=expires_pasado)
+    # 2. Expirar cookies (más confiable que .delete())
+    expired = datetime.now() - timedelta(days=1)
+    try:
+        cookie_manager.set("ag_usuario", "", expires_at=expired, key="expire_usuario")
+        cookie_manager.set("ag_user_id", "", expires_at=expired, key="expire_user_id")
+    except:
+        pass
 
-    supabase.auth.sign_out()
+    # 3. Cerrar sesión en Supabase
+    try:
+        supabase.auth.sign_out()
+    except:
+        pass
+
     st.rerun()
 
-
 # ==========================================================
-# 5. PANTALLA DE LOGIN (si no está logueado, para acá)
+# 7. PANTALLA DE LOGIN (si no está logueado, para acá)
 # ==========================================================
 if not st.session_state.usuario:
     st.markdown("""
@@ -158,9 +180,6 @@ if not st.session_state.usuario:
                 color: #00ffc3 !important;
                 font-family: monospace !important;
             }
-            .stTabs [data-baseweb="tab-panel"] {
-                background-color: #0d1117 !important;
-            }
         </style>
     """, unsafe_allow_html=True)
 
@@ -176,7 +195,6 @@ if not st.session_state.usuario:
 
     tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
 
-    # ── Tab Login ──────────────────────────────────────────
     with tab1:
         col1, col2 = st.columns(2)
         with col1:
@@ -187,7 +205,6 @@ if not st.session_state.usuario:
             if login(email, password):
                 st.rerun()
 
-    # ── Tab Registro ───────────────────────────────────────
     with tab2:
         col1, col2 = st.columns(2)
         with col1:
@@ -210,6 +227,14 @@ if not st.session_state.usuario:
 
     st.stop()
 
+# ==========================================================
+# 8. APP PRINCIPAL (solo llega acá si está logueado)
+# ==========================================================
+# Tu código de la app va acá...
+# Botón de cerrar sesión en sidebar:
+# with st.sidebar:
+#     if st.button("Cerrar sesión"):
+#         cerrar_sesion()
 # ==========================================================
 # 6. APP PRINCIPAL (solo llega acá si está logueado)
 # ==========================================================
