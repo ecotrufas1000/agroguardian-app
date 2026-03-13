@@ -93,10 +93,13 @@ if st.session_state.usuario is None:
     """, unsafe_allow_html=True)
 
     st.markdown("""
-        <div style='text-align:center; padding:40px;'>
-            <h1 style='color:#00ffc3; font-family:monospace;'> AgroGuardian</h1>
-            <p style='color:#888; font-family:monospace;'>Precision Lab v2.6</p>
+    <div style='text-align:center; padding:40px;'>
+        <div style='display:flex; align-items:center; justify-content:center; gap:12px;'>
+            <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
+            <h1 style='color:#00ffc3; font-family:monospace; margin:0;'>AgroGuardian</h1>
         </div>
+        <p style='color:#888; font-family:monospace;'>Precision Lab v2.6</p>
+    </div>
     """, unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
