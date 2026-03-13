@@ -842,9 +842,19 @@ elif menu == "❄️ Análisis de Heladas":
     st.divider()
 
     try:
-        res_h = supabase.table("registros_heladas").select("*").execute()
-        df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
+        #res_h = supabase.table("registros_heladas").select("*").execute()
+        #df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
+        # SELECT - filtrar por usuario
+        res_h = supabase.table("registros_heladas").select("*").eq("productor_id", st.session_state.user_id).execute()
 
+        # INSERT - agregar productor_id
+        supabase.table("registros_heladas").insert({
+            "Fecha": nueva_fecha.isoformat(),
+            "Intensidad": val_int,
+            "Duracion": nueva_dur,
+            "productor_id": st.session_state.user_id
+        }).execute()
+    
         if res_h.data:
             df_temp = pd.DataFrame(res_h.data)
             if 'Fecha' in df_temp.columns:
