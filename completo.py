@@ -21,7 +21,6 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from datetime import datetime, timedelta
-import extra_streamlit_components as stx
 
 # ==========================================================
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
@@ -38,59 +37,32 @@ except:
     st.stop()
 
 # ==========================================================
-# 3. OCULTAR EL IFRAME BLANCO DE stx
+# 3. COOKIES - streamlit-cookies-controller
+#    No genera iframe visible, no tiene bugs de cache.
+#    pip install streamlit-cookies-controller
 # ==========================================================
-st.markdown("""
-    <style>
-        iframe[title="extra_streamlit_components.CookieManager.cookie_manager"] {
-            display: none !important;
-            height: 0 !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
+from streamlit_cookies_controller import CookieController
+
+cookies = CookieController()
 
 # ==========================================================
-# 4. COOKIE MANAGER - instancia única en session_state
-# ==========================================================
-if "cookie_manager" not in st.session_state:
-    st.session_state.cookie_manager = stx.CookieManager(key="ag_cookie_manager")
-
-cookie_manager = st.session_state.cookie_manager
-
-# ==========================================================
-# 5. SESSION STATE + LECTURA DE COOKIES
-#
-#    stx necesita UN render previo antes de poder leer cookies.
-#    Usamos un flag de "primer render" para hacer el rerun
-#    automático y en el segundo render ya puede leer bien.
+# 4. SESSION STATE
 # ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
-if "primer_render" not in st.session_state:
-    # Primera vez que carga: hacer rerun para que stx se inicialice
-    st.session_state.primer_render = True
-    st.rerun()
 
-if "cookies_leidas" not in st.session_state:
-    st.session_state.cookies_leidas = False
-
-# En el segundo render, leer cookies
-if not st.session_state.cookies_leidas:
-    try:
-        val_usuario = cookie_manager.get("ag_usuario")
-        val_user_id = cookie_manager.get("ag_user_id")
-        if val_usuario:
-            st.session_state.usuario = val_usuario
-        if val_user_id:
-            st.session_state.user_id = val_user_id
-    except:
-        pass
-    st.session_state.cookies_leidas = True
+# Restaurar sesión desde cookies si session_state está vacío
+if st.session_state.usuario is None:
+    val_usuario = cookies.get("ag_usuario")
+    val_user_id = cookies.get("ag_user_id")
+    if val_usuario:
+        st.session_state.usuario = val_usuario
+        st.session_state.user_id = val_user_id
 
 # ==========================================================
-# 6. FUNCIONES DE AUTH
+# 5. FUNCIONES DE AUTH
 # ==========================================================
 def login(email, password):
     try:
@@ -99,10 +71,8 @@ def login(email, password):
         )
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
-
-        expires = datetime.now() + timedelta(days=30)
-        cookie_manager.set("ag_usuario", res.user.email, expires_at=expires, key="set_usuario_login")
-        cookie_manager.set("ag_user_id", res.user.id, expires_at=expires, key="set_user_id_login")
+        cookies.set("ag_usuario", res.user.email, max_age=60*60*24*30)  # 30 días
+        cookies.set("ag_user_id", res.user.id, max_age=60*60*24*30)
         return True
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
@@ -111,9 +81,7 @@ def login(email, password):
 
 def registrar(email, password, nombre, campo, localidad):
     try:
-        res = supabase.auth.sign_up(
-            {"email": email, "password": password}
-        )
+        res = supabase.auth.sign_up({"email": email, "password": password})
         user_id = res.user.id
 
         supabase.table("perfiles").insert({
@@ -125,10 +93,8 @@ def registrar(email, password, nombre, campo, localidad):
 
         st.session_state.usuario = email
         st.session_state.user_id = user_id
-
-        expires = datetime.now() + timedelta(days=30)
-        cookie_manager.set("ag_usuario", email, expires_at=expires, key="set_usuario_reg")
-        cookie_manager.set("ag_user_id", user_id, expires_at=expires, key="set_user_id_reg")
+        cookies.set("ag_usuario", email, max_age=60*60*24*30)
+        cookies.set("ag_user_id", user_id, max_age=60*60*24*30)
         return True
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
@@ -138,25 +104,16 @@ def registrar(email, password, nombre, campo, localidad):
 def cerrar_sesion():
     st.session_state.usuario = None
     st.session_state.user_id = None
-    st.session_state.cookies_leidas = False
-    st.session_state.primer_render = False
-
-    expired = datetime.now() - timedelta(days=1)
-    try:
-        cookie_manager.set("ag_usuario", "", expires_at=expired, key="expire_usuario")
-        cookie_manager.set("ag_user_id", "", expires_at=expired, key="expire_user_id")
-    except:
-        pass
-
+    cookies.remove("ag_usuario")
+    cookies.remove("ag_user_id")
     try:
         supabase.auth.sign_out()
     except:
         pass
-
     st.rerun()
 
 # ==========================================================
-# 7. PANTALLA DE LOGIN
+# 6. PANTALLA DE LOGIN
 # ==========================================================
 if not st.session_state.usuario:
     st.markdown("""
@@ -230,6 +187,15 @@ if not st.session_state.usuario:
                     st.rerun()
 
     st.stop()
+
+# ==========================================================
+# 7. APP PRINCIPAL (solo llega acá si está logueado)
+# ==========================================================
+# Tu código de la app va acá...
+# Botón de cerrar sesión en sidebar:
+# with st.sidebar:
+#     if st.button("Cerrar sesión"):
+#         cerrar_sesion()
 
 # ==========================================================
 # 8. APP PRINCIPAL (solo llega acá si está logueado)
