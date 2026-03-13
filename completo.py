@@ -44,7 +44,15 @@ if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
-
+# Recuperar sesión guardada
+if st.session_state.usuario is None:
+    try:
+        session = supabase.auth.get_session()
+        if session and session.user:
+            st.session_state.usuario = session.user.email
+            st.session_state.user_id = session.user.id
+    except:
+        pass
 # ==========================================================
 # 4. FUNCIONES DE LOGIN
 # ==========================================================
