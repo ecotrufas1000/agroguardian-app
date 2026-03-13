@@ -101,6 +101,35 @@ if st.session_state.usuario is None:
         <p style='color:#888; font-family:monospace;font-size:15px;'>Precision Lab v2.6</p>
     </div>
     """, unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+            .stApp { background-color: #0d1117 !important; }
+            .stTextInput > div > div > input {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #30363d !important;
+                border-radius: 8px !important;
+            }
+            .stButton > button {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #00ffc3 !important;
+                border-radius: 8px !important;
+                font-weight: bold;
+            }
+            .stButton > button:hover {
+                background-color: #00ffc3 !important;
+                color: #0d1117 !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: #00ffc3 !important;
+                font-family: monospace !important;
+            }
+            .stTabs [data-baseweb="tab-panel"] {
+                background-color: #0d1117 !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
 
