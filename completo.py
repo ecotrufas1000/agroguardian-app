@@ -48,11 +48,33 @@ if "usuario" not in st.session_state:
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
+# Leer localStorage solo si no hay sesión activa
+if st.session_state.usuario is None:
+    val_usuario = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_usuario")',
+        key="ls_get_usuario"
+    )
+    val_user_id = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_user_id")',
+        key="ls_get_user_id"
+    )
+    if val_usuario:
+        st.session_state.usuario = val_usuario
+        st.session_state.user_id = val_user_id
+        st.rerun()
+
+# ================================================================
+# FUNCIONES DE AUTH
+# ================================================================
 def login(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
+        streamlit_js_eval(
+            js_expressions=f'localStorage.setItem("ag_usuario", "{res.user.email}"); localStorage.setItem("ag_user_id", "{res.user.id}");',
+            key="ls_set_sesion"
+        )
         return True
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
@@ -70,42 +92,97 @@ def registrar(email, password, nombre, campo, localidad):
         }).execute()
         st.session_state.usuario = email
         st.session_state.user_id = user_id
+        streamlit_js_eval(
+            js_expressions=f'localStorage.setItem("ag_usuario", "{email}"); localStorage.setItem("ag_user_id", "{user_id}");',
+            key="ls_set_sesion_reg"
+        )
         return True
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
         return False
 
 def cerrar_sesion():
-    supabase.auth.sign_out()
     st.session_state.usuario = None
     st.session_state.user_id = None
+    streamlit_js_eval(
+        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
+        key="ls_remove_sesion"
+    )
+    try:
+        supabase.auth.sign_out()
+    except:
+        pass
     st.rerun()
 
-# --- PANTALLA DE LOGIN ---
+# ================================================================
+# PANTALLA DE LOGIN — solo si no está logueado
+# ================================================================
 if st.session_state.usuario is None:
+
+    # CSS fondo oscuro — aplicado DENTRO del bloque de login
+    st.markdown("""
+        <style>
+            .stApp { background-color: #0d1117 !important; }
+            section[data-testid="stSidebar"] { display: none !important; }
+            h1, h2, h3, p, label, div { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
+            .stTextInput > div > div > input {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #30363d !important;
+                border-radius: 8px !important;
+            }
+            .stButton > button {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #00ffc3 !important;
+                border-radius: 8px !important;
+                font-weight: bold;
+            }
+            .stButton > button:hover {
+                background-color: #00ffc3 !important;
+                color: #0d1117 !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: #00ffc3 !important;
+                font-family: monospace !important;
+            }
+            /* Ocultar header de Streamlit en login */
+            header[data-testid="stHeader"] { background: #0d1117 !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("""
         <div style='text-align:center; padding:40px;'>
-            <h1 style='color:#00ffc3; font-family:monospace;'>🌿 AgroGuardian</h1>
-            <p style='color:#888;'>Precision Lab v2.6</p>
+            <div style='display:flex; align-items:center; justify-content:center; gap:12px;'>
+                <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
+                <h1 style='color:#00ffc3; font-family:monospace; margin:0; font-size:22px;'>AgroGuardian</h1>
+            </div>
+            <p style='color:#888; font-family:monospace; font-size:15px;'>Precision Lab v2.6</p>
         </div>
     """, unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
 
     with tab1:
-        email = st.text_input("Email", key="login_email")
-        password = st.text_input("Contraseña", type="password", key="login_pass")
+        col1, col2 = st.columns(2)
+        with col1:
+            email = st.text_input("Email", key="login_email")
+        with col2:
+            password = st.text_input("Contraseña", type="password", key="login_pass")
         if st.button("INGRESAR", use_container_width=True):
             if login(email, password):
                 st.rerun()
 
     with tab2:
-        nombre = st.text_input("Nombre completo", key="reg_nombre")
-        campo = st.text_input("Nombre del campo", key="reg_campo")
-        localidad = st.text_input("Localidad", key="reg_localidad")
-        email_r = st.text_input("Email", key="reg_email")
-        pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
-        pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
+        col1, col2 = st.columns(2)
+        with col1:
+            nombre = st.text_input("Nombre completo", key="reg_nombre")
+            campo = st.text_input("Nombre del campo", key="reg_campo")
+            localidad = st.text_input("Localidad", key="reg_localidad")
+        with col2:
+            email_r = st.text_input("Email", key="reg_email")
+            pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
+            pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
         if st.button("CREAR CUENTA", use_container_width=True):
             if pass_r != pass_r2:
                 st.error("❌ Las contraseñas no coinciden")
@@ -116,9 +193,16 @@ if st.session_state.usuario is None:
                     st.success("✅ Cuenta creada correctamente")
                     st.rerun()
 
-    st.stop()  # ← Si no está logueado, no muestra nada más
+    st.stop()  # ← Nada de la app principal se renderiza si no está logueado
 
-# --- USUARIO LOGUEADO: continúa el resto de la app ---
+# ================================================================
+# APP PRINCIPAL — solo llega acá si está logueado
+# El sidebar va ACÁ, después del st.stop()
+# ================================================================
+with st.sidebar:
+    st.markdown(f"👤 **{st.session_state.usuario}**")
+    if st.button("🚪 Cerrar sesión"):
+        cerrar_sesion()
 
 # ==========================================================
 # PWA / META TAGS
