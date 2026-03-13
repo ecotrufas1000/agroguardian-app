@@ -86,9 +86,9 @@ def registrar(email, password, nombre, campo, localidad):
         return False
 
 def cerrar_sesion():
-    cookie_manager.delete("ag_usuario")
-    cookie_manager.delete("ag_user_id")
-    st.write("cookies:", cookie_manager.get("ag_usuario"), cookie_manager.get("ag_user_id"))
+    def cerrar_sesion():
+    cookie_manager.delete("ag_usuario", key="delete_usuario")
+    cookie_manager.delete("ag_user_id", key="delete_user_id")
     supabase.auth.sign_out()
     st.session_state.usuario = None
     st.session_state.user_id = None
