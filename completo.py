@@ -13,6 +13,19 @@ from io import BytesIO
 from supabase import create_client
 from streamlit_folium import folium_static
 import folium
+import extra_streamlit_components as stx
+from datetime import datetime, timedelta
+cookie_manager = stx.CookieManager()
+import extra_streamlit_components as stx
+
+cookie_manager = stx.CookieManager()
+
+if "usuario" not in st.session_state:
+    st.session_state.usuario = cookie_manager.get("ag_usuario")
+
+if "user_id" not in st.session_state:
+    st.session_state.user_id = cookie_manager.get("ag_user_id")
+
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
 from reportlab.lib.pagesizes import A4
@@ -47,6 +60,11 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = None
 if "sesion_cargada" not in st.session_state:
     st.session_state.sesion_cargada = False
+if "usuario" not in st.session_state:
+    st.session_state.usuario = cookie_manager.get("ag_usuario")
+
+if "user_id" not in st.session_state:
+    st.session_state.user_id = cookie_manager.get("ag_user_id")
 
 
 # ==========================================================
@@ -92,14 +110,32 @@ def login(email, password):
         res = supabase.auth.sign_in_with_password(
             {"email": email, "password": password}
         )
+
+        # guardar en session_state
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
+
+        # guardar en localStorage
         guardar_sesion_local(res.user.email, res.user.id)
+
+        # guardar cookie persistente
+        cookie_manager.set(
+            "ag_usuario",
+            res.user.email,
+            expires_at=datetime.now() + timedelta(days=30)
+        )
+
+        cookie_manager.set(
+            "ag_user_id",
+            res.user.id,
+            expires_at=datetime.now() + timedelta(days=30)
+        )
+
         return True
+
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
         return False
-
 
 def registrar(email, password, nombre, campo, localidad):
     try:
@@ -123,15 +159,20 @@ def registrar(email, password, nombre, campo, localidad):
 
 
 def cerrar_sesion():
+    cookie_manager.delete("ag_usuario")
+    cookie_manager.delete("ag_user_id")
+
     st.session_state.usuario = None
     st.session_state.user_id = None
+
     borrar_sesion_local()
+
     try:
         supabase.auth.sign_out()
     except:
         pass
-    st.rerun()
 
+    st.rerun()
 # ==========================================================
 # 6. PANTALLA DE LOGIN
 # ==========================================================
