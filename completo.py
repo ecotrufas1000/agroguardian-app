@@ -38,16 +38,28 @@ except:
     st.stop()
 
 # ==========================================================
+# 3. SESSION STATE - LOGIN CON COOKIES
+# ==========================================================
+import extra_streamlit_components as stx
+from datetime import timedelta
+
+cookie_manager = stx.CookieManager()
+
+if "usuario" not in st.session_state:
+    st.session_state.usuario = cookie_manager.get("ag_usuario")
+if "user_id" not in st.session_state:
+    st.session_state.user_id = cookie_manager.get("ag_user_id")
+
 # ==========================================================
 # 4. FUNCIONES DE LOGIN
 # ==========================================================
-cookie_manager.set("ag_usuario", res.user.email, expires_at=datetime.now() + datetime.timedelta(days=30))
-cookie_manager.set("ag_user_id", res.user.id, expires_at=datetime.now() + datetime.timedelta(days=30))
 def login(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
+        cookie_manager.set("ag_usuario", res.user.email, expires_at=datetime.now() + timedelta(days=30))
+        cookie_manager.set("ag_user_id", res.user.id, expires_at=datetime.now() + timedelta(days=30))
         return True
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
@@ -65,6 +77,8 @@ def registrar(email, password, nombre, campo, localidad):
         }).execute()
         st.session_state.usuario = email
         st.session_state.user_id = user_id
+        cookie_manager.set("ag_usuario", email, expires_at=datetime.now() + timedelta(days=30))
+        cookie_manager.set("ag_user_id", user_id, expires_at=datetime.now() + timedelta(days=30))
         return True
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
