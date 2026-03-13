@@ -98,7 +98,7 @@ if st.session_state.usuario is None:
             <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
             <h1 style='color:#00ffc3; font-family:monospace; margin:0;font-size:22px;'>AgroGuardian</h1>
         </div>
-        <p style='color:#888; font-family:monospace;'>Precision Lab v2.6</p>
+        <p style='color:#888; font-family:monospace;font-size:19px;'>Precision Lab v2.6</p>
     </div>
     """, unsafe_allow_html=True)
 
