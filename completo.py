@@ -62,18 +62,24 @@ if st.session_state.cerrando_sesion:
 # 5. RESTAURAR SESIÓN DESDE localStorage
 #    Solo si no hay sesión activa y no se está cerrando
 # ==========================================================
+# ==========================================================
+# 5. RESTAURAR SESIÓN DESDE localStorage
+# ==========================================================
 if st.session_state.usuario is None:
+
     val_usuario = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_usuario")',
         key="ls_get_usuario"
     )
+
     val_user_id = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_user_id")',
         key="ls_get_user_id"
     )
-    if val_usuario:
-        st.session_state.usuario = val_usuario
-        st.session_state.user_id = val_user_id
+
+    if val_usuario not in [None, "null", ""]:
+        st.session_state.usuario = str(val_usuario).replace('"', '')
+        st.session_state.user_id = str(val_user_id).replace('"', '')
         st.rerun()
 
 # ==========================================================
