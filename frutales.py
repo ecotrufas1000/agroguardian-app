@@ -1,4 +1,13 @@
 import streamlit as st
+import uuid
+
+# ==========================================================
+# IDENTIFICADOR AUTOMÁTICO DE PRODUCTOR
+# ==========================================================
+if "usuario_id" not in st.session_state:
+    st.session_state.usuario_id = "prod_" + str(uuid.uuid4())[:8]
+
+usuario_id = st.session_state.usuario_id
 from google import genai
 import requests
 import json
