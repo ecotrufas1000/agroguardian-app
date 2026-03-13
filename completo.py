@@ -109,22 +109,24 @@ if st.session_state.usuario is None:
                 st.rerun()
 
     with tab2:
+    col1, col2 = st.columns(2)
+    with col1:
         nombre = st.text_input("Nombre completo", key="reg_nombre")
         campo = st.text_input("Nombre del campo", key="reg_campo")
         localidad = st.text_input("Localidad", key="reg_localidad")
+    with col2:
         email_r = st.text_input("Email", key="reg_email")
         pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
         pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
-        if st.button("CREAR CUENTA", use_container_width=True):
-            if pass_r != pass_r2:
-                st.error("❌ Las contraseñas no coinciden")
-            elif len(pass_r) < 6:
-                st.error("❌ La contraseña debe tener al menos 6 caracteres")
-            else:
-                if registrar(email_r, pass_r, nombre, campo, localidad):
-                    st.success("✅ Cuenta creada. Podés iniciar sesión.")
-                    st.rerun()
-
+    if st.button("CREAR CUENTA", use_container_width=True):
+        if pass_r != pass_r2:
+            st.error("❌ Las contraseñas no coinciden")
+        elif len(pass_r) < 6:
+            st.error("❌ La contraseña debe tener al menos 6 caracteres")
+        else:
+            if registrar(email_r, pass_r, nombre, campo, localidad):
+                st.success("✅ Cuenta creada. Podés iniciar sesión.")
+                st.rerun()
     st.stop()  # No muestra nada más si no está logueado
 
 # ==========================================================
