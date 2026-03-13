@@ -37,33 +37,49 @@ except:
     st.stop()
 
 # ==========================================================
-# 3. COOKIES - streamlit-cookies-controller
-#    No genera iframe visible, no tiene bugs de cache.
-#    pip install streamlit-cookies-controller
-# ==========================================================
-from streamlit_cookies_controller import CookieController
-
-cookies = CookieController()
-
-# ==========================================================
-# 4. SESSION STATE
+# 3. SESSION STATE
 # ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
-# Restaurar sesión desde cookies si session_state está vacío
+# ==========================================================
+# 4. LEER SESIÓN DESDE localStorage (via JS)
+#    streamlit_js_eval ya está en tu requirements.txt
+#    localStorage persiste aunque cierres el tab/browser
+# ==========================================================
 if st.session_state.usuario is None:
-    val_usuario = cookies.get("ag_usuario")
-    val_user_id = cookies.get("ag_user_id")
+    val_usuario = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_usuario")',
+        key="ls_get_usuario"
+    )
+    val_user_id = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_user_id")',
+        key="ls_get_user_id"
+    )
     if val_usuario:
         st.session_state.usuario = val_usuario
         st.session_state.user_id = val_user_id
+        st.rerun()
 
 # ==========================================================
 # 5. FUNCIONES DE AUTH
 # ==========================================================
+def guardar_sesion_local(email, user_id):
+    """Guarda en localStorage del browser"""
+    streamlit_js_eval(
+        js_expressions=f'localStorage.setItem("ag_usuario", "{email}"); localStorage.setItem("ag_user_id", "{user_id}");',
+        key="ls_set_sesion"
+    )
+
+def borrar_sesion_local():
+    """Borra de localStorage del browser"""
+    streamlit_js_eval(
+        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
+        key="ls_remove_sesion"
+    )
+
 def login(email, password):
     try:
         res = supabase.auth.sign_in_with_password(
@@ -71,8 +87,7 @@ def login(email, password):
         )
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
-        cookies.set("ag_usuario", res.user.email, max_age=60*60*24*30)  # 30 días
-        cookies.set("ag_user_id", res.user.id, max_age=60*60*24*30)
+        guardar_sesion_local(res.user.email, res.user.id)
         return True
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
@@ -93,8 +108,7 @@ def registrar(email, password, nombre, campo, localidad):
 
         st.session_state.usuario = email
         st.session_state.user_id = user_id
-        cookies.set("ag_usuario", email, max_age=60*60*24*30)
-        cookies.set("ag_user_id", user_id, max_age=60*60*24*30)
+        guardar_sesion_local(email, user_id)
         return True
     except Exception as e:
         st.error(f"❌ Error al registrarse: {e}")
@@ -104,8 +118,7 @@ def registrar(email, password, nombre, campo, localidad):
 def cerrar_sesion():
     st.session_state.usuario = None
     st.session_state.user_id = None
-    cookies.remove("ag_usuario")
-    cookies.remove("ag_user_id")
+    borrar_sesion_local()
     try:
         supabase.auth.sign_out()
     except:
@@ -162,7 +175,7 @@ if not st.session_state.usuario:
             email = st.text_input("Email", key="login_email")
         with col2:
             password = st.text_input("Contraseña", type="password", key="login_pass")
-        if st.button("INGRESAR", use_container_width=True):
+        if st.button("INGRESAR", width="stretch"):
             if login(email, password):
                 st.rerun()
 
@@ -176,7 +189,7 @@ if not st.session_state.usuario:
             email_r = st.text_input("Email", key="reg_email")
             pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
             pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
-        if st.button("CREAR CUENTA", use_container_width=True):
+        if st.button("CREAR CUENTA", width="stretch"):
             if pass_r != pass_r2:
                 st.error("❌ Las contraseñas no coinciden")
             elif len(pass_r) < 6:
@@ -187,6 +200,15 @@ if not st.session_state.usuario:
                     st.rerun()
 
     st.stop()
+
+# ==========================================================
+# 7. APP PRINCIPAL (solo llega acá si está logueado)
+# ==========================================================
+# Tu código de la app va acá...
+# Botón de cerrar sesión en sidebar:
+# with st.sidebar:
+#     if st.button("Cerrar sesión"):
+#         cerrar_sesion()
 
 # ==========================================================
 # 7. APP PRINCIPAL (solo llega acá si está logueado)
