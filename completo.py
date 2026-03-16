@@ -225,18 +225,7 @@ if st.session_state.usuario is None:
 
 
 
-def generar_password_temporal():
-    caracteres = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(caracteres) for _ in range(10))
-
 with tab3:
-
-    import secrets
-    import string
-
-    def generar_password_temporal():
-        caracteres = string.ascii_letters + string.digits
-        return ''.join(secrets.choice(caracteres) for _ in range(10))
 
     st.markdown(
         "<p style='color:#888; font-family:monospace;'>Ingresá tu email y generaremos una contraseña temporal.</p>",
