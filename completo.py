@@ -164,8 +164,8 @@ if recovery_flag == "1" or local_recovery == "1":
     if "token_recovery_seteado" not in st.session_state:
         st.session_state.token_recovery_seteado = False
     if access_token in [None, "null", ""]:
-    st.info("⏳ Procesando link de recuperación...")
-    st.stop()
+        st.info("⏳ Procesando link de recuperación...")
+        st.stop()
     if not st.session_state.token_recovery_seteado and access_token and access_token not in ["null", ""]:
         try:
             supabase.auth.set_session(access_token, refresh_token or "")
