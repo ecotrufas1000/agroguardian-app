@@ -238,8 +238,14 @@ def generar_password_temporal():
     caracteres = string.ascii_letters + string.digits
     return ''.join(secrets.choice(caracteres) for _ in range(10))
 
-
 with tab3:
+
+    import secrets
+    import string
+
+    def generar_password_temporal():
+        caracteres = string.ascii_letters + string.digits
+        return ''.join(secrets.choice(caracteres) for _ in range(10))
 
     st.markdown(
         "<p style='color:#888; font-family:monospace;'>Ingresá tu email y generaremos una contraseña temporal.</p>",
@@ -257,10 +263,8 @@ with tab3:
 
             try:
 
-                # generar password
                 password_temp = generar_password_temporal()
 
-                # obtener lista usuarios
                 users = supabase.auth.admin.list_users()
 
                 user_id = None
@@ -276,19 +280,16 @@ with tab3:
 
                 else:
 
-                    # actualizar password
                     supabase.auth.admin.update_user_by_id(
                         user_id,
                         {"password": password_temp}
                     )
 
-                    # marcar password temporal
                     supabase.table("perfiles").update({
                         "password_temporal": True
                     }).eq("id", user_id).execute()
 
                     st.success("Se generó una contraseña temporal")
-
                     st.info(f"Tu contraseña temporal es: {password_temp}")
 
             except Exception as e:
