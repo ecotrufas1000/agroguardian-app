@@ -81,23 +81,32 @@ if st.session_state.cerrando_sesion:
 #    Solo si no hay sesión activa y no se está cerrando
 # ==========================================================
 # ==========================================================
-# 5. RESTAURAR SESIÓN DESDE localStorage
+# CAPTURAR HASH ANTES DE QUE STREAMLIT LO PIERDA
+# Esto debe ir lo más arriba posible, antes del login
 # ==========================================================
-# ==========================================================
-# 5. VERIFICAR SESIÓN ANTES DE MOSTRAR LOGIN
-# ==========================================================
-# ==========================================================
-# DETECCIÓN DE LINK DE RECUPERACIÓN
-# ==========================================================
-hash_url = streamlit_js_eval(
-    js_expressions="window.location.hash",
-    key="get_url_hash_recovery"
+
+# Este componente HTML corre JavaScript inmediatamente al cargar
+# Guarda el hash en localStorage antes de que Streamlit haga reload
+st.components.v1.html("""
+<script>
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
+        localStorage.setItem('ag_recovery_hash', hash);
+    }
+</script>
+""", height=0)
+
+# Leer si hay un hash de recovery guardado
+recovery_hash = streamlit_js_eval(
+    js_expressions='localStorage.getItem("ag_recovery_hash")',
+    key="get_recovery_hash"
 )
 
 es_recovery = (
-    hash_url is not None and
-    "access_token" in str(hash_url) and
-    "type=recovery" in str(hash_url)
+    recovery_hash is not None and
+    recovery_hash not in ["null", ""] and
+    "access_token" in str(recovery_hash) and
+    "type=recovery" in str(recovery_hash)
 )
 
 if es_recovery:
@@ -138,7 +147,7 @@ if es_recovery:
 
     if not st.session_state.token_recovery_seteado:
         try:
-            hash_limpio = str(hash_url).lstrip("#")
+            hash_limpio = str(recovery_hash).lstrip("#")
             params_hash = dict(p.split("=") for p in hash_limpio.split("&") if "=" in p)
             access_token = params_hash.get("access_token", "")
             refresh_token = params_hash.get("refresh_token", "")
@@ -163,9 +172,10 @@ if es_recovery:
                 supabase.auth.update_user({"password": nueva_pass})
                 st.success("✅ Contraseña actualizada. Ya podés iniciar sesión.")
                 st.session_state.token_recovery_seteado = False
+                # Limpiar el hash guardado en localStorage
                 streamlit_js_eval(
-                    js_expressions="window.location.hash = '';",
-                    key="clear_hash"
+                    js_expressions="localStorage.removeItem('ag_recovery_hash'); window.location.hash = '';",
+                    key="clear_recovery"
                 )
                 st.rerun()
             except Exception as e:
