@@ -312,7 +312,7 @@ if st.session_state.get("forzar_cambio_password", False):
                 st.error(f"Error al actualizar contraseña: {e}")
 
     st.stop()
- ==========================================================
+#==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
 with st.sidebar:
