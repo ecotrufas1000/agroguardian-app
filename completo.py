@@ -736,7 +736,7 @@ try:
 except Exception as e:
     st.error(f"Error radar zona: {e}")
 
-st.divider()
+    st.divider()
     st.markdown("""
     <style>
     [data-testid="stMetric"] {
