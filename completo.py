@@ -252,10 +252,24 @@ with tab3:
                 password_temp = generar_password_temporal()
 
                 # cambiar contraseña
-                supabase.auth.admin.update_user_by_email(
-                    email_rec,
-                    {"password": password_temp}
-                )
+                # buscar usuario por email
+users = supabase.auth.admin.list_users()
+
+user_id = None
+
+for u in users:
+    if u.email == email_rec:
+        user_id = u.id
+        break
+
+if user_id is None:
+    st.error("Usuario no encontrado")
+else:
+
+    supabase.auth.admin.update_user_by_id(
+        user_id,
+        {"password": password_temp}
+    )
 
                 # marcar como temporal
                 supabase.table("usuarios").update({
