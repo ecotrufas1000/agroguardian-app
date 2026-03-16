@@ -21,6 +21,14 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from datetime import datetime, timedelta
+import secrets
+import string
+
+def generar_password_temporal():
+    
+    caracteres = string.ascii_letters + string.digits
+    
+    return ''.join(secrets.choice(caracteres) for _ in range(10))
 
 # ==========================================================
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
