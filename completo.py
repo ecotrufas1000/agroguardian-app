@@ -136,53 +136,46 @@ def login(email, password):
 # ==========================================================
 # CAMBIO OBLIGATORIO DE CONTRASEÑA
 # ==========================================================
-if st.session_state.get("forzar_cambio_password", False):
+if st.button("ACTUALIZAR CONTRASEÑA"):
 
-    st.title("🔐 Debes cambiar tu contraseña")
+    if not nueva or not confirmar:
+        st.error("Completá ambos campos")
 
-    nueva = st.text_input("Nueva contraseña", type="password")
-    confirmar = st.text_input("Confirmar contraseña", type="password")
+    elif nueva != confirmar:
+        st.error("Las contraseñas no coinciden")
 
-    if st.button("ACTUALIZAR CONTRASEÑA"):
+    elif len(nueva) < 6:
+        st.error("La contraseña debe tener al menos 6 caracteres")
 
-        if not nueva or not confirmar:
-            st.error("Completá ambos campos")
+    else:
 
-        elif nueva != confirmar:
-            st.error("Las contraseñas no coinciden")
+        try:
 
-        elif len(nueva) < 6:
-            st.error("La contraseña debe tener al menos 6 caracteres")
+            # RESTAURAR SESIÓN DE SUPABASE
+            supabase.auth.set_session(
+                st.session_state.supabase_session.access_token,
+                st.session_state.supabase_session.refresh_token
+            )
 
-       |else:
+            # CAMBIAR CONTRASEÑA
+            supabase.auth.update_user({
+                "password": nueva
+            })
 
-            try:
+            # DESACTIVAR PASSWORD TEMPORAL
+            supabase.table("perfiles").update({
+                "password_temporal": False
+            }).eq("id", st.session_state.user_id).execute()
 
-                # RESTAURAR SESIÓN DE SUPABASE
-                supabase.auth.set_session(
-                    st.session_state.supabase_session.refresh_token
-                   st.session_state.supabase_session.access_token,
-                
-                )
-                # CAMBIAR CONTRASEÑA
-                supabase.auth.update_user({
-                   "password": nueva
-                })
+            st.success("✅ Contraseña actualizada correctamente")
 
-                # DESACTIVAR PASSWORD TEMPORAL
-                supabase.table("perfiles").update({
-                    "password_temporal": False
-                }).eq("id", st.session_state.user_id).execute()
+            st.session_state.forzar_cambio_password = False
 
-                st.success("✅ Contraseña actualizada correctamente")
+            st.rerun()
 
-                st.session_state.forzar_cambio_password = False
+        except Exception as e:
 
-                st.rerun()
-
-            except Exception as e:
-
-                st.error(f"Error al actualizar contraseña: {e}")
+            st.error(f"Error al actualizar contraseña: {e}")
 # ==========================================================
 # 7. PANTALLA DE LOGIN
 # ==========================================================
