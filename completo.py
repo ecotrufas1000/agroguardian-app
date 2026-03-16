@@ -157,9 +157,8 @@ if st.session_state.get("forzar_cambio_password", False):
         else:
 
             try:
-
-               # RESTAURAR SESIÓN DE SUPABASE
-supabase.auth.set_session(
+                             # RESTAURAR SESIÓN DE SUPABASE
+    supabase.auth.set_session(
     st.session_state.supabase_session.access_token,
     st.session_state.supabase_session.refresh_token
 )
