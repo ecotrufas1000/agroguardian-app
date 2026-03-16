@@ -158,27 +158,27 @@ if st.session_state.get("forzar_cambio_password", False):
 
             try:
 
-                # CAMBIAR PASSWORD USANDO SESIÓN ACTIVA
-                supabase.auth.update_user({
-                    "password": nueva
-                })
+               # RESTAURAR SESIÓN DE SUPABASE
+supabase.auth.set_session(
+    st.session_state.supabase_session.access_token,
+    st.session_state.supabase_session.refresh_token
+)
 
-                # DESACTIVAR PASSWORD TEMPORAL
-                supabase.table("perfiles").update({
-                    "password_temporal": False
-                }).eq("id", st.session_state.user_id).execute()
+# CAMBIAR CONTRASEÑA
+supabase.auth.update_user({
+    "password": nueva
+})
 
-                st.success("✅ Contraseña actualizada correctamente")
+# DESACTIVAR PASSWORD TEMPORAL
+supabase.table("perfiles").update({
+    "password_temporal": False
+}).eq("id", st.session_state.user_id).execute()
 
-                st.session_state.forzar_cambio_password = False
+st.success("✅ Contraseña actualizada correctamente")
 
-                st.rerun()
+st.session_state.forzar_cambio_password = False
 
-            except Exception as e:
-
-                st.error(f"Error al actualizar contraseña: {e}")
-
-    st.stop()
+st.rerun()
 # ==========================================================
 # 7. PANTALLA DE LOGIN
 # ==========================================================
