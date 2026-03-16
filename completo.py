@@ -93,49 +93,7 @@ if st.session_state.cerrando_sesion:
 # DETECTAR RECUPERACIÓN DE CONTRASEÑA (Supabase)
 # ==========================================================
 
-query_params = st.query_params
 
-if "access_token" in query_params:
-
-    st.title("🔑 Nueva contraseña")
-
-    access_token = query_params["access_token"]
-    refresh_token = query_params.get("refresh_token", "")
-
-    try:
-        supabase.auth.set_session(access_token, refresh_token)
-    except Exception as e:
-        st.error(f"Token inválido: {e}")
-        st.stop()
-
-    nueva = st.text_input("Nueva contraseña", type="password")
-    confirmar = st.text_input("Confirmar contraseña", type="password")
-
-    if st.button("Guardar nueva contraseña"):
-
-        if nueva != confirmar:
-            st.error("Las contraseñas no coinciden")
-
-        elif len(nueva) < 6:
-            st.error("Debe tener al menos 6 caracteres")
-
-        else:
-
-            try:
-
-                supabase.auth.update_user({
-                    "password": nueva
-                })
-
-                st.success("Contraseña actualizada. Ya podés iniciar sesión.")
-
-                st.query_params.clear()
-                st.rerun()
-
-            except Exception as e:
-                st.error(e)
-
-    st.stop()
 
 # ==========================================================
 # 6. FUNCIONES DE AUTH
@@ -265,24 +223,51 @@ if st.session_state.usuario is None:
                     st.success("✅ Cuenta creada correctamente")
                     st.rerun()
 
-    with tab3:
-        st.markdown("<p style='color:#888; font-family:monospace;'>Ingresá tu email y te enviaremos un link para restablecer tu contraseña.</p>", unsafe_allow_html=True)
-        email_rec = st.text_input("Email registrado", key="rec_email")
-        if st.button("📧 ENVIAR LINK DE RECUPERACIÓN", use_container_width=True):
-            if not email_rec:
-                st.error("❌ Ingresá tu email")
-            else:
-                try:
-                    supabase.auth.reset_password_email(
-                        email_rec,
-                        options={"redirect_to": "https://agroguardian-app-eowdpzrknk8ybcuyf78gmq.streamlit.app/"}  # ← cambiá por tu URL
-                    )
-                    st.success("✅ Si el email existe, recibirás un link en tu casilla. Revisá también el spam.")
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
+    import secrets
+import string
+
+def generar_password_temporal():
+    caracteres = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(caracteres) for _ in range(10))
 
 
-    st.stop()
+with tab3:
+
+    st.markdown(
+        "<p style='color:#888; font-family:monospace;'>Ingresá tu email y generaremos una contraseña temporal.</p>",
+        unsafe_allow_html=True
+    )
+
+    email_rec = st.text_input("Email registrado", key="rec_email")
+
+    if st.button("GENERAR CONTRASEÑA TEMPORAL", use_container_width=True):
+
+        if not email_rec:
+            st.error("Ingresá tu email")
+
+        else:
+
+            try:
+
+                password_temp = generar_password_temporal()
+
+                # cambiar contraseña
+                supabase.auth.admin.update_user_by_email(
+                    email_rec,
+                    {"password": password_temp}
+                )
+
+                # marcar como temporal
+                supabase.table("usuarios").update({
+                    "password_temporal": True
+                }).eq("email", email_rec).execute()
+
+                st.success("Se generó una contraseña temporal")
+
+                st.info(f"Tu contraseña temporal es: {password_temp}")
+
+            except Exception as e:
+                st.error(f"Error: {e}")
 
 # ==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
