@@ -199,7 +199,8 @@ if st.session_state.usuario is None:
         </div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
+    #tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
+    tab1, tab2, tab3 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse", "🔑 Recuperar Contraseña"])
 
     with tab1:
         col1, col2 = st.columns(2)
@@ -230,6 +231,23 @@ if st.session_state.usuario is None:
                 if registrar(email_r, pass_r, nombre, campo, localidad):
                     st.success("✅ Cuenta creada correctamente")
                     st.rerun()
+
+    with tab3:
+        st.markdown("<p style='color:#888; font-family:monospace;'>Ingresá tu email y te enviaremos un link para restablecer tu contraseña.</p>", unsafe_allow_html=True)
+        email_rec = st.text_input("Email registrado", key="rec_email")
+        if st.button("📧 ENVIAR LINK DE RECUPERACIÓN", use_container_width=True):
+            if not email_rec:
+                st.error("❌ Ingresá tu email")
+            else:
+                try:
+                    supabase.auth.reset_password_email(
+                        email_rec,
+                        options={"redirect_to": "https://agroguardian-app-eowdpzrknk8ybcuyf78gmq.streamlit.app/"}  # ← cambiá por tu URL
+                    )
+                    st.success("✅ Si el email existe, recibirás un link en tu casilla. Revisá también el spam.")
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+
 
     st.stop()
 
