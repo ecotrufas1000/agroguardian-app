@@ -78,12 +78,15 @@ if st.session_state.cerrando_sesion:
 
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
-#    Solo si no hay sesión activa y no se está cerrando
 # ==========================================================
-# CAPTURAR LINK DE RECUPERACIÓN DE SUPABASE
+# RECUPERACIÓN DE CONTRASEÑA SUPABASE
 # ==========================================================
+
 import streamlit.components.v1 as components
 
+# ----------------------------------------------------------
+# 1. Capturar hash del link de recuperación
+# ----------------------------------------------------------
 components.html("""
 <script>
 
@@ -102,59 +105,59 @@ if (hash && hash.includes("type=recovery")) {
     localStorage.setItem("ag_recovery_mode", "true");
 
     // limpiar hash
-    window.location.hash = "";
+    history.replaceState(null, null, window.location.pathname);
 
     // recargar
-    window.location.reload();
+    location.reload();
 }
 
 </script>
 """, height=0)
 
-# ==========================================================
-# DETECTAR RECOVERY MODE
-# ==========================================================
+# ----------------------------------------------------------
+# 2. Leer estado de recuperación
+# ----------------------------------------------------------
 recovery_mode = streamlit_js_eval(
     js_expressions='localStorage.getItem("ag_recovery_mode")',
     key="recovery_mode_check"
 )
 
-# Si JS aún no respondió, seguir normal
 if recovery_mode is None:
     recovery_mode = "false"
 
+
 # ==========================================================
-# MODO RECUPERACIÓN
+# 3. PANTALLA RECUPERACIÓN
 # ==========================================================
 if recovery_mode == "true":
 
     st.markdown("""
         <style>
-            .stApp { background-color: #0d1117 !important; }
-            section[data-testid="stSidebar"] { display: none !important; }
+        .stApp { background-color:#0d1117; }
+        section[data-testid="stSidebar"] {display:none;}
 
-            h1,h2,h3,p,label {
-                color:#00ffc3 !important;
-                font-family:monospace !important;
-            }
+        h1,h2,h3,p,label{
+        color:#00ffc3 !important;
+        font-family:monospace;
+        }
 
-            .stTextInput input{
-                background:#161b22 !important;
-                color:#00ffc3 !important;
-                border:1px solid #30363d !important;
-            }
+        .stTextInput input{
+        background:#161b22 !important;
+        color:#00ffc3 !important;
+        border:1px solid #30363d !important;
+        }
 
-            .stButton button{
-                background:#161b22 !important;
-                color:#00ffc3 !important;
-                border:1px solid #00ffc3 !important;
-                font-weight:bold;
-            }
+        .stButton button{
+        background:#161b22 !important;
+        color:#00ffc3 !important;
+        border:1px solid #00ffc3 !important;
+        font-weight:bold;
+        }
 
-            .stButton button:hover{
-                background:#00ffc3 !important;
-                color:#0d1117 !important;
-            }
+        .stButton button:hover{
+        background:#00ffc3 !important;
+        color:#0d1117 !important;
+        }
 
         </style>
     """, unsafe_allow_html=True)
@@ -164,9 +167,9 @@ if recovery_mode == "true":
         unsafe_allow_html=True
     )
 
-    # -----------------------------------
-    # Leer tokens desde localStorage
-    # -----------------------------------
+    # ------------------------------------------------------
+    # leer tokens
+    # ------------------------------------------------------
     access_token = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_recovery_access_token")',
         key="get_recovery_token"
@@ -178,25 +181,24 @@ if recovery_mode == "true":
     )
 
     if access_token in [None, "null", ""]:
-        st.info("Procesando link de recuperación...")
+        st.info("Procesando enlace de recuperación...")
         st.stop()
 
-    # -----------------------------------
-    # Crear sesión temporal con token
-    # -----------------------------------
+    # ------------------------------------------------------
+    # crear sesión temporal
+    # ------------------------------------------------------
     if "recovery_session_set" not in st.session_state:
 
         try:
             supabase.auth.set_session(access_token, refresh_token)
             st.session_state.recovery_session_set = True
-
         except Exception as e:
             st.error(f"❌ Token inválido o expirado: {e}")
             st.stop()
 
-    # -----------------------------------
-    # FORMULARIO NUEVA CONTRASEÑA
-    # -----------------------------------
+    # ------------------------------------------------------
+    # formulario nueva contraseña
+    # ------------------------------------------------------
     nueva = st.text_input("Nueva contraseña", type="password")
     confirmar = st.text_input("Confirmar contraseña", type="password")
 
@@ -233,9 +235,9 @@ if recovery_mode == "true":
 
                 supabase.auth.sign_out()
 
-                st.info("Podés iniciar sesión nuevamente")
+                st.success("Podés iniciar sesión nuevamente.")
 
-                st.stop()
+                st.rerun()
 
             except Exception as e:
                 st.error(f"❌ Error al actualizar contraseña: {e}")
