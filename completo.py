@@ -86,6 +86,91 @@ if st.session_state.cerrando_sesion:
 # ==========================================================
 # 5. VERIFICAR SESIÓN ANTES DE MOSTRAR LOGIN
 # ==========================================================
+hash_url = streamlit_js_eval(
+    js_expressions="window.location.hash",
+    key="get_url_hash"
+)
+ 
+# Detectar si viene de un link de recuperación
+es_recovery = (
+    hash_url and
+    "access_token" in str(hash_url) and
+    "type=recovery" in str(hash_url)
+)
+ 
+if es_recovery:
+    st.markdown("""
+        <style>
+            .stApp { background-color: #0d1117 !important; }
+            section[data-testid="stSidebar"] { display: none !important; }
+            h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
+            .stTextInput > div > div > input {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #30363d !important;
+                border-radius: 8px !important;
+            }
+            .stButton > button {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #00ffc3 !important;
+                border-radius: 8px !important;
+                font-weight: bold;
+            }
+            .stButton > button:hover {
+                background-color: #00ffc3 !important;
+                color: #0d1117 !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+ 
+    st.markdown("""
+        <div style='text-align:center; padding:40px;'>
+            <h1 style='color:#00ffc3; font-family:monospace; font-size:22px;'>🔑 Nueva Contraseña</h1>
+            <p style='color:#888; font-family:monospace;'>AgroGuardian — Precision Lab v2.6</p>
+        </div>
+    """, unsafe_allow_html=True)
+ 
+    # Extraer el access_token del hash y autenticar la sesión una sola vez
+    if "token_recovery_seteado" not in st.session_state:
+        st.session_state.token_recovery_seteado = False
+ 
+    if not st.session_state.token_recovery_seteado:
+        try:
+            hash_limpio = str(hash_url).lstrip("#")
+            params_hash = dict(p.split("=") for p in hash_limpio.split("&") if "=" in p)
+            access_token = params_hash.get("access_token", "")
+            refresh_token = params_hash.get("refresh_token", "")
+            if access_token:
+                supabase.auth.set_session(access_token, refresh_token)
+                st.session_state.token_recovery_seteado = True
+        except Exception as e:
+            st.error(f"❌ Error al procesar el link: {e}")
+ 
+    nueva_pass = st.text_input("Nueva contraseña", type="password", key="nueva_pass")
+    confirmar_pass = st.text_input("Confirmar contraseña", type="password", key="confirmar_pass")
+ 
+    if st.button("💾 GUARDAR NUEVA CONTRASEÑA", use_container_width=True):
+        if not nueva_pass or not confirmar_pass:
+            st.error("❌ Completá ambos campos")
+        elif nueva_pass != confirmar_pass:
+            st.error("❌ Las contraseñas no coinciden")
+        elif len(nueva_pass) < 6:
+            st.error("❌ La contraseña debe tener al menos 6 caracteres")
+        else:
+            try:
+                supabase.auth.update_user({"password": nueva_pass})
+                st.success("✅ Contraseña actualizada. Ya podés iniciar sesión.")
+                st.session_state.token_recovery_seteado = False
+                streamlit_js_eval(
+                    js_expressions="window.location.hash = '';",
+                    key="clear_hash"
+                )
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error al actualizar: {e}")
+ 
+    st.stop()
 if st.session_state.usuario is None:
 
     st.markdown("🔐 Verificando sesión...")
