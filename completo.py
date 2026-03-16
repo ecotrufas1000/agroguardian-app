@@ -81,35 +81,37 @@ if st.session_state.cerrando_sesion:
 #    Solo si no hay sesión activa y no se está cerrando
 # ==========================================================
 # ==========================================================
-# CAPTURAR HASH ANTES DE QUE STREAMLIT LO PIERDA
-# Esto debe ir lo más arriba posible, antes del login
 # ==========================================================
+# PASO 1: Este componente corre JS inmediatamente al cargar
+# Si detecta hash de recovery, redirige con ?recovery=1
+# para que Streamlit lo pueda leer en query_params
+# ==========================================================
+import streamlit.components.v1 as components
 
-# Este componente HTML corre JavaScript inmediatamente al cargar
-# Guarda el hash en localStorage antes de que Streamlit haga reload
-st.components.v1.html("""
+components.html("""
 <script>
     const hash = window.location.hash;
     if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
-        localStorage.setItem('ag_recovery_hash', hash);
+        // Guardar tokens en localStorage
+        const params = {};
+        hash.replace('#', '').split('&').forEach(p => {
+            const [k, v] = p.split('=');
+            params[k] = v;
+        });
+        localStorage.setItem('ag_access_token', params['access_token'] || '');
+        localStorage.setItem('ag_refresh_token', params['refresh_token'] || '');
+        localStorage.setItem('ag_recovery_mode', '1');
+        // Limpiar hash y recargar con query param
+        window.location.replace(window.location.pathname + '?recovery=1');
     }
 </script>
 """, height=0)
 
-# Leer si hay un hash de recovery guardado
-recovery_hash = streamlit_js_eval(
-    js_expressions='localStorage.getItem("ag_recovery_hash")',
-    key="get_recovery_hash"
-)
+# ==========================================================
+# PASO 2: Streamlit lee el query param ?recovery=1
+# ==========================================================
+if st.query_params.get("recovery") == "1":
 
-es_recovery = (
-    recovery_hash is not None and
-    recovery_hash not in ["null", ""] and
-    "access_token" in str(recovery_hash) and
-    "type=recovery" in str(recovery_hash)
-)
-
-if es_recovery:
     st.markdown("""
         <style>
             .stApp { background-color: #0d1117 !important; }
@@ -142,18 +144,23 @@ if es_recovery:
         </div>
     """, unsafe_allow_html=True)
 
+    # Leer tokens guardados en localStorage
+    access_token = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_access_token")',
+        key="get_access_token"
+    )
+    refresh_token = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_refresh_token")',
+        key="get_refresh_token"
+    )
+
     if "token_recovery_seteado" not in st.session_state:
         st.session_state.token_recovery_seteado = False
 
-    if not st.session_state.token_recovery_seteado:
+    if not st.session_state.token_recovery_seteado and access_token and access_token not in ["null", ""]:
         try:
-            hash_limpio = str(recovery_hash).lstrip("#")
-            params_hash = dict(p.split("=") for p in hash_limpio.split("&") if "=" in p)
-            access_token = params_hash.get("access_token", "")
-            refresh_token = params_hash.get("refresh_token", "")
-            if access_token:
-                supabase.auth.set_session(access_token, refresh_token)
-                st.session_state.token_recovery_seteado = True
+            supabase.auth.set_session(access_token, refresh_token or "")
+            st.session_state.token_recovery_seteado = True
         except Exception as e:
             st.error(f"❌ Error al procesar el link: {e}")
 
@@ -172,11 +179,16 @@ if es_recovery:
                 supabase.auth.update_user({"password": nueva_pass})
                 st.success("✅ Contraseña actualizada. Ya podés iniciar sesión.")
                 st.session_state.token_recovery_seteado = False
-                # Limpiar el hash guardado en localStorage
+                # Limpiar todo
                 streamlit_js_eval(
-                    js_expressions="localStorage.removeItem('ag_recovery_hash'); window.location.hash = '';",
-                    key="clear_recovery"
+                    js_expressions="""
+                        localStorage.removeItem('ag_access_token');
+                        localStorage.removeItem('ag_refresh_token');
+                        localStorage.removeItem('ag_recovery_mode');
+                    """,
+                    key="clear_recovery_tokens"
                 )
+                st.query_params.clear()
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Error al actualizar: {e}")
@@ -199,6 +211,7 @@ if st.session_state.usuario is None:
         st.session_state.usuario = str(val_usuario).replace('"', '')
         st.session_state.user_id = str(val_user_id).replace('"', '')
         st.rerun()
+
 # ==========================================================
 # 6. FUNCIONES DE AUTH
 # ==========================================================
