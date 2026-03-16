@@ -738,13 +738,13 @@ except Exception as e:
     st.error(f"Error radar zona: {e}")
 
 st.divider()
-    st.markdown("""
-    <style>
-    [data-testid="stMetric"] {
-        background-color: #0e1117;
-        border: 1px solid #00ffc3;
-        border-radius: 12px;
-        padding: 15px;
+st.markdown("""
+<style>
+[data-testid="stMetric"] {
+    background-color: #0e1117;
+    border: 1px solid #00ffc3;
+    border-radius: 12px;
+    padding: 15px;
     }
     [data-testid="stMetricLabel"] { color: #00ffc3 !important; }
     [data-testid="stMetricValue"] { color: #00ffc3 !important; font-weight: bold; }
