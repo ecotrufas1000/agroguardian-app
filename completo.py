@@ -101,30 +101,28 @@ if st.session_state.cerrando_sesion:
 # 6. FUNCIONES DE AUTH
 # ==========================================================
 def login(email, password):
-
     try:
-
         res = supabase.auth.sign_in_with_password({
             "email": email,
             "password": password
         })
 
+        # guardar datos usuario
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
+
+        # guardar sesión supabase
+        st.session_state.supabase_session = res.session
 
         streamlit_js_eval(
             js_expressions=f'localStorage.setItem("ag_usuario", "{res.user.email}"); localStorage.setItem("ag_user_id", "{res.user.id}");',
             key="ls_set_sesion"
         )
 
-        # verificar si la contraseña es temporal
-        perfil = supabase.table("perfiles")\
-            .select("password_temporal")\
-            .eq("id", res.user.id)\
-            .single()\
-            .execute()
+        # verificar contraseña temporal
+        perfil = supabase.table("perfiles").select("password_temporal").eq("id", res.user.id).execute()
 
-        if perfil.data["password_temporal"] == True:
+        if perfil.data and perfil.data[0]["password_temporal"]:
             st.session_state.forzar_cambio_password = True
 
         return True
@@ -132,39 +130,6 @@ def login(email, password):
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
         return False
-
-
-def registrar(email, password, nombre, campo, localidad):
-    try:
-        res = supabase.auth.sign_up({"email": email, "password": password})
-        user_id = res.user.id
-        supabase.table("perfiles").insert({
-            "id": user_id,
-            "nombre": nombre,
-            "campo": campo,
-            "localidad": localidad
-        }).execute()
-        st.session_state.usuario = email
-        st.session_state.user_id = user_id
-        streamlit_js_eval(
-            js_expressions=f'localStorage.setItem("ag_usuario", "{email}"); localStorage.setItem("ag_user_id", "{user_id}");',
-            key="ls_set_sesion_reg"
-        )
-        return True
-    except Exception as e:
-        st.error(f"❌ Error al registrarse: {e}")
-        return False
-
-
-def cerrar_sesion():
-    st.session_state.usuario = None
-    st.session_state.user_id = None
-    st.session_state.cerrando_sesion = True  # activa limpieza de localStorage
-    try:
-        supabase.auth.sign_out()
-    except:
-        pass
-    st.rerun()  # vuelve arriba, paso 4 limpia localStorage y hace st.stop()
 # ==========================================================
 # CAMBIO OBLIGATORIO DE CONTRASEÑA
 # ==========================================================
