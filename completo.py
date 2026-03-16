@@ -110,8 +110,15 @@ components.html("""
 # ==========================================================
 # PASO 2: Streamlit lee el query param ?recovery=1
 # ==========================================================
-if st.query_params.get("recovery") == "1":
+#f st.query_params.get("recovery") == "1":
+recovery_flag = st.query_params.get("recovery")
 
+local_recovery = streamlit_js_eval(
+    js_expressions='localStorage.getItem("ag_recovery_mode")',
+    key="check_recovery_mode"
+)
+
+if recovery_flag == "1" or local_recovery == "1":
     st.markdown("""
         <style>
             .stApp { background-color: #0d1117 !important; }
@@ -156,7 +163,9 @@ if st.query_params.get("recovery") == "1":
 
     if "token_recovery_seteado" not in st.session_state:
         st.session_state.token_recovery_seteado = False
-
+    if access_token in [None, "null", ""]:
+    st.info("⏳ Procesando link de recuperación...")
+    st.stop()
     if not st.session_state.token_recovery_seteado and access_token and access_token not in ["null", ""]:
         try:
             supabase.auth.set_session(access_token, refresh_token or "")
