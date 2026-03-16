@@ -679,6 +679,65 @@ if menu == "📊 Monitoreo Total":
 # ==========================================================
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
+    # ==========================================================
+# 🌎 RADAR AGROGUARDIAN (LLUVIA COLABORATIVA)
+# ==========================================================
+
+st.subheader("🌎 Radar AgroGuardian — Lluvia en la Zona")
+
+try:
+
+    from datetime import date
+    hoy_zona = date.today().isoformat()
+
+    # TRAER TODAS LAS LLUVIAS DE HOY
+    res_zona = supabase.table("registros_lluvia") \
+        .select("mm, productor_id, lote") \
+        .eq("fecha", hoy_zona) \
+        .execute()
+
+    if res_zona.data and len(res_zona.data) > 0:
+
+        df_zona = pd.DataFrame(res_zona.data)
+        df_zona["mm"] = pd.to_numeric(df_zona["mm"], errors="coerce").fillna(0)
+
+        promedio_zona = round(df_zona["mm"].mean(), 1)
+        total_zona = round(df_zona["mm"].sum(), 1)
+        productores_zona = df_zona["productor_id"].nunique()
+
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric("🌧 Promedio Zona", f"{promedio_zona} mm")
+        c2.metric("🌧 Total Zona", f"{total_zona} mm")
+        c3.metric("👨‍🌾 Productores", productores_zona)
+
+        # ----------------------------
+        # RANKING DE LLUVIA
+        # ----------------------------
+
+        st.markdown("### 🏆 Ranking de Lluvia Hoy")
+
+        ranking = df_zona.groupby("productor_id")["mm"].sum().reset_index()
+        ranking = ranking.sort_values("mm", ascending=False)
+
+        ranking["pos"] = range(1, len(ranking) + 1)
+
+        ranking_text = ""
+
+        for _, r in ranking.head(5).iterrows():
+            ranking_text += f"🥇 #{r['pos']} — {r['mm']:.1f} mm\n"
+
+        st.code(ranking_text if ranking_text else "Sin datos")
+
+    else:
+
+        st.info("🌧️ Todavía no hay registros de lluvia en la zona hoy.")
+
+except Exception as e:
+
+    st.error(f"Error radar zona: {e}")
+
+st.divider()
     st.markdown("""
     <style>
     [data-testid="stMetric"] {
@@ -984,7 +1043,8 @@ elif menu == "🌧️ Pluviómetro":
             st.info("🌧️ Todavía no tenés registros de lluvia. Usá el formulario de arriba para cargar el primero.")
 
     except Exception as e:
-        st.error(f"Error al procesar los datos de lluvia: {e}")# ==========================================================
+        st.error(f"Error al procesar los datos de lluvia: {e}")
+# ==========================================================
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
 elif menu == "💧 Balance Hídrico":
