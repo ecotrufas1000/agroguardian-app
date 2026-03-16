@@ -309,50 +309,43 @@ if st.session_state.usuario is None:
 # CAMBIO OBLIGATORIO DE CONTRASEÑA TEMPORAL
 # ==========================================================
 
-if st.session_state.forzar_cambio_password:
+if st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambio_password"):
 
-    st.title("🔐 Cambiar contraseña")
+    if not nueva or not confirmar:
+        st.error("Completá ambos campos")
 
-    nueva = st.text_input("Nueva contraseña", type="password")
-    confirmar = st.text_input("Confirmar contraseña", type="password")
+    elif nueva != confirmar:
+        st.error("Las contraseñas no coinciden")
 
-       st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambio_password")
+    elif len(nueva) < 6:
+        st.error("La contraseña debe tener al menos 6 caracteres")
 
-        if not nueva or not confirmar:
+    else:
 
-            st.error("Completá ambos campos")
+        try:
 
-        elif nueva != confirmar:
+            supabase.auth.set_session(
+                st.session_state.supabase_session.access_token,
+                st.session_state.supabase_session.refresh_token
+            )
 
-            st.error("Las contraseñas no coinciden")
+            supabase.auth.update_user({
+                "password": nueva
+            })
 
-        elif len(nueva) < 6:
+            supabase.table("perfiles").update({
+                "password_temporal": False
+            }).eq("id", st.session_state.user_id).execute()
 
-            st.error("Debe tener al menos 6 caracteres")
+            st.success("✅ Contraseña actualizada correctamente")
 
-        else:
+            st.session_state.forzar_cambio_password = False
 
-            try:
+            st.rerun()
 
-                supabase.auth.update_user({
-                    "password": nueva
-                })
+        except Exception as e:
 
-                supabase.table("perfiles").update({
-                    "password_temporal": False
-                }).eq("id", st.session_state.user_id).execute()
-
-                st.success("Contraseña actualizada correctamente")
-
-                st.session_state.forzar_cambio_password = False
-
-                st.rerun()
-
-            except Exception as e:
-
-                st.error(e)
-
-    st.stop()
+            st.error(f"Error al actualizar contraseña: {e}")
 # ==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
