@@ -154,30 +154,35 @@ if st.session_state.get("forzar_cambio_password", False):
         elif len(nueva) < 6:
             st.error("La contraseña debe tener al menos 6 caracteres")
 
-        else:
+       else:
 
-            try:
-                             # RESTAURAR SESIÓN DE SUPABASE
-    supabase.auth.set_session(
-    st.session_state.supabase_session.access_token,
-    st.session_state.supabase_session.refresh_token
-)
+    try:
 
-# CAMBIAR CONTRASEÑA
-supabase.auth.update_user({
-    "password": nueva
-})
+        # RESTAURAR SESIÓN DE SUPABASE
+        supabase.auth.set_session(
+            st.session_state.supabase_session.access_token,
+            st.session_state.supabase_session.refresh_token
+        )
 
-# DESACTIVAR PASSWORD TEMPORAL
-supabase.table("perfiles").update({
-    "password_temporal": False
-}).eq("id", st.session_state.user_id).execute()
+        # CAMBIAR CONTRASEÑA
+        supabase.auth.update_user({
+            "password": nueva
+        })
 
-st.success("✅ Contraseña actualizada correctamente")
+        # DESACTIVAR PASSWORD TEMPORAL
+        supabase.table("perfiles").update({
+            "password_temporal": False
+        }).eq("id", st.session_state.user_id).execute()
 
-st.session_state.forzar_cambio_password = False
+        st.success("✅ Contraseña actualizada correctamente")
 
-st.rerun()
+        st.session_state.forzar_cambio_password = False
+
+        st.rerun()
+
+    except Exception as e:
+
+        st.error(f"Error al actualizar contraseña: {e}")
 # ==========================================================
 # 7. PANTALLA DE LOGIN
 # ==========================================================
