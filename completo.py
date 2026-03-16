@@ -165,7 +165,55 @@ def cerrar_sesion():
     except:
         pass
     st.rerun()  # vuelve arriba, paso 4 limpia localStorage y hace st.stop()
+# ==========================================================
+# CAMBIO OBLIGATORIO DE CONTRASEÑA
+# ==========================================================
+# ==========================================================
+# CAMBIO OBLIGATORIO DE CONTRASEÑA
+# ==========================================================
+if st.session_state.get("forzar_cambio_password", False):
 
+    st.title("🔐 Debes cambiar tu contraseña")
+
+    nueva = st.text_input("Nueva contraseña", type="password")
+    confirmar = st.text_input("Confirmar contraseña", type="password")
+
+    if st.button("ACTUALIZAR CONTRASEÑA"):
+
+        if not nueva or not confirmar:
+            st.error("Completá ambos campos")
+
+        elif nueva != confirmar:
+            st.error("Las contraseñas no coinciden")
+
+        elif len(nueva) < 6:
+            st.error("La contraseña debe tener al menos 6 caracteres")
+
+        else:
+
+            try:
+
+                # CAMBIAR PASSWORD USANDO SESIÓN ACTIVA
+                supabase.auth.update_user({
+                    "password": nueva
+                })
+
+                # DESACTIVAR PASSWORD TEMPORAL
+                supabase.table("perfiles").update({
+                    "password_temporal": False
+                }).eq("id", st.session_state.user_id).execute()
+
+                st.success("✅ Contraseña actualizada correctamente")
+
+                st.session_state.forzar_cambio_password = False
+
+                st.rerun()
+
+            except Exception as e:
+
+                st.error(f"Error al actualizar contraseña: {e}")
+
+    st.stop()
 # ==========================================================
 # 7. PANTALLA DE LOGIN
 # ==========================================================
