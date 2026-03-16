@@ -316,7 +316,7 @@ if st.session_state.forzar_cambio_password:
     nueva = st.text_input("Nueva contraseña", type="password")
     confirmar = st.text_input("Confirmar contraseña", type="password")
 
-    st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambio_password")
+       st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambio_password")
 
         if not nueva or not confirmar:
 
