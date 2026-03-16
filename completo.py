@@ -154,7 +154,7 @@ if st.session_state.get("forzar_cambio_password", False):
         elif len(nueva) < 6:
             st.error("La contraseña debe tener al menos 6 caracteres")
 
-       else:
+       |else:
 
             try:
 
