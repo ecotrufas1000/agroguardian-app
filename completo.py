@@ -223,16 +223,7 @@ if st.session_state.usuario is None:
                     st.success("✅ Cuenta creada correctamente")
                     st.rerun()
 
-    import secrets
-import string
 
-def generar_password_temporal():
-    caracteres = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(caracteres) for _ in range(10))
-
-
-import secrets
-import string
 
 def generar_password_temporal():
     caracteres = string.ascii_letters + string.digits
