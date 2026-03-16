@@ -225,55 +225,55 @@ if st.session_state.usuario is None:
 
 
 
-with tab3:
+    with tab3:
 
-    st.markdown(
-        "<p style='color:#888; font-family:monospace;'>Ingresá tu email y generaremos una contraseña temporal.</p>",
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            "<p style='color:#888; font-family:monospace;'>Ingresá tu email y generaremos una contraseña temporal.</p>",
+            unsafe_allow_html=True
+        )
 
-    email_rec = st.text_input("Email registrado", key="rec_email")
+        email_rec = st.text_input("Email registrado", key="rec_email")
 
-    if st.button("GENERAR CONTRASEÑA TEMPORAL", use_container_width=True):
+        if st.button("GENERAR CONTRASEÑA TEMPORAL", use_container_width=True):
 
-        if not email_rec:
-            st.error("Ingresá tu email")
+            if not email_rec:
+                st.error("Ingresá tu email")
 
-        else:
+            else:
 
-            try:
+                try:
 
-                password_temp = generar_password_temporal()
+                    password_temp = generar_password_temporal()
 
-                users = supabase.auth.admin.list_users()
+                    users = supabase.auth.admin.list_users()
 
-                user_id = None
+                    user_id = None
 
-                for u in users:
-                    if u.email == email_rec:
-                        user_id = u.id
-                        break
+                    for u in users:
+                        if u.email == email_rec:
+                            user_id = u.id
+                            break
 
-                if user_id is None:
+                    if user_id is None:
 
-                    st.error("Usuario no encontrado")
+                        st.error("Usuario no encontrado")
 
-                else:
+                    else:
 
-                    supabase.auth.admin.update_user_by_id(
-                        user_id,
-                        {"password": password_temp}
-                    )
+                        supabase.auth.admin.update_user_by_id(
+                            user_id,
+                            {"password": password_temp}
+                        )
 
-                    supabase.table("perfiles").update({
-                        "password_temporal": True
-                    }).eq("id", user_id).execute()
+                        supabase.table("perfiles").update({
+                            "password_temporal": True
+                        }).eq("id", user_id).execute()
 
-                    st.success("Se generó una contraseña temporal")
-                    st.info(f"Tu contraseña temporal es: {password_temp}")
+                        st.success("Se generó una contraseña temporal")
+                        st.info(f"Tu contraseña temporal es: {password_temp}")
 
-            except Exception as e:
-                st.error(f"Error: {e}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 # ==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
