@@ -737,7 +737,7 @@ except Exception as e:
     st.error(f"Error radar zona: {e}")
 
 st.divider()
-st.markdown("""
+    st.markdown("""
 <style>
 [data-testid="stMetric"] {
     background-color: #0e1117;
