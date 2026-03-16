@@ -71,6 +71,8 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = None
 if "cerrando_sesion" not in st.session_state:
     st.session_state.cerrando_sesion = False
+if "forzar_cambio_password" not in st.session_state:
+    st.session_state.forzar_cambio_password = False
 
 # ==========================================================
 # 4. LIMPIAR localStorage si se está cerrando sesión
@@ -99,15 +101,34 @@ if st.session_state.cerrando_sesion:
 # 6. FUNCIONES DE AUTH
 # ==========================================================
 def login(email, password):
+
     try:
-        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+
+        res = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+
         st.session_state.usuario = res.user.email
         st.session_state.user_id = res.user.id
+
         streamlit_js_eval(
             js_expressions=f'localStorage.setItem("ag_usuario", "{res.user.email}"); localStorage.setItem("ag_user_id", "{res.user.id}");',
             key="ls_set_sesion"
         )
+
+        # verificar si la contraseña es temporal
+        perfil = supabase.table("perfiles")\
+            .select("password_temporal")\
+            .eq("id", res.user.id)\
+            .single()\
+            .execute()
+
+        if perfil.data["password_temporal"] == True:
+            st.session_state.forzar_cambio_password = True
+
         return True
+
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
         return False
@@ -274,6 +295,54 @@ if st.session_state.usuario is None:
 
                 except Exception as e:
                     st.error(f"Error: {e}")
+# ==========================================================
+# CAMBIO OBLIGATORIO DE CONTRASEÑA TEMPORAL
+# ==========================================================
+
+if st.session_state.forzar_cambio_password:
+
+    st.title("🔐 Cambiar contraseña")
+
+    nueva = st.text_input("Nueva contraseña", type="password")
+    confirmar = st.text_input("Confirmar contraseña", type="password")
+
+    if st.button("ACTUALIZAR CONTRASEÑA"):
+
+        if not nueva or not confirmar:
+
+            st.error("Completá ambos campos")
+
+        elif nueva != confirmar:
+
+            st.error("Las contraseñas no coinciden")
+
+        elif len(nueva) < 6:
+
+            st.error("Debe tener al menos 6 caracteres")
+
+        else:
+
+            try:
+
+                supabase.auth.update_user({
+                    "password": nueva
+                })
+
+                supabase.table("perfiles").update({
+                    "password_temporal": False
+                }).eq("id", st.session_state.user_id).execute()
+
+                st.success("Contraseña actualizada correctamente")
+
+                st.session_state.forzar_cambio_password = False
+
+                st.rerun()
+
+            except Exception as e:
+
+                st.error(e)
+
+    st.stop()
 # ==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
