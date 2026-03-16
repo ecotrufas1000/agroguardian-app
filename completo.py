@@ -81,137 +81,35 @@ if st.session_state.cerrando_sesion:
 # ==========================================================
 # RECUPERACIÓN DE CONTRASEÑA SUPABASE
 # ==========================================================
-
-import streamlit.components.v1 as components
-
-# ----------------------------------------------------------
-# 1. Capturar hash del link de recuperación
-# ----------------------------------------------------------
-components.html("""
-<script>
-
-const hash = window.location.hash;
-
-if (hash && hash.includes("type=recovery")) {
-
-    const params = {};
-    hash.replace("#","").split("&").forEach(p => {
-        const [k,v] = p.split("=");
-        params[k] = v;
-    });
-
-    localStorage.setItem("ag_recovery_access_token", params["access_token"]);
-    localStorage.setItem("ag_recovery_refresh_token", params["refresh_token"]);
-    localStorage.setItem("ag_recovery_mode", "true");
-
-    // limpiar hash
-    history.replaceState(null, null, window.location.pathname);
-
-    // recargar
-    location.reload();
-}
-
-</script>
-""", height=0)
-
-# ----------------------------------------------------------
-# 2. Leer estado de recuperación
-# ----------------------------------------------------------
-recovery_mode = streamlit_js_eval(
-    js_expressions='localStorage.getItem("ag_recovery_mode")',
-    key="recovery_mode_check"
-)
-
-if recovery_mode is None:
-    recovery_mode = "false"
-
-
 # ==========================================================
-# 3. PANTALLA RECUPERACIÓN
+# DETECTAR RECUPERACIÓN DE CONTRASEÑA (Supabase)
 # ==========================================================
-if recovery_mode == "true":
 
-    st.markdown("""
-        <style>
-        .stApp { background-color:#0d1117; }
-        section[data-testid="stSidebar"] {display:none;}
+query_params = st.query_params
 
-        h1,h2,h3,p,label{
-        color:#00ffc3 !important;
-        font-family:monospace;
-        }
+if "access_token" in query_params:
 
-        .stTextInput input{
-        background:#161b22 !important;
-        color:#00ffc3 !important;
-        border:1px solid #30363d !important;
-        }
+    st.title("🔑 Nueva contraseña")
 
-        .stButton button{
-        background:#161b22 !important;
-        color:#00ffc3 !important;
-        border:1px solid #00ffc3 !important;
-        font-weight:bold;
-        }
+    access_token = query_params["access_token"]
+    refresh_token = query_params.get("refresh_token", "")
 
-        .stButton button:hover{
-        background:#00ffc3 !important;
-        color:#0d1117 !important;
-        }
-
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown(
-        "<h2 style='text-align:center'>🔑 Nueva contraseña</h2>",
-        unsafe_allow_html=True
-    )
-
-    # ------------------------------------------------------
-    # leer tokens
-    # ------------------------------------------------------
-    access_token = streamlit_js_eval(
-        js_expressions='localStorage.getItem("ag_recovery_access_token")',
-        key="get_recovery_token"
-    )
-
-    refresh_token = streamlit_js_eval(
-        js_expressions='localStorage.getItem("ag_recovery_refresh_token")',
-        key="get_recovery_refresh"
-    )
-
-    if access_token in [None, "null", ""]:
-        st.info("Procesando enlace de recuperación...")
+    try:
+        supabase.auth.set_session(access_token, refresh_token)
+    except Exception as e:
+        st.error(f"Token inválido: {e}")
         st.stop()
 
-    # ------------------------------------------------------
-    # crear sesión temporal
-    # ------------------------------------------------------
-    if "recovery_session_set" not in st.session_state:
-
-        try:
-            supabase.auth.set_session(access_token, refresh_token)
-            st.session_state.recovery_session_set = True
-        except Exception as e:
-            st.error(f"❌ Token inválido o expirado: {e}")
-            st.stop()
-
-    # ------------------------------------------------------
-    # formulario nueva contraseña
-    # ------------------------------------------------------
     nueva = st.text_input("Nueva contraseña", type="password")
     confirmar = st.text_input("Confirmar contraseña", type="password")
 
-    if st.button("💾 GUARDAR NUEVA CONTRASEÑA", use_container_width=True):
+    if st.button("Guardar nueva contraseña"):
 
-        if not nueva or not confirmar:
-            st.error("❌ Completá ambos campos")
-
-        elif nueva != confirmar:
-            st.error("❌ Las contraseñas no coinciden")
+        if nueva != confirmar:
+            st.error("Las contraseñas no coinciden")
 
         elif len(nueva) < 6:
-            st.error("❌ Debe tener al menos 6 caracteres")
+            st.error("Debe tener al menos 6 caracteres")
 
         else:
 
@@ -221,26 +119,13 @@ if recovery_mode == "true":
                     "password": nueva
                 })
 
-                st.success("✅ Contraseña actualizada correctamente")
+                st.success("Contraseña actualizada. Ya podés iniciar sesión.")
 
-                # limpiar tokens
-                streamlit_js_eval(
-                    js_expressions="""
-                        localStorage.removeItem('ag_recovery_access_token');
-                        localStorage.removeItem('ag_recovery_refresh_token');
-                        localStorage.removeItem('ag_recovery_mode');
-                    """,
-                    key="clear_recovery_tokens"
-                )
-
-                supabase.auth.sign_out()
-
-                st.success("Podés iniciar sesión nuevamente.")
-
+                st.query_params.clear()
                 st.rerun()
 
             except Exception as e:
-                st.error(f"❌ Error al actualizar contraseña: {e}")
+                st.error(e)
 
     st.stop()
 
