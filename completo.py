@@ -1113,7 +1113,7 @@ elif menu == "❄️ Análisis de Heladas":
     except Exception as e:
         st.error(f"Error en el módulo: {e}")
 # ==========================================================
-#elif menu == "📝 Bitácora":
+elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
 
     with st.form("nueva_nota", clear_on_submit=False):
