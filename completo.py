@@ -92,8 +92,18 @@ hash_url = streamlit_js_eval(
 )
  
 # Detectar si viene de un link de recuperación
+# Leer el hash de la URL
+hash_url = streamlit_js_eval(
+    js_expressions="window.location.hash",
+    key="get_url_hash"
+)
+
+# Si hash_url es None todavía (primer render), esperar
+if hash_url is None:
+    st.stop()
+
+# Detectar recovery
 es_recovery = (
-    hash_url and
     "access_token" in str(hash_url) and
     "type=recovery" in str(hash_url)
 )
