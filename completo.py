@@ -735,41 +735,56 @@ try:
 
 except Exception as e:
     st.error(f"Error radar zona: {e}")
+
 st.divider()
+
 st.markdown("""
 <style>
+
 [data-testid="stMetric"] {
     background-color: #0e1117;
     border: 1px solid #00ffc3;
     border-radius: 12px;
     padding: 15px;
-    }
-    [data-testid="stMetricLabel"] { color: #00ffc3 !important; }
-    [data-testid="stMetricValue"] { color: #00ffc3 !important; font-weight: bold; }
-    .stButton > button {
-        background-color: #0e1117 !important;
-        color: #00ffc3 !important;
-        border: 1px solid #00ffc3 !important;
-        border-radius: 10px !important;
-        font-weight: bold;
-    }
-    .stButton > button:hover {
-        background-color: #00ffc3 !important;
-        color: #0e1117 !important;
-    }
-    .stDownloadButton > button {
-        background-color: #0e1117 !important;
-        color: #00ffc3 !important;
-        border: 1px solid #00ffc3 !important;
-        border-radius: 10px !important;
-        font-weight: bold;
-    }
-    .stDownloadButton > button:hover {
-        background-color: #00ffc3 !important;
-        color: #0e1117 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+}
+
+[data-testid="stMetricLabel"] {
+    color: #00ffc3 !important;
+}
+
+[data-testid="stMetricValue"] {
+    color: #00ffc3 !important;
+    font-weight: bold;
+}
+
+.stButton > button {
+    background-color: #0e1117 !important;
+    color: #00ffc3 !important;
+    border: 1px solid #00ffc3 !important;
+    border-radius: 10px !important;
+    font-weight: bold;
+}
+
+.stButton > button:hover {
+    background-color: #00ffc3 !important;
+    color: #0e1117 !important;
+}
+
+.stDownloadButton > button {
+    background-color: #0e1117 !important;
+    color: #00ffc3 !important;
+    border: 1px solid #00ffc3 !important;
+    border-radius: 10px !important;
+    font-weight: bold;
+}
+
+.stDownloadButton > button:hover {
+    background-color: #00ffc3 !important;
+    color: #0e1117 !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
     # --- FORMULARIO DE CARGA MANUAL ---
     # --- FORMULARIO DE CARGA MANUAL ---
