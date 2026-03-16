@@ -119,8 +119,9 @@ recovery_mode = streamlit_js_eval(
     key="recovery_mode_check"
 )
 
+# Si JS aún no respondió, seguir normal
 if recovery_mode is None:
-    st.stop()
+    recovery_mode = "false"
 
 # ==========================================================
 # MODO RECUPERACIÓN
