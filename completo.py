@@ -592,7 +592,7 @@ with st.sidebar:
                 text-align: center;
                 font-weight: bold;
                 font-family: 'Courier New', monospace;
-                font-size: 13px;
+                font-size: 15px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
