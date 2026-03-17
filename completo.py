@@ -719,7 +719,7 @@ elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
 
     try:
-        res = supabase.table("registros_lluvia").select("*").execute()
+        res = supabase.table("registros_lluvia").select("*").eq("productor_id", st.session_state.user_id).execute()
 
         if res.data and len(res.data) > 0:
             df = pd.DataFrame(res.data)
