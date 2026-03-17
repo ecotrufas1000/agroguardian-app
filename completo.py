@@ -1089,7 +1089,8 @@ elif menu == "❄️ Análisis de Heladas":
         hum = clima['hum']
         diferencia_rocio = temp - rocio
         puntos = 0
-        factores = []
+        factores = [] 
+        
         # Agregar ANTES de toda la lógica de puntos
         if temp > 10:
             nivel = "✅ SIN RIESGO"
@@ -1098,32 +1099,31 @@ elif menu == "❄️ Análisis de Heladas":
             puntos = 0
             factores = ["🟢 Temperatura por encima del umbral crítico"]
         else:
+            if temp <= 0: puntos += 4; factores.append("🔴 Temperatura bajo cero — helada en curso")
+            elif temp <= 2: puntos += 3; factores.append("🟠 Temperatura crítica (0-2°C) — riesgo muy alto")
+            elif temp <= 4: puntos += 2; factores.append("🟡 Temperatura de alerta (2-4°C) — riesgo moderado")
+            elif temp <= 7: puntos += 1; factores.append("🟢 Temperatura baja (4-7°C) — riesgo leve")
+
+            if diferencia_rocio < 2: puntos += 3; factores.append("🔴 Punto de rocío muy cercano — inversión térmica probable")
+            elif diferencia_rocio < 4: puntos += 2; factores.append("🟡 Diferencia temp-rocío baja — condensación posible")
+            elif diferencia_rocio < 6: puntos += 1; factores.append("🟢 Diferencia temp-rocío moderada")
     
-        if temp <= 0: puntos += 4; factores.append("🔴 Temperatura bajo cero — helada en curso")
-        elif temp <= 2: puntos += 3; factores.append("🟠 Temperatura crítica (0-2°C) — riesgo muy alto")
-        elif temp <= 4: puntos += 2; factores.append("🟡 Temperatura de alerta (2-4°C) — riesgo moderado")
-        elif temp <= 7: puntos += 1; factores.append("🟢 Temperatura baja (4-7°C) — riesgo leve")
-
-        if diferencia_rocio < 2: puntos += 3; factores.append("🔴 Punto de rocío muy cercano — inversión térmica probable")
-        elif diferencia_rocio < 4: puntos += 2; factores.append("🟡 Diferencia temp-rocío baja — condensación posible")
-        elif diferencia_rocio < 6: puntos += 1; factores.append("🟢 Diferencia temp-rocío moderada")
-
-        if viento < 5: puntos += 2; factores.append("🔴 Viento calmo — favorece inversión térmica y helada radiativa")
-        elif viento < 10: puntos += 1; factores.append("🟡 Viento leve — mezcla de aire insuficiente")
-        else: factores.append("🟢 Viento suficiente — reduce riesgo de helada radiativa")
-
-        if hum > 85 and temp < 5: puntos += 2; factores.append("🔴 Alta humedad con temperatura baja — riesgo de escarcha")
-        elif hum > 70 and temp < 7: puntos += 1; factores.append("🟡 Humedad elevada con temperatura baja")
-
-        if puntos >= 7: nivel = "🚨 RIESGO EXTREMO"; color = "error"; consejo = "Activar sistemas de protección inmediatamente. Helada inminente o en curso."
-        elif puntos >= 5: nivel = "🔴 RIESGO ALTO"; color = "error"; consejo = "Preparar sistemas de protección. Alta probabilidad de helada esta noche."
-        elif puntos >= 3: nivel = "🟡 RIESGO MODERADO"; color = "warning"; consejo = "Monitorear cada 30 minutos. Posibilidad de helada en horas nocturnas."
-        elif puntos >= 1: nivel = "🟢 RIESGO BAJO"; color = "success"; consejo = "Condiciones desfavorables para helada. Mantener vigilancia."
-        else: nivel = "✅ SIN RIESGO"; color = "success"; consejo = "Sin condiciones de helada en las próximas horas."
-
-        if color == "error": st.error(f"**{nivel}** — {consejo}")
-        elif color == "warning": st.warning(f"**{nivel}** — {consejo}")
-        else: st.success(f"**{nivel}** — {consejo}")
+            if viento < 5: puntos += 2; factores.append("🔴 Viento calmo — favorece inversión térmica y helada radiativa")
+            elif viento < 10: puntos += 1; factores.append("🟡 Viento leve — mezcla de aire insuficiente")
+            else: factores.append("🟢 Viento suficiente — reduce riesgo de helada radiativa")
+    
+            if hum > 85 and temp < 5: puntos += 2; factores.append("🔴 Alta humedad con temperatura baja — riesgo de escarcha")
+            elif hum > 70 and temp < 7: puntos += 1; factores.append("🟡 Humedad elevada con temperatura baja")
+    
+            if puntos >= 7: nivel = "🚨 RIESGO EXTREMO"; color = "error"; consejo = "Activar sistemas de protección inmediatamente. Helada inminente o en curso."
+            elif puntos >= 5: nivel = "🔴 RIESGO ALTO"; color = "error"; consejo = "Preparar sistemas de protección. Alta probabilidad de helada esta noche."
+            elif puntos >= 3: nivel = "🟡 RIESGO MODERADO"; color = "warning"; consejo = "Monitorear cada 30 minutos. Posibilidad de helada en horas nocturnas."
+            elif puntos >= 1: nivel = "🟢 RIESGO BAJO"; color = "success"; consejo = "Condiciones desfavorables para helada. Mantener vigilancia."
+            else: nivel = "✅ SIN RIESGO"; color = "success"; consejo = "Sin condiciones de helada en las próximas horas."
+    
+            if color == "error": st.error(f"**{nivel}** — {consejo}")
+            elif color == "warning": st.warning(f"**{nivel}** — {consejo}")
+            else: st.success(f"**{nivel}** — {consejo}")
 
         with st.expander("🔍 Ver análisis detallado de factores"):
             for f in factores:
