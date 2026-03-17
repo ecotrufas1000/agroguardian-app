@@ -948,7 +948,8 @@ elif menu == "🌧️ Pluviómetro":
                         supabase.table("registros_lluvia").insert({
                             "fecha": hoy_fecha,
                             "mm": mm_hoy,
-                            "lote": "🛰️ Automático (Open-Meteo)"
+                            "lote": "🛰️ Automático (Open-Meteo)",
+                            "productor_id": st.session_state.user_id
                         }).execute()
                         st.success(f"✅ Registrado: {mm_hoy:.1f} mm para hoy")
                         st.rerun()
@@ -978,7 +979,8 @@ elif menu == "🌧️ Pluviómetro":
                             supabase.table("registros_lluvia").insert({
                                 "fecha": fecha,
                                 "mm": mm,
-                                "lote": "🛰️ Automático (Open-Meteo)"
+                                "lote": "🛰️ Automático (Open-Meteo)",
+                                "productor_id": st.session_state.user_id
                             }).execute()
                             registros += 1
                     st.success(f"✅ Importados {registros} días con lluvia")
