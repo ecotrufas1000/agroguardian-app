@@ -1336,7 +1336,29 @@ elif menu == "🛰️ Índices Satelitales":
                 centro = gdf_loc.geometry.centroid.iloc[0]
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=13, tiles='OpenStreetMap', attr=' ', height='100%', width='100%')
                 folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=indice_sel, name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
+                # Todos los departamentos de la provincia en gris
+                gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+                folium.GeoJson(
+                    gdf_prov,
+                    style_function=lambda x: {
+                        'fillColor': '#333333',
+                        'color': '#666666',
+                        'weight': 1,
+                        'fillOpacity': 0.3
+                    }
+                ).add_to(m)
+                
+                # Departamento seleccionado resaltado en verde
+                folium.GeoJson(
+                    gdf_loc,
+                    style_function=lambda x: {
+                        'fillColor': 'transparent',
+                        'color': '#00ffc3',
+                        'weight': 3,
+                        'fillOpacity': 0
+                    }
+                ).add_to(m)
+                
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
                 components.html(m.get_root().render(), height=1000, width=None)
                 st.write("---")
