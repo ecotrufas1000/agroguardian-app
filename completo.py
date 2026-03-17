@@ -1090,7 +1090,15 @@ elif menu == "❄️ Análisis de Heladas":
         diferencia_rocio = temp - rocio
         puntos = 0
         factores = []
-
+        # Agregar ANTES de toda la lógica de puntos
+        if temp > 10:
+            nivel = "✅ SIN RIESGO"
+            color = "success"
+            consejo = "Sin condiciones de helada."
+            puntos = 0
+            factores = ["🟢 Temperatura por encima del umbral crítico"]
+        else:
+    
         if temp <= 0: puntos += 4; factores.append("🔴 Temperatura bajo cero — helada en curso")
         elif temp <= 2: puntos += 3; factores.append("🟠 Temperatura crítica (0-2°C) — riesgo muy alto")
         elif temp <= 4: puntos += 2; factores.append("🟡 Temperatura de alerta (2-4°C) — riesgo moderado")
