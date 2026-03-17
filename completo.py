@@ -347,6 +347,8 @@ if st.session_state.get("cerrar"):
     except:
         pass
     st.rerun()
+if st.session_state.usuario is None:
+    st.stop()
 # ==========================================================
 # PWA / META TAGS
 # ==========================================================
