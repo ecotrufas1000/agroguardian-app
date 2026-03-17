@@ -1360,7 +1360,12 @@ elif menu == "🛰️ Índices Satelitales":
                 ).add_to(m)
                 
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m.get_root().render(), height=1000, width=None)
+                mapa_html = m.get_root().render()
+                mapa_html = mapa_html.replace(
+                    '</head>',
+                    '<style>.leaflet-control-attribution { display: none !important; } .leaflet-control-container .leaflet-top, .leaflet-control-container .leaflet-bottom { display: none !important; }</style></head>'
+                )
+                components.html(mapa_html, height=1000, width=None)
                 st.write("---")
 
                 if indice_sel == "NDVI":
