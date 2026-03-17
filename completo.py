@@ -698,7 +698,7 @@ elif menu == "🌧️ Pluviómetro":
     st.subheader("🌎 Radar AgroGuardian — Lluvia en la Zona")
 
     try:
-        from datetime import date
+        from datetime import datetime, date
         hoy_zona = date.today().isoformat()
 
         res_zona = supabase.table("registros_lluvia") \
@@ -706,28 +706,28 @@ elif menu == "🌧️ Pluviómetro":
             .eq("fecha", hoy_zona) \
             .execute()
 
-        if res_zona.data and len(res_zona.data) > 0:
+        if res_zona.data:
             df_zona = pd.DataFrame(res_zona.data)
-            df_zona["mm"] = pd.to_numeric(df_zona["mm"], errors="coerce").fillna(0)
+            if not df_zona.empty:
+                df_zona["mm"] = pd.to_numeric(df_zona["mm"], errors="coerce").fillna(0)
 
-            promedio_zona = round(df_zona["mm"].mean(), 1)
-            total_zona = round(df_zona["mm"].sum(), 1)
-            productores_zona = df_zona["productor_id"].nunique()
+                promedio_zona = round(df_zona["mm"].mean(), 1)
+                total_zona = round(df_zona["mm"].sum(), 1)
+                productores_zona = df_zona["productor_id"].nunique()
 
-            c1, c2, c3 = st.columns(3)
-            c1.metric("🌧 Promedio Zona", f"{promedio_zona} mm")
-            c2.metric("🌧 Total Zona", f"{total_zona} mm")
-            c3.metric("👨‍🌾 Productores", productores_zona)
+                c1, c2, c3 = st.columns(3)
+                c1.metric("🌧 Promedio Zona", f"{promedio_zona} mm")
+                c2.metric("🌧 Total Zona", f"{total_zona} mm")
+                c3.metric("👨‍🌾 Productores", productores_zona)
 
-            st.markdown("### 🏆 Ranking de Lluvia Hoy")
-            ranking = df_zona.groupby("productor_id")["mm"].sum().reset_index()
-            ranking = ranking.sort_values("mm", ascending=False)
-            ranking["pos"] = range(1, len(ranking) + 1)
-            ranking_text = ""
-            for _, r in ranking.head(5).iterrows():
-                ranking_text += f"🥇 #{r['pos']} — {r['mm']:.1f} mm\n"
-            st.code(ranking_text if ranking_text else "Sin datos")
-
+                # Ranking
+                st.subheader("### 🏆 Ranking de Lluvia Hoy")
+                ranking = df_zona.groupby("productor_id")["mm"].sum().reset_index()
+                ranking = ranking.sort_values("mm", ascending=False)
+                ranking["Posición"] = range(1, len(ranking) + 1)
+                st.table(ranking.head(5)[["Posición", "productor_id", "mm"]])
+            else:
+                st.info("🌧️ Todavía no hay registros de lluvia en la zona hoy.")
         else:
             st.info("🌧️ Todavía no hay registros de lluvia en la zona hoy.")
 
@@ -736,6 +736,7 @@ elif menu == "🌧️ Pluviómetro":
 
     st.divider()
 
+    # ====== CSS Estilo ======
     st.markdown("""
     <style>
     [data-testid="stMetric"] {
@@ -746,25 +747,14 @@ elif menu == "🌧️ Pluviómetro":
     }
     [data-testid="stMetricLabel"] { color: #00ffc3 !important; }
     [data-testid="stMetricValue"] { color: #00ffc3 !important; font-weight: bold; }
-    .stButton > button {
+    .stButton > button, .stDownloadButton > button {
         background-color: #0e1117 !important;
         color: #00ffc3 !important;
         border: 1px solid #00ffc3 !important;
         border-radius: 10px !important;
         font-weight: bold;
     }
-    .stButton > button:hover {
-        background-color: #00ffc3 !important;
-        color: #0e1117 !important;
-    }
-    .stDownloadButton > button {
-        background-color: #0e1117 !important;
-        color: #00ffc3 !important;
-        border: 1px solid #00ffc3 !important;
-        border-radius: 10px !important;
-        font-weight: bold;
-    }
-    .stDownloadButton > button:hover {
+    .stButton > button:hover, .stDownloadButton > button:hover {
         background-color: #00ffc3 !important;
         color: #0e1117 !important;
     }
@@ -782,21 +772,24 @@ elif menu == "🌧️ Pluviómetro":
         with col_f3:
             lote_input = st.text_input("🗺️ Lote / Sector", placeholder="Ej: Lote 3")
         submitted = st.form_submit_button("💾 GUARDAR REGISTRO", use_container_width=True)
+
         if submitted:
-            try:
-                supabase.table("registros_lluvia").insert({
-                    "fecha": fecha_input.isoformat(),
-                    "mm": mm_input,
-                    "lote": lote_input if lote_input else "Sin lote",
-                    "productor_id": st.session_state.user_id
-                }).execute()
-                st.success(f"✅ Registrado: {mm_input:.1f} mm el {fecha_input.strftime('%d/%m/%Y')}")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error al guardar: {e}")
+            if mm_input <= 0:
+                st.warning("💧 Ingrese un valor mayor a 0 mm")
+            else:
+                try:
+                    supabase.table("registros_lluvia").insert({
+                        "fecha": fecha_input.isoformat(),
+                        "mm": mm_input,
+                        "lote": lote_input.strip() if lote_input else "Sin lote",
+                        "productor_id": st.session_state.user_id
+                    }).execute()
+                    st.success(f"✅ Registrado: {mm_input:.1f} mm el {fecha_input.strftime('%d/%m/%Y')}")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error al guardar: {e}")
 
     st.divider()
-
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
