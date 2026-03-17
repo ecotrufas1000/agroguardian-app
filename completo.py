@@ -312,6 +312,15 @@ if st.session_state.get("forzar_cambio_password", False):
                 st.error(f"Error al actualizar contraseña: {e}")
 
     st.stop()
+def cerrar_sesion():
+    st.session_state.usuario = None
+    st.session_state.user_id = None
+    st.session_state.cerrando_sesion = True
+    try:
+        supabase.auth.sign_out()
+    except:
+        pass
+    st.rerun()
 #==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
