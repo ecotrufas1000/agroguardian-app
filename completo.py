@@ -679,114 +679,86 @@ if menu == "📊 Monitoreo Total":
 # ==========================================================
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
+
     # ==========================================================
-# 🌎 RADAR AGROGUARDIAN (LLUVIA COLABORATIVA)
-# ==========================================================
+    # 🌎 RADAR AGROGUARDIAN (LLUVIA COLABORATIVA)
+    # ==========================================================
+    st.subheader("🌎 Radar AgroGuardian — Lluvia en la Zona")
 
-st.subheader("🌎 Radar AgroGuardian — Lluvia en la Zona")
+    try:
+        from datetime import date
+        hoy_zona = date.today().isoformat()
 
-try:
+        res_zona = supabase.table("registros_lluvia") \
+            .select("mm, productor_id, lote") \
+            .eq("fecha", hoy_zona) \
+            .execute()
 
-    from datetime import date
-    hoy_zona = date.today().isoformat()
+        if res_zona.data and len(res_zona.data) > 0:
+            df_zona = pd.DataFrame(res_zona.data)
+            df_zona["mm"] = pd.to_numeric(df_zona["mm"], errors="coerce").fillna(0)
 
-    # TRAER TODAS LAS LLUVIAS DE HOY
-    res_zona = supabase.table("registros_lluvia") \
-        .select("mm, productor_id, lote") \
-        .eq("fecha", hoy_zona) \
-        .execute()
+            promedio_zona = round(df_zona["mm"].mean(), 1)
+            total_zona = round(df_zona["mm"].sum(), 1)
+            productores_zona = df_zona["productor_id"].nunique()
 
-    if res_zona.data and len(res_zona.data) > 0:
+            c1, c2, c3 = st.columns(3)
+            c1.metric("🌧 Promedio Zona", f"{promedio_zona} mm")
+            c2.metric("🌧 Total Zona", f"{total_zona} mm")
+            c3.metric("👨‍🌾 Productores", productores_zona)
 
-        df_zona = pd.DataFrame(res_zona.data)
-        df_zona["mm"] = pd.to_numeric(df_zona["mm"], errors="coerce").fillna(0)
+            st.markdown("### 🏆 Ranking de Lluvia Hoy")
+            ranking = df_zona.groupby("productor_id")["mm"].sum().reset_index()
+            ranking = ranking.sort_values("mm", ascending=False)
+            ranking["pos"] = range(1, len(ranking) + 1)
+            ranking_text = ""
+            for _, r in ranking.head(5).iterrows():
+                ranking_text += f"🥇 #{r['pos']} — {r['mm']:.1f} mm\n"
+            st.code(ranking_text if ranking_text else "Sin datos")
 
-        promedio_zona = round(df_zona["mm"].mean(), 1)
-        total_zona = round(df_zona["mm"].sum(), 1)
-        productores_zona = df_zona["productor_id"].nunique()
+        else:
+            st.info("🌧️ Todavía no hay registros de lluvia en la zona hoy.")
 
-        c1, c2, c3 = st.columns(3)
+    except Exception as e:
+        st.error(f"Error radar zona: {e}")
 
-        c1.metric("🌧 Promedio Zona", f"{promedio_zona} mm")
-        c2.metric("🌧 Total Zona", f"{total_zona} mm")
-        c3.metric("👨‍🌾 Productores", productores_zona)
+    st.divider()
 
-        # ----------------------------
-        # RANKING DE LLUVIA
-        # ----------------------------
+    st.markdown("""
+    <style>
+    [data-testid="stMetric"] {
+        background-color: #0e1117;
+        border: 1px solid #00ffc3;
+        border-radius: 12px;
+        padding: 15px;
+    }
+    [data-testid="stMetricLabel"] { color: #00ffc3 !important; }
+    [data-testid="stMetricValue"] { color: #00ffc3 !important; font-weight: bold; }
+    .stButton > button {
+        background-color: #0e1117 !important;
+        color: #00ffc3 !important;
+        border: 1px solid #00ffc3 !important;
+        border-radius: 10px !important;
+        font-weight: bold;
+    }
+    .stButton > button:hover {
+        background-color: #00ffc3 !important;
+        color: #0e1117 !important;
+    }
+    .stDownloadButton > button {
+        background-color: #0e1117 !important;
+        color: #00ffc3 !important;
+        border: 1px solid #00ffc3 !important;
+        border-radius: 10px !important;
+        font-weight: bold;
+    }
+    .stDownloadButton > button:hover {
+        background-color: #00ffc3 !important;
+        color: #0e1117 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-        st.markdown("### 🏆 Ranking de Lluvia Hoy")
-
-        ranking = df_zona.groupby("productor_id")["mm"].sum().reset_index()
-        ranking = ranking.sort_values("mm", ascending=False)
-
-        ranking["pos"] = range(1, len(ranking) + 1)
-
-        ranking_text = ""
-
-        for _, r in ranking.head(5).iterrows():
-            ranking_text += f"🥇 #{r['pos']} — {r['mm']:.1f} mm\n"
-
-        st.code(ranking_text if ranking_text else "Sin datos")
-
-    else:
-
-        st.info("🌧️ Todavía no hay registros de lluvia en la zona hoy.")
-
-except Exception as e:
-    st.error(f"Error radar zona: {e}")
-
-st.divider()
-
-st.markdown("""
-<style>
-
-[data-testid="stMetric"] {
-    background-color: #0e1117;
-    border: 1px solid #00ffc3;
-    border-radius: 12px;
-    padding: 15px;
-}
-
-[data-testid="stMetricLabel"] {
-    color: #00ffc3 !important;
-}
-
-[data-testid="stMetricValue"] {
-    color: #00ffc3 !important;
-    font-weight: bold;
-}
-
-.stButton > button {
-    background-color: #0e1117 !important;
-    color: #00ffc3 !important;
-    border: 1px solid #00ffc3 !important;
-    border-radius: 10px !important;
-    font-weight: bold;
-}
-
-.stButton > button:hover {
-    background-color: #00ffc3 !important;
-    color: #0e1117 !important;
-}
-
-.stDownloadButton > button {
-    background-color: #0e1117 !important;
-    color: #00ffc3 !important;
-    border: 1px solid #00ffc3 !important;
-    border-radius: 10px !important;
-    font-weight: bold;
-}
-
-.stDownloadButton > button:hover {
-    background-color: #00ffc3 !important;
-    color: #0e1117 !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-    # --- FORMULARIO DE CARGA MANUAL ---
     # --- FORMULARIO DE CARGA MANUAL ---
     st.subheader("➕ Registrar Lluvia Manual")
     with st.form("form_lluvia", clear_on_submit=True):
@@ -813,252 +785,7 @@ st.markdown("""
 
     st.divider()
 
-    try:
-        # FILTRAR POR USUARIO LOGUEADO
-        res = supabase.table("registros_lluvia").select("*").eq("productor_id", st.session_state.user_id).execute()
-
-        if res.data and len(res.data) > 0:
-            df = pd.DataFrame(res.data)
-            df['fecha'] = pd.to_datetime(df['fecha'], format='mixed', utc=True)
-            df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
-            from datetime import timezone
-            hoy = datetime.now(timezone.utc)
-
-            df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
-            df_año = df[df['fecha'].dt.year == hoy.year].copy()
-
-            # --- MÉTRICAS ---
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("💧 Este Mes", f"{df_mes['mm'].sum():.1f} mm")
-            c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
-            c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
-            c4.metric("📊 Registros", f"{len(df)} eventos")
-
-            st.divider()
-
-            # --- BOTÓN WHATSAPP ---
-            df_limpio = df[df['fecha'].notnull()].copy()
-            ultimos = df_limpio.sort_values('fecha', ascending=False).head(10)
-            detalle_tabla = ""
-            for _, row in ultimos.iterrows():
-                try:
-                    f_str = row['fecha'].strftime('%d/%m')
-                    detalle_tabla += f"📍 {f_str}: {row['mm']:.1f} mm\n"
-                except:
-                    continue
-
-            mensaje_wa = (
-                f"🌱 REPORTE AGROGUARDIAN\n"
-                f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
-                f"--------------------------------\n"
-                f"💧 RESUMEN:\n"
-                f"• Mes: {df_mes['mm'].sum():.1f} mm\n"
-                f"• Año: {df_año['mm'].sum():.1f} mm\n"
-                f"--------------------------------\n"
-                f"📋 ÚLTIMOS REGISTROS:\n"
-                f"{detalle_tabla if detalle_tabla else 'Sin datos'}\n"
-                f"--------------------------------"
-            )
-            mensaje_url = urllib.parse.quote(mensaje_wa)
-            wa_url = f"https://wa.me/?text={mensaje_url}"
-
-            st.markdown(f"""
-                <a href="{wa_url}" target="_blank" style="text-decoration: none;">
-                    <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px;
-                        text-align: center; font-weight: bold; font-family: 'Segoe UI';
-                        display: flex; align-items: center; justify-content: center; gap: 12px;
-                        box-shadow: 0px 6px 15px rgba(0,0,0,0.4);">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="25px">
-                        ENVIAR REPORTE + TABLA DIARIA
-                    </div>
-                </a>
-            """, unsafe_allow_html=True)
-            st.write("")
-            st.divider()
-
-            # --- GRÁFICOS ---
-            estilo_grafico = dict(
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color="#00ffc3"), height=350,
-                margin=dict(l=10, r=10, t=30, b=20)
-            )
-
-            st.subheader(f"📅 Detalle Diario — {hoy.strftime('%B %Y')}")
-            df_mes['dia'] = df_mes['fecha'].dt.day
-            df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
-            fig1 = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
-            fig1.update_traces(marker_color='#1f77b4')
-            fig1.update_layout(**estilo_grafico)
-            st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
-
-            st.subheader(f"📊 Acumulado Mensual — Año {hoy.year}")
-            meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-            mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
-            df_anual = pd.DataFrame({'Mes': meses_nombres, 'Prec_mm': mensual.values})
-            fig2 = px.bar(df_anual, x='Mes', y='Prec_mm', template="plotly_dark",
-                          text_auto='.1f', title="Distribución de Lluvias por Mes")
-            fig2.update_traces(marker_color='#00ffc3', textposition="outside")
-            fig2.update_layout(**estilo_grafico)
-            st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
-
-            st.divider()
-
-            # --- EXCEL ---
-            df_excel = df.copy().sort_values('fecha', ascending=False)
-            df_excel['fecha'] = df_excel['fecha'].dt.tz_convert(None)
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_excel[['fecha', 'lote', 'mm']].to_excel(writer, index=False, sheet_name='Registros_Lluvia')
-                workbook = writer.book
-                worksheet = writer.sheets['Registros_Lluvia']
-                for i, col in enumerate(['fecha', 'lote', 'mm']):
-                    column_len = max(df_excel[col].astype(str).map(len).max(), len(col)) + 2
-                    worksheet.set_column(i, i, column_len)
-            excel_data = output.getvalue()
-
-            # --- TABLA EDITABLE ---
-            st.subheader("📂 Base de Datos de Lluvias")
-            st.info("💡 Editá valores en la tabla. Para eliminar usá el selector de abajo.")
-
-            df_editable = df.copy().sort_values('fecha', ascending=False).reset_index(drop=True)
-
-            edited_df = st.data_editor(
-                df_editable[['id', 'fecha', 'lote', 'mm']],
-                key="editor_lluvias",
-                num_rows="fixed",
-                use_container_width=True,
-                disabled=["id", "fecha"],
-                column_config={
-                    "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
-                    "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY HH:mm"),
-                    "lote": "Lote",
-                    "id": None
-                }
-            )
-
-            if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
-                try:
-                    for _, row in edited_df.iterrows():
-                        if pd.notnull(row['id']):
-                            supabase.table("registros_lluvia").update({
-                                "mm": float(row['mm']),
-                                "lote": str(row['lote'])
-                            }).eq("id", int(row['id'])).execute()
-                    st.success("✅ Cambios guardados")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
-
-            st.download_button(
-                label="📥 DESCARGAR EXCEL",
-                data=excel_data,
-                file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                use_container_width=True
-            )
-
-            # --- ELIMINAR REGISTRO ---
-            st.divider()
-            opciones = {}
-            for _, row in df_editable.iterrows():
-                try:
-                    fecha_str = pd.Timestamp(row['fecha']).tz_convert(None).strftime('%d/%m/%Y')
-                except:
-                    try:
-                        fecha_str = pd.Timestamp(row['fecha']).tz_localize(None).strftime('%d/%m/%Y')
-                    except:
-                        fecha_str = "Sin fecha"
-                key = f"{fecha_str} — {row['lote']} — {row['mm']:.1f} mm"
-                opciones[key] = row['id']
-
-            fila_seleccionada = st.selectbox(
-                "Seleccioná el registro a eliminar:",
-                options=list(opciones.keys()),
-                key="selector_borrar"
-            )
-
-            if st.button("🗑️ ELIMINAR ESTE REGISTRO", type="primary", use_container_width=True):
-                try:
-                    id_borrar = opciones[fila_seleccionada]
-                    supabase.table("registros_lluvia").delete().eq("id", id_borrar).execute()
-                    st.success("✅ Registro eliminado correctamente")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error al eliminar: {e}")
-
-            # --- REGISTRO SATELITAL ---
-            st.divider()
-            st.markdown("### 🛰️ Registro Automático desde Satélite")
-            col_auto1, col_auto2 = st.columns([2, 1])
-
-            with col_auto1:
-                st.caption("Obtiene precipitaciones desde Open-Meteo usando tu ubicación GPS. Sin costo, sin límites.")
-
-            with col_auto2:
-                if st.button("📡 REGISTRAR HOY", type="primary"):
-                    try:
-                        from datetime import date
-                        lat_auto = LAT if LAT else -38.29
-                        lon_auto = LON if LON else -57.55
-                        hoy_fecha = date.today().isoformat()
-                        url_meteo = (
-                            f"https://api.open-meteo.com/v1/forecast?"
-                            f"latitude={lat_auto}&longitude={lon_auto}"
-                            f"&daily=precipitation_sum"
-                            f"&timezone=America/Argentina/Buenos_Aires"
-                            f"&start_date={hoy_fecha}&end_date={hoy_fecha}"
-                        )
-                        r = requests.get(url_meteo).json()
-                        mm_hoy = r['daily']['precipitation_sum'][0] or 0.0
-                        supabase.table("registros_lluvia").insert({
-                            "fecha": hoy_fecha,
-                            "mm": mm_hoy,
-                            "lote": "🛰️ Automático (Open-Meteo)",
-                            "productor_id": st.session_state.user_id
-                        }).execute()
-                        st.success(f"✅ Registrado: {mm_hoy:.1f} mm para hoy")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-
-            if st.button("📅 IMPORTAR ÚLTIMOS 7 DÍAS"):
-                try:
-                    from datetime import date, timedelta
-                    lat_auto = LAT if LAT else -38.29
-                    lon_auto = LON if LON else -57.55
-                    fecha_fin = date.today().isoformat()
-                    fecha_ini = (date.today() - timedelta(days=7)).isoformat()
-                    url_meteo = (
-                        f"https://api.open-meteo.com/v1/forecast?"
-                        f"latitude={lat_auto}&longitude={lon_auto}"
-                        f"&daily=precipitation_sum"
-                        f"&timezone=America/Argentina/Buenos_Aires"
-                        f"&start_date={fecha_ini}&end_date={fecha_fin}"
-                    )
-                    r = requests.get(url_meteo).json()
-                    fechas = r['daily']['time']
-                    lluvias = r['daily']['precipitation_sum']
-                    registros = 0
-                    for fecha, mm in zip(fechas, lluvias):
-                        if mm and mm > 0:
-                            supabase.table("registros_lluvia").insert({
-                                "fecha": fecha,
-                                "mm": mm,
-                                "lote": "🛰️ Automático (Open-Meteo)",
-                                "productor_id": st.session_state.user_id
-                            }).execute()
-                            registros += 1
-                    st.success(f"✅ Importados {registros} días con lluvia")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
-
-        else:
-            st.info("🌧️ Todavía no tenés registros de lluvia. Usá el formulario de arriba para cargar el primero.")
-
-    except Exception as e:
-        st.error(f"Error al procesar los datos de lluvia: {e}")
-# ==========================================================
+    
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
 elif menu == "💧 Balance Hídrico":
