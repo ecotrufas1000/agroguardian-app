@@ -1335,7 +1335,15 @@ elif menu == "🛰️ Índices Satelitales":
                 gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=13, tiles='OpenStreetMap', attr=' ', height='100%', width='100%')
-                folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=indice_sel, name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
+                capa_wms = {
+                    "NDVI": "NDVI",
+                    "NDWI": "NDWI",
+                    "TRUE-COLOR": "TRUE-COLOR",
+                    "NDMI": "NDMI",
+                    "LST": "LST"
+                }    
+
+                folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=capa_wms[indice_sel], name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
                 # Todos los departamentos de la provincia en gris
                 gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
                 folium.GeoJson(
