@@ -150,24 +150,32 @@ if st.session_state.usuario is None:
                 color: #00ffc3 !important;
                 border: 1px solid #30363d !important;
                 border-radius: 6px !important;
-                padding: 6px 10px !important;
-                font-size: 13px !important;
-                height: 36px !important;
-            }
-            .stTextInput label {
+                padding: 4px 8px !important;
                 font-size: 12px !important;
+                height: 32px !important;
+                min-height: 32px !important;
+                max-height: 32px !important;
+            }
+            .stTextInput {
+                margin-bottom: 4px !important;
+            }
+            .stTextInput label p {
+                font-size: 11px !important;
+                margin-bottom: 2px !important;
             }
             .stButton > button {
                 background-color: #161b22 !important;
                 color: #00ffc3 !important;
                 border: 1px solid #00ffc3 !important;
                 border-radius: 6px !important;
-                font-weight: bold;
-                padding: 6px 16px !important;
-                font-size: 13px !important;
-                height: 36px !important;
-            }
-            .stButton > button {
+                font-weight: bold !important;
+                padding: 4px 12px !important;
+                font-size: 12px !important;
+                height: 32px !important;
+                min-height: 32px !important;
+                line-height: 1 !important;
+             }               
+             .stButton > button {
                 background-color: #161b22 !important;
                 color: #00ffc3 !important;
                 border: 1px solid #00ffc3 !important;
