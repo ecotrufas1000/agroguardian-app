@@ -228,6 +228,7 @@ if st.session_state.usuario is None:
     """, unsafe_allow_html=True)
 
     #tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
+    tab_activo = st.session_state.get("tab_activo", 0)
     tab1, tab2, tab3 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse", "🔑 Recuperar Contraseña"])
 
     with tab1:
@@ -257,9 +258,10 @@ if st.session_state.usuario is None:
                 st.error("❌ La contraseña debe tener al menos 6 caracteres")
             else:
                 if registrar(email_r, pass_r, nombre, campo, localidad):
-                    st.success("✅ Cuenta creada correctamente")
+                    st.success("✅ Cuenta creada. Ya podés iniciar sesión.")
                     import time
                     time.sleep(1.5)
+                    st.session_state.tab_activo = 0
                     st.rerun()
 
     with tab3:
