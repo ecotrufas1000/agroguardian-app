@@ -89,7 +89,7 @@ if st.session_state.cerrando_sesion:
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
 #===========================================================
-if st.session_state.usuario is None:
+if st.session_state.usuario is None and not st.session_state.cerrando_sesion:
     ls_usuario = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_usuario")',
         key="ls_get_usuario"
