@@ -258,9 +258,9 @@ if st.session_state.usuario is None:
             else:
                 if registrar(email_r, pass_r, nombre, campo, localidad):
                     st.success("✅ Cuenta creada correctamente")
+                    import time
+                    time.sleep(1.5)
                     st.rerun()
-
-
 
     with tab3:
 
