@@ -348,16 +348,13 @@ if st.session_state.get("forzar_cambio_password", False):
 
     
 def cerrar_sesion():
-    st.session_state.usuario = None
-    st.session_state.user_id = None
-    streamlit_js_eval(
-        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
-        key="ls_remove_sesion"
-    )
+    st.session_state.cerrando_sesion = True
+
     try:
         supabase.auth.sign_out()
     except:
         pass
+
     st.rerun()
 #==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
