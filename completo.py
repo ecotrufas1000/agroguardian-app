@@ -1328,7 +1328,7 @@ elif menu == "🛰️ Índices Satelitales":
             else:
                 depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "LST"])
+            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "EVI"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Calculando {indice_sel}..."):
@@ -1340,7 +1340,7 @@ elif menu == "🛰️ Índices Satelitales":
                     "NDWI": "NDWI",
                     "TRUE-COLOR": "TRUE-COLOR",
                     "NDMI": "NDMI",
-                    "LST": "LST"
+                    "EVI": "EVI"
                 }    
 
                 folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=capa_wms[indice_sel], name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
