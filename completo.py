@@ -84,6 +84,8 @@ if st.session_state.cerrando_sesion:
         js_expressions='localStorage.clear();',
         key="ls_clear_cerrar"
     )
+    import time
+    time.sleep(1)
     st.rerun()
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
