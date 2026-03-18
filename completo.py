@@ -132,7 +132,25 @@ def login(email, password):
             st.session_state.forzar_cambio_password = True
 
         return True
-
+    def registrar(email, password, nombre, campo, localidad):
+    try:
+        res = supabase.auth.sign_up({
+            "email": email,
+            "password": password
+        })
+        if res.user:
+            supabase.table("perfiles").insert({
+                "id": res.user.id,
+                "nombre": nombre,
+                "campo": campo,
+                "localidad": localidad,
+                "password_temporal": False
+            }).execute()
+            return True
+        return False
+    except Exception as e:
+        st.error(f"❌ Error al registrarse: {e}")
+        return False
     except Exception as e:
         st.error(f"❌ Error al iniciar sesión: {e}")
         return False
