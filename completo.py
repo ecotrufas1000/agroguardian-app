@@ -80,12 +80,18 @@ if "forzar_cambio_password" not in st.session_state:
 # ==========================================================
 if st.session_state.cerrando_sesion:
     streamlit_js_eval(
-        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
+        js_expressions='''
+        localStorage.removeItem("ag_usuario");
+        localStorage.removeItem("ag_user_id");
+        ''',
         key="ls_remove_sesion"
     )
-    st.session_state.cerrando_sesion = False
-    st.stop()  # Detiene acá, el próximo rerun arranca limpio
 
+    st.session_state.cerrando_sesion = False
+    st.session_state.usuario = None
+    st.session_state.user_id = None
+
+    st.rerun()
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
 #===========================================================
