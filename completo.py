@@ -132,6 +132,9 @@ def login(email, password):
             st.session_state.forzar_cambio_password = True
 
         return True
+    except Exception as e:
+       st.error(f"❌ Error al registrarse: {e}")
+       return False   
 def registrar(email, password, nombre, campo, localidad):
     try:
         res = supabase.auth.sign_up({
