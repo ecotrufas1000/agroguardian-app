@@ -100,6 +100,7 @@ if st.session_state.cerrando_sesion:
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
 # ==========================================================
+# ==========================================================
 if st.session_state.usuario is None:
     ls_usuario = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_usuario")',
@@ -113,15 +114,6 @@ if st.session_state.usuario is None:
         st.session_state.usuario = ls_usuario
         st.session_state.user_id = ls_user_id
         st.rerun()
-    elif ls_usuario is None and ls_user_id is None:
-        st.markdown("""
-            <div style='display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#0d1117;'>
-                <img src='https://raw.githubusercontent.com/ecotrufas1100/agroguardian-app/main/logo1.png' width='80px'>
-                <p style='color:#00ffc3; font-family:monospace; font-size:16px; margin-top:20px;'>Cargando AgroGuardian...</p>
-            </div>
-        """, unsafe_allow_html=True)
-        st.stop()
-
 # ==========================================================
 # 6. FUNCIONES DE AUTH
 # ==========================================================
