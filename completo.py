@@ -97,6 +97,19 @@ if st.session_state.usuario is None and not st.session_state.cerrando_sesion:
         st.session_state.usuario = ls_usuario
         st.session_state.user_id = ls_user_id
         st.rerun()
+if st.session_state.usuario is None and not st.session_state.cerrando_sesion:
+    ls_usuario = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_usuario")',
+        key="ls_get_usuario"
+    )
+    ls_user_id = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_user_id")',
+        key="ls_get_user_id"
+    )
+    if ls_usuario and ls_user_id:
+        st.session_state.usuario = ls_usuario
+        st.session_state.user_id = ls_user_id
+        st.rerun()
 # ==========================================================
 # 6. FUNCIONES DE AUTH
 # ==========================================================
@@ -337,16 +350,16 @@ if st.session_state.get("forzar_cambio_password", False):
 
     
 def cerrar_sesion():
-    st.session_state.cerrando_sesion = True
     st.session_state.usuario = None
     st.session_state.user_id = None
+    st.session_state.cerrando_sesion = True
     try:
         supabase.auth.sign_out()
     except:
         pass
     streamlit_js_eval(
-        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
-        key="ls_remove_cerrar"
+        js_expressions='localStorage.clear();',
+        key="ls_clear_todo"
     )
     st.rerun()
 #==========================================================
