@@ -715,30 +715,12 @@ if menu == "📊 Monitoreo Total":
     st.divider()
 
     if clima:
-        st.markdown(f"""
-        <div style='display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:16px;'>
-            <div style='background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; text-align:center;'>
-                <div style='color:#888; font-size:11px; font-family:monospace;'>🌡️ Temperatura</div>
-                <div style='color:#00ffc3; font-size:22px; font-weight:bold; font-family:monospace;'>{clima['temp']:.1f} °C</div>
-            </div>
-            <div style='background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; text-align:center;'>
-                <div style='color:#888; font-size:11px; font-family:monospace;'>💧 Humedad</div>
-                <div style='color:#00ffc3; font-size:22px; font-weight:bold; font-family:monospace;'>{clima['hum']} %</div>
-            </div>
-            <div style='background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; text-align:center;'>
-                <div style='color:#888; font-size:11px; font-family:monospace;'>🌫️ Punto de Rocío</div>
-                <div style='color:#00ffc3; font-size:22px; font-weight:bold; font-family:monospace;'>{clima['rocio']} °C</div>
-            </div>
-            <div style='background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; text-align:center;'>
-                <div style='color:#888; font-size:11px; font-family:monospace;'>💨 Viento</div>
-                <div style='color:#00ffc3; font-size:22px; font-weight:bold; font-family:monospace;'>{clima['v_vel']} km/h</div>
-            </div>
-            <div style='background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; text-align:center;'>
-                <div style='color:#888; font-size:11px; font-family:monospace;'>📊 Presión</div>
-                <div style='color:#00ffc3; font-size:22px; font-weight:bold; font-family:monospace;'>{clima['presion']} hPa</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        col1, col2, col3, col4, col5 = st.columns(5)
+        with col1: st.metric("Temperatura", f"{clima['temp']:.1f} °C")
+        with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
+        with col3: st.metric("Punto de Rocío", f"{clima['rocio']} °C")
+        with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
+        with col5: st.metric("Presion", f"{clima['presion']} hPa")
         st.divider()
         c_a1, c_a2 = st.columns(2)
         with c_a1:
