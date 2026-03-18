@@ -357,11 +357,6 @@ def cerrar_sesion():
         supabase.auth.sign_out()
     except:
         pass
-    streamlit_js_eval(
-        js_expressions='localStorage.clear();',
-        key="ls_clear_todo"
-    )
-    st.rerun()
 #==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
