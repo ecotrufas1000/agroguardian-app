@@ -80,23 +80,14 @@ if "forzar_cambio_password" not in st.session_state:
 # ==========================================================
 if st.session_state.cerrando_sesion:
     st.session_state.cerrando_sesion = False
-    st.rerun()
+    streamlit_js_eval(
+        js_expressions='localStorage.clear();',
+        key="ls_clear_cerrar"
+    )
+    st.stop()
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
 #===========================================================
-if st.session_state.usuario is None and not st.session_state.cerrando_sesion:
-    ls_usuario = streamlit_js_eval(
-        js_expressions='localStorage.getItem("ag_usuario")',
-        key="ls_get_usuario"
-    )
-    ls_user_id = streamlit_js_eval(
-        js_expressions='localStorage.getItem("ag_user_id")',
-        key="ls_get_user_id"
-    )
-    if ls_usuario and ls_user_id:
-        st.session_state.usuario = ls_usuario
-        st.session_state.user_id = ls_user_id
-        st.rerun()
 if st.session_state.usuario is None and not st.session_state.cerrando_sesion:
     ls_usuario = streamlit_js_eval(
         js_expressions='localStorage.getItem("ag_usuario")',
@@ -357,6 +348,7 @@ def cerrar_sesion():
         supabase.auth.sign_out()
     except:
         pass
+    st.rerun()
 #==========================================================
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
