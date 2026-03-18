@@ -363,7 +363,11 @@ def cerrar_sesion():
 with st.sidebar:
     st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
     if st.button("🚪 Cerrar sesión"):
-        cerrar_sesion()
+    cerrar_sesion()
+    streamlit_js_eval(
+        js_expressions='localStorage.clear(); window.location.reload();',
+        key="ls_cerrar_y_recargar"
+    )
 
 
 # Ejecutar el JS de localStorage fuera del botón
