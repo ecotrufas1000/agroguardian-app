@@ -1388,9 +1388,9 @@ elif menu == "🛰️ Índices Satelitales":
                 elif indice_sel == "NDMI":
                     st.subheader("💦 Índice de Humedad del Cultivo (NDMI)")
                     st.markdown("""El **NDMI** detecta el contenido de agua en la vegetación:\n* 🔵 **Azul Oscuro:** Alta humedad en canopeo — cultivo bien abastecido.\n* 🟦 **Celeste:** Humedad moderada — monitorear.\n* 🟨 **Amarillo:** Humedad baja — estrés hídrico incipiente.\n* 🟥 **Rojo:** Estrés hídrico severo — intervención urgente.""")
-                elif indice_sel == "LST":
-                    st.subheader("🌡️ Temperatura de Superficie (LST)")
-                    st.markdown("""El **LST** muestra la temperatura real del suelo y cultivo:\n* 🔵 **Azul/Violeta:** Superficie fría — riesgo de helada.\n* 🟩 **Verde:** Temperatura moderada — condiciones normales.\n* 🟨 **Amarillo:** Superficie cálida — monitorear estrés térmico.\n* 🟥 **Rojo/Naranja:** Superficie muy caliente — estrés severo o suelo desnudo.""")
+                elif indice_sel == "EVI":
+                    st.subheader("🌱 Índice de Vegetación Mejorado (EVI)")
+                    st.markdown("""El **EVI** mejora el NDVI en zonas de alta biomasa:\n* 🟩 **Verde Oscuro:** Cultivo muy denso y sano.\n* 🟩 **Verde Claro:** Vegetación activa en crecimiento.\n* 🟨 **Amarillo:** Cultivo con estrés o baja densidad.\n* 🟥 **Rojo/Naranja:** Suelo desnudo o cultivo muy estresado.""")
 
                 fecha_reporte = datetime.now().strftime('%d/%m/%Y')
                 texto_reporte = f"📊 INFORME DE MONITOREO SATELITAL\n---------------------------------\n📍 Ubicación: {depto_sel}, {prov_sel}\n📅 Fecha: {fecha_reporte}\n🛰️ Capa: {indice_sel}\n"
