@@ -1024,108 +1024,69 @@ elif menu == "🌧️ Pluviómetro":
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
-# ==========================================================
 elif menu == "💧 Balance Hídrico":
     import folium
     from streamlit_folium import folium_static
-
     st.markdown("### Evapotranspiracion 💧 Blanney-Criddle")
-
     try:
         lat = LAT if LAT else -38.29
         lon = LON if LON else -57.55
-
         temp_media = st.session_state.clima_data['temp'] if 'clima_data' in st.session_state else 25.0
-
         doy = datetime.now().timetuple().tm_yday
         delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
         ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
-
-        eto_diaria = ((24 / math.pi) * ws / 4380) * 100 * (0.46 * temp_media + 8)
-
-        # --- Humedad de suelo ---
+        eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
         try:
             url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
             res_cop = requests.get(url_cop).json()
             hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
         except:
             hum_profunda = 0.0
-
+        # Conversión m³/m³ a mm: perfil 28-100cm = 72cm = 720mm
         hum_perfil_mm = hum_profunda * 720
-
-        # --- Kc ---
         kc = st.slider("Kc del Cultivo", 0.3, 1.2, 0.8)
         etc = eto_diaria * kc
-
-        # --- Métricas ---
         c1, c2, c3 = st.columns(3)
         c1.metric("ETo (Demanda)", f"{eto_diaria:.2f} mm")
         c2.metric("ETc (Consumo)", f"{etc:.2f} mm")
         c3.metric("Humedad Perfil", f"{hum_perfil_mm:.1f} mm", help="Agua en perfil 28-100cm")
-
         st.divider()
+        # --- Mapa NASA GIBS ---
+        # --- Mapa SEPA INTA ---
         st.markdown("### 🌱 Agua Útil en el Suelo - SEPA/INTA")
-
-        # --- Detección de país ---
-        pais_usuario = st.session_state.get("pais_usuario", "Argentina")
-
-        if LAT and LAT > -35 and LON and LON > -58:
-            pais_usuario = "Uruguay"
-
-        # --- BLOQUE URUGUAY ---
-        if pais_usuario == "Uruguay":
-            st.markdown("""
-            <div style="background-color:#111; padding:20px; border-radius:10px; text-align:center;">
-                <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:10px;">
-                    🛰️ Recursos Hídricos — INUMET / MGAP Uruguay
-                </p>
-                <p style="color:#aaa; font-family:monospace; font-size:12px; margin-bottom:15px;">
-                    Información agrometeorológica oficial de Uruguay
-                </p>
-
-                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-                    <a href="https://www.inumet.gub.uy/reportes/pages/productos-agro/" target="_blank"
-                       style="background-color:#00ffc3; color:#000; padding:12px 24px; border-radius:8px;
-                       font-family:monospace; font-weight:bold; text-decoration:none; font-size:14px;">
-                       🌱 Agrometeorología INUMET
-                    </a>
-                </div>
+        st.markdown("""
+        <div style="background-color:#111; padding:20px; border-radius:10px; text-align:center;">
+            <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:10px;">
+                🛰️ Mapas de Agua Útil en Suelo — SEPA/INTA
+            </p>
+            <p style="color:#aaa; font-family:monospace; font-size:12px; margin-bottom:15px;">
+                Actualización cada 10 días | Balance hídrico satelital + estaciones INTA/SMN
+            </p>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/" target="_blank"
+                   style="background-color:#00ffc3; color:#000; padding:12px 24px; 
+                          border-radius:8px; font-family:monospace; font-weight:bold; 
+                          text-decoration:none; font-size:14px;">
+                    🌱 % Agua Útil (0-2m)
+                </a>
+                <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/" target="_blank"
+                   style="background-color:#00b4d8; color:#000; padding:12px 24px; 
+                          border-radius:8px; font-family:monospace; font-weight:bold; 
+                          text-decoration:none; font-size:14px;">
+                    💧 Agua Disponible (mm)
+                </a>
             </div>
-            """, unsafe_allow_html=True)
-
-        # --- BLOQUE ARGENTINA ---
-        else:
-            st.markdown("""
-            <div style="background-color:#111; padding:20px; border-radius:10px; text-align:center;">
-                <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:10px;">
-                    🛰️ Mapas de Agua Útil en Suelo — SEPA/INTA
-                </p>
-                <p style="color:#aaa; font-family:monospace; font-size:12px; margin-bottom:15px;">
-                    Actualización cada 10 días | Balance hídrico satelital + estaciones INTA/SMN
-                </p>
-
-                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-                    <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/" target="_blank"
-                       style="background-color:#00ffc3; color:#000; padding:12px 24px; border-radius:8px;
-                       font-family:monospace; font-weight:bold; text-decoration:none; font-size:14px;">
-                       🌱 % Agua Útil (0-2m)
-                    </a>
-
-                    <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/" target="_blank"
-                       style="background-color:#00b4d8; color:#000; padding:12px 24px; border-radius:8px;
-                       font-family:monospace; font-weight:bold; text-decoration:none; font-size:14px;">
-                       💧 Agua Disponible (mm)
-                    </a>
-                </div>
-
-                <p style="color:#888; font-size:11px; margin-top:12px; font-family:monospace;">
-                    📡 Mismo producto que usa el SMN | Cubre región pampeana y NOA/NEA
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-
+            <p style="color:#888; font-size:11px; margin-top:12px; font-family:monospace;">
+                📡 Mismo producto que usa el SMN | Cubre región pampeana y NOA/NEA
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+       
     except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
+
+# ==========================================================
 # MENÚ: RADAR GRANIZO
 # ==========================================================
 elif menu == "⛈️ Radar Granizo":
