@@ -1367,7 +1367,7 @@ with c3:
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Calculando {indice_sel}..."):
-                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
+                gdf_loc = gdf_pais[(gdf_pais[col_prov] == prov_sel) & (gdf_pais[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=13, tiles='OpenStreetMap', attr=' ', height='100%', width='100%')
                 capa_wms = {
