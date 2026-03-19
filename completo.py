@@ -1067,17 +1067,17 @@ elif menu == "💧 Balance Hídrico":
             </div>
             """, unsafe_allow_html=True)
 else:
-    st.markdown("""
-    <div style="background-color:#111; padding:20px; border-radius:10px; text-align:center;">
-        <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:10px;">🛰️ Mapas de Agua Útil en Suelo — SEPA/INTA</p>
-        <p style="color:#aaa; font-family:monospace; font-size:12px; margin-bottom:15px;">Actualización cada 10 días | Balance hídrico satelital + estaciones INTA/SMN</p>
-        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-            <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/" target="_blank" style="background-color:#00ffc3; color:#000; padding:12px 24px; border-radius:8px; font-family:monospace; font-weight:bold; text-decoration:none; font-size:14px;">🌱 % Agua Útil (0-2m)</a>
-            <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/" target="_blank" style="background-color:#00b4d8; color:#000; padding:12px 24px; border-radius:8px; font-family:monospace; font-weight:bold; text-decoration:none; font-size:14px;">💧 Agua Disponible (mm)</a>
-        </div>
-        <p style="color:#888; font-size:11px; margin-top:12px; font-family:monospace;">📡 Mismo producto que usa el SMN | Cubre región pampeana y NOA/NEA</p>
-    </div>
-    """, unsafe_allow_html=True)
+            st.markdown("""
+            <div style="background-color:#111; padding:20px; border-radius:10px; text-align:center;">
+                <p style="color:#00ffc3; font-family:monospace; font-size:14px; margin-bottom:10px;">🛰️ Mapas de Agua Útil en Suelo — SEPA/INTA</p>
+                <p style="color:#aaa; font-family:monospace; font-size:12px; margin-bottom:15px;">Actualización cada 10 días | Balance hídrico satelital + estaciones INTA/SMN</p>
+                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                    <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/" target="_blank" style="background-color:#00ffc3; color:#000; padding:12px 24px; border-radius:8px; font-family:monospace; font-weight:bold; text-decoration:none; font-size:14px;">🌱 % Agua Útil (0-2m)</a>
+                    <a href="https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/" target="_blank" style="background-color:#00b4d8; color:#000; padding:12px 24px; border-radius:8px; font-family:monospace; font-weight:bold; text-decoration:none; font-size:14px;">💧 Agua Disponible (mm)</a>
+                </div>
+                <p style="color:#888; font-size:11px; margin-top:12px; font-family:monospace;">📡 Mismo producto que usa el SMN | Cubre región pampeana y NOA/NEA</p>
+            </div>
+            """, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
 
