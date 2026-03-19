@@ -1318,13 +1318,21 @@ elif menu == "🛰️ Índices Satelitales":
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d"
 
     @st.cache_data
-    def cargar_limites_argentina():
-        ruta_gpkg = "gadm41_AGR_2.gpkg"
-        if os.path.exists(ruta_gpkg):
-            return gpd.read_file(ruta_gpkg, engine="pyogrio")
-        return None
-
-    gdf_argentina = cargar_limites_argentina()
+    def cargar_limites():
+        gdf_arg = None
+        gdf_ury = None
+        if os.path.exists("gadm41_AGR_2.gpkg"):
+            gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
+            gdf_arg["PAIS"] = "Argentina"
+        if os.path.exists("gadm41_URY.gpkg"):
+            gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
+            gdf_ury["PAIS"] = "Uruguay"
+            gdf_ury = gdf_ury.rename(columns={"NAME_1": "NAME_1", "NAME_2": "NAME_2"})
+        if gdf_arg is not None and gdf_ury is not None:
+            return gpd.GeoDataFrame(pd.concat([gdf_arg, gdf_ury], ignore_index=True))
+        return gdf_arg
+    
+    gdf_argentina = cargar_limites()
 
     if gdf_argentina is not None:
         col_prov = "NAME_1"
