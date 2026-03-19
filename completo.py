@@ -1338,32 +1338,32 @@ elif menu == "🛰️ Índices Satelitales":
         col_prov = "NAME_1"
         col_depto = "NAME_2"
         c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
-with c0:
-    pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Uruguay"])
-with c1:
-    if pais_sel == "Argentina":
-        gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Argentina"]
-        label_prov = "Provincia:"
-        label_depto = "Departamento:"
-        opciones_prov = sorted(gdf_pais[col_prov].unique())
-        prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
-    elif pais_sel == "Uruguay":
-        gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Uruguay"]
-        label_prov = "Departamento:"
-        label_depto = "Sección:"
-        opciones_prov = sorted(gdf_pais[col_prov].unique())
-        prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
-    else:
-        prov_sel = st.selectbox("Provincia:", ["Seleccionar..."], disabled=True)
-        gdf_pais = gdf_argentina
-with c2:
-    if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar...":
-        deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
-        depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
-    else:
-        depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
-with c3:
-    indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "EVI"])
+        with c0:
+            pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Uruguay"])
+        with c1:
+            if pais_sel == "Argentina":
+                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Argentina"]
+                label_prov = "Provincia:"
+                label_depto = "Departamento:"
+                opciones_prov = sorted(gdf_pais[col_prov].unique())
+                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
+            elif pais_sel == "Uruguay":
+                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Uruguay"]
+                label_prov = "Departamento:"
+                label_depto = "Sección:"
+                opciones_prov = sorted(gdf_pais[col_prov].unique())
+                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
+            else:
+                prov_sel = st.selectbox("Provincia:", ["Seleccionar..."], disabled=True)
+                gdf_pais = gdf_argentina
+        with c2:
+            if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar...":
+                deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
+                depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
+            else:
+                depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
+        with c3:
+            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "EVI"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Calculando {indice_sel}..."):
