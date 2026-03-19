@@ -1078,8 +1078,8 @@ else:
         <p style="color:#888; font-size:11px; margin-top:12px; font-family:monospace;">📡 Mismo producto que usa el SMN | Cubre región pampeana y NOA/NEA</p>
    </div>
    """, unsafe_allow_html=True)
-except Exception as e:
-    st.error(f"Error en Balance Hídrico: {e}")
+        except Exception as e:
+            st.error(f"Error en Balance Hídrico: {e}")
 # ==========================================================
 # MENÚ: RADAR GRANIZO
 # ==========================================================
