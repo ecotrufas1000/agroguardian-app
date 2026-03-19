@@ -610,7 +610,7 @@ with st.sidebar:
 
     import streamlit.components.v1 as components_sidebar
     components_sidebar.html("""
-        <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20tecnico" target="_blank" style="text-decoration:none;">
+        <a href="https://wa.me/5491127923471?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20tecnico" target="_blank" style="text-decoration:none;">
             <div style="
                 background-color: #25D366;
                 color: white;
