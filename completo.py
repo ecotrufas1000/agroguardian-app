@@ -1055,7 +1055,7 @@ elif menu == "💧 Balance Hídrico":
         # --- Mapa SEPA INTA ---
         st.markdown("### 🌱 Agua Útil en el Suelo")
 
-        st.caption("📡 Datos oficiales: INTA / SMN (Argentina) | INUMET (Uruguay)")")
+        st.caption("📡 Datos oficiales: INTA / SMN (Argentina) | INUMET (Uruguay)")
         st.markdown("""
         <style>
         div.stLinkButton > a {
