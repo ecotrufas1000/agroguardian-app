@@ -1058,27 +1058,27 @@ elif menu == "💧 Balance Hídrico":
         st.caption("📡 Datos oficiales: INTA / SMN (Argentina) | INUMET (Uruguay)")
         st.markdown("""
         <style>
+        
+        /* Botones estilo terminal */
         div.stLinkButton > a {
+            background-color: #0e1117 !important;   /* negro tipo terminal */
+            color: #00ff9f !important;              /* verde neón */
             padding: 12px 20px;
             border-radius: 10px;
             font-weight: bold;
             text-align: center;
             display: block;
             width: 100%;
+            border: 1px solid #00ff9f;
+            font-family: monospace;
         }
         
-        /* Argentina */
-        div.stLinkButton:nth-of-type(1) a,
-        div.stLinkButton:nth-of-type(2) a {
-            background-color: #4cc9f0 !important;
+        /* Hover */
+        div.stLinkButton > a:hover {
+            background-color: #00ff9f !important;
             color: #000 !important;
         }
         
-        /* Uruguay */
-        div.stLinkButton:nth-of-type(3) a {
-            background-color: #ffd166 !important;
-            color: #000 !important;
-        }
         </style>
         """, unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
