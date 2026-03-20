@@ -744,58 +744,58 @@ if menu == "📊 Monitoreo Total":
 # 💧 ESTADO HÍDRICO DEL LOTE (NUEVO)
 # ==========================================================
 
-st.divider()
-st.markdown("### 💧 Estado Hídrico del Lote")
-
-try:
-    lat = st.session_state.lat
-    lon = st.session_state.lon
-
-    temp_media = clima['temp'] if clima else 25.0
-
-    # --- ETo ---
-    doy = datetime.now().timetuple().tm_yday
-    delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
-    ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
-    eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
-
-    # --- Humedad suelo ---
-    try:
-        url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
-        res_cop = requests.get(url_cop).json()
-        hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
-    except:
-        hum_profunda = 0.0
-
-    hum_perfil_mm = hum_profunda * 720
-
-    # --- UI ---
-    c_h1, c_h2 = st.columns(2)
-
-    with c_h1:
-        st.metric("💧 Humedad del suelo", f"{hum_perfil_mm:.0f} mm")
-
-    with c_h2:
-        st.metric("🌱 Demanda (ETo)", f"{eto_diaria:.1f} mm")
-
-    # ==================================================
-    # 🧠 DIAGNÓSTICO AUTOMÁTICO (CLAVE)
-    # ==================================================
-
-    st.markdown("### 🧠 Diagnóstico del Cultivo")
-
-    if hum_perfil_mm < 40:
-        st.error("🔴 Estrés hídrico — considerar riego urgente")
-    elif hum_perfil_mm < 80:
-        st.warning("🟡 Humedad media — monitorear evolución")
-    else:
-        st.success("🟢 Buen estado hídrico")
-
-    st.caption("📡 Estimación basada en Open-Meteo + Blaney-Criddle")
-
-except Exception as e:
-    st.error(f"Error en balance hídrico: {e}")    
-
+        st.divider()
+        st.markdown("### 💧 Estado Hídrico del Lote")
+        
+        try:
+            lat = st.session_state.lat
+            lon = st.session_state.lon
+        
+            temp_media = clima['temp'] if clima else 25.0
+        
+            # --- ETo ---
+            doy = datetime.now().timetuple().tm_yday
+            delta = 0.409 * math.sin((2 * math.pi * doy / 365) - 1.39)
+            ws = math.acos(max(-1, min(1, -math.tan(math.radians(lat)) * math.tan(delta))))
+            eto_diaria = ((24/math.pi)*ws / 4380) * 100 * (0.46 * temp_media + 8)
+        
+            # --- Humedad suelo ---
+            try:
+                url_cop = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+                res_cop = requests.get(url_cop).json()
+                hum_profunda = res_cop['hourly']['soil_moisture_28_to_100cm'][0]
+            except:
+                hum_profunda = 0.0
+        
+            hum_perfil_mm = hum_profunda * 720
+        
+            # --- UI ---
+            c_h1, c_h2 = st.columns(2)
+        
+            with c_h1:
+                st.metric("💧 Humedad del suelo", f"{hum_perfil_mm:.0f} mm")
+        
+            with c_h2:
+                st.metric("🌱 Demanda (ETo)", f"{eto_diaria:.1f} mm")
+        
+            # ==================================================
+            # 🧠 DIAGNÓSTICO AUTOMÁTICO (CLAVE)
+            # ==================================================
+        
+            st.markdown("### 🧠 Diagnóstico del Cultivo")
+        
+            if hum_perfil_mm < 40:
+                st.error("🔴 Estrés hídrico — considerar riego urgente")
+            elif hum_perfil_mm < 80:
+                st.warning("🟡 Humedad media — monitorear evolución")
+            else:
+                st.success("🟢 Buen estado hídrico")
+        
+            st.caption("📡 Estimación basada en Open-Meteo + Blaney-Criddle")
+        
+        except Exception as e:
+            st.error(f"Error en balance hídrico: {e}")    
+        
 # ==========================================================
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
