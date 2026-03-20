@@ -1055,25 +1055,28 @@ elif menu == "💧 Balance Hídrico":
         # --- Mapa SEPA INTA ---
         st.markdown("### 🌱 Agua Útil en el Suelo")
 
-        st.caption("📡 Datos oficiales: INTA / SMN (Argentina) | INUMET (Uruguay)")
+        st.caption("📡 Datos oficiales: INTA / SMN (Argentina) | INUMET (Uruguay)")")
         st.markdown("""
         <style>
-        /* Botones tipo link_button */
-        a[data-testid="stLinkButton"] {
-            background-color: #4cc9f0 !important;
-            color: #000 !important;
+        div.stLinkButton > a {
             padding: 12px 20px;
             border-radius: 10px;
-            text-decoration: none;
             font-weight: bold;
-            display: inline-block;
             text-align: center;
+            display: block;
             width: 100%;
         }
         
-        /* Hover */
-        a[data-testid="stLinkButton"]:hover {
-            background-color: #3bbbe0 !important;
+        /* Argentina */
+        div.stLinkButton:nth-of-type(1) a,
+        div.stLinkButton:nth-of-type(2) a {
+            background-color: #4cc9f0 !important;
+            color: #000 !important;
+        }
+        
+        /* Uruguay */
+        div.stLinkButton:nth-of-type(3) a {
+            background-color: #ffd166 !important;
             color: #000 !important;
         }
         </style>
