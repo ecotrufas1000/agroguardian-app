@@ -1056,7 +1056,28 @@ elif menu == "💧 Balance Hídrico":
         st.markdown("### 🌱 Agua Útil en el Suelo")
 
         st.caption("📡 Datos oficiales: INTA / SMN (Argentina) | INUMET (Uruguay)")
+        st.markdown("""
+        <style>
+        /* Botones tipo link_button */
+        a[data-testid="stLinkButton"] {
+            background-color: #4cc9f0 !important;
+            color: #000 !important;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+        }
         
+        /* Hover */
+        a[data-testid="stLinkButton"]:hover {
+            background-color: #3bbbe0 !important;
+            color: #000 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         
         with c1:
