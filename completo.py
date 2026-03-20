@@ -1083,7 +1083,7 @@ elif menu == "💧 Balance Hídrico":
         </a>
 
         <!-- URUGUAY -->
-        <a href="ACA_PONES_TU_URL_DE_URUGUAY" target="_blank"
+        <a href="https://www.inumet.gub.uy/reportes/pages/productos-agro/" target="_blank"
            style="background-color:#ffd166; color:#000; padding:12px 24px; 
                   border-radius:8px; font-family:monospace; font-weight:bold; 
                   text-decoration:none; font-size:14px;">
