@@ -780,7 +780,7 @@ if menu == "📊 Monitoreo Total":
         with c_h2:
             st.metric("🌱 Demanda (ETo)", f"{eto_diaria:.1f} mm")
 
-        st.markdown("### 🧠 Diagnóstico del Cultivo")
+        st.markdown("###  Diagnóstico")
 
         if hum_perfil_mm < 40:
             st.error("🔴 Estrés hídrico — considerar riego urgente")
