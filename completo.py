@@ -1024,7 +1024,22 @@ elif menu == "🌧️ Pluviómetro":
                             f"&start_date={hoy_fecha}&end_date={hoy_fecha}"
                         )
                         r = requests.get(url_meteo).json()
-                        mm_hoy = r['daily']['precipitation_sum'][0] or 0.0
+                        import pandas as pd
+                        from datetime import datetime, timedelta
+                        
+                        data = r["hourly"]
+                        
+                        df = pd.DataFrame({
+                            "time": pd.to_datetime(data["time"]),
+                            "precipitation": data["precipitation"]
+                        })
+                        
+                        ahora = datetime.now()
+                        ayer_noche = ahora - timedelta(hours=12)
+                        
+                        df_filtrado = df[(df["time"] >= ayer_noche) & (df["time"] <= ahora)]
+                        
+                        mm_hoy = df_filtrado["precipitation"].sum()
                         supabase.table("registros_lluvia").insert({
                             "fecha": hoy_fecha,
                             "mm": mm_hoy,
