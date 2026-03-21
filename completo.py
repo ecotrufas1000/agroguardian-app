@@ -993,9 +993,8 @@ elif menu == "🌧️ Pluviómetro":
                     "fecha": pd.to_datetime(r["hourly"]["time"]),
                     "mm": r["hourly"]["precipitation"]
                 })
-
+                df_sat = df_sat[df_sat["mm"] > 0]
                 st.write(df_sat)
-
         # 7 días
         with col2:
             if st.button("📡 7 días"):
@@ -1006,9 +1005,8 @@ elif menu == "🌧️ Pluviómetro":
                     "fecha": r["daily"]["time"],
                     "mm": r["daily"]["precipitation_sum"]
                 })
-
+                df_sat = df_sat[df_sat["mm"] > 0]
                 st.write(df_sat)
-
     except Exception as e:
         st.error(f"Error: {e}")
     
