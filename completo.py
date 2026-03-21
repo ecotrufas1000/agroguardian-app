@@ -894,10 +894,9 @@ elif menu == "🌧️ Pluviómetro":
 
             import plotly.express as px
 
-            # GRÁFICO MENSUAL
             fig = px.bar(df_dia, x='Día', y='mm', template="plotly_dark",
                 labels={'Día': 'Día del mes', 'mm': 'Precipitación (mm)'},
-                title=f("Lluvias del mes")
+                title="Lluvias del mes")
             fig.update_layout(
                 xaxis=dict(
                     tickmode='array',
@@ -906,9 +905,15 @@ elif menu == "🌧️ Pluviómetro":
                     tickangle=0,
                     range=[0.5, 31.5]
                 ),
+                yaxis=dict(range=[0, 200], title="mm"),
+                bargap=0.2,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#00ffc3"),
+                height=300
+            )
             fig.update_traces(marker_color='#00ffc3')
             st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
-
             # GRÁFICO ANUAL
             meses_nombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
             mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
