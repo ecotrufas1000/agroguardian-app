@@ -899,8 +899,8 @@ elif menu == "🌧️ Pluviómetro":
                 labels={'Día': 'Día del mes', 'mm': 'Precipitación (mm)'},
                 title=f"Lluvias del mes")
             fig.update_layout(
-                xaxis=dict(tickmode='linear', dtick=1, range=[0.5, 31.5]),
-                yaxis_title="mm",
+                xaxis=dict(tickmode='linear', dtick=1, range=[0.5, 31.5], tickangle=0),
+                yaxis=dict(range=[0, 200], title="mm"),
                 bargap=0.2,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
