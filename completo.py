@@ -563,7 +563,7 @@ def obtener_clima_completo(lat, lon):
             return {
                 "temp": t, "hum": h, "v_vel": round(r["wind"]["speed"] * 3.6, 1),
                 "v_dir": r["wind"].get("deg", 0), "rocio": round(rocio, 1),
-                "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural")
+                "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural"),
                 "nubes": r.get("clouds", {}).get("all", 0),
             }
     except:
