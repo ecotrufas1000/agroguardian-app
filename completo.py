@@ -1142,6 +1142,19 @@ elif menu == "❄️ Análisis de Heladas":
 
         st.markdown("<h3 style='font-size: 20px;'>🌡️ Análisis de Riesgo Actual</h3>", unsafe_allow_html=True)
         temp = clima['temp']
+        # SIMULADOR — sacar después de testear
+        simular = st.checkbox("🧪 Modo simulación")
+        if simular:
+            temp = st.slider("Temp simulada", -10.0, 15.0, 2.0)
+            hum = st.slider("Humedad simulada", 0, 100, 85)
+            viento = st.slider("Viento simulado", 0.0, 30.0, 3.0)
+            nubes = st.slider("Nubosidad simulada", 0, 100, 10)
+        else:
+            temp = clima['temp']
+            rocio = clima['rocio']
+            viento = clima['v_vel']
+            hum = clima['hum']
+            nubes = clima.get('nubes', 0)
         rocio = clima['rocio']
         viento = clima['v_vel']
         hum = clima['hum']
