@@ -798,297 +798,219 @@ if menu == "📊 Monitoreo Total":
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
 
-    try:
-        res = supabase.table("registros_lluvia").select("*").eq("productor_id", st.session_state.user_id).execute()
+    import pandas as pd
+    import requests
+    from datetime import datetime, timedelta, timezone
+    import io
 
-        if res.data and len(res.data) > 0:
-            df = pd.DataFrame(res.data)
-            df['fecha'] = pd.to_datetime(df['fecha'], format='mixed', utc=True)
+    # ==========================================================
+    # 🤖 AUTO REGISTRO (UNA VEZ POR DÍA)
+    # ==========================================================
+    if "auto_last_run" not in st.session_state:
+        st.session_state.auto_last_run = None
+
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+
+    if st.session_state.auto_last_run != hoy_str:
+        try:
+            lat_auto = LAT if LAT else -38.29
+            lon_auto = LON if LON else -57.55
+
+            url = (
+                f"https://api.open-meteo.com/v1/forecast?"
+                f"latitude={lat_auto}&longitude={lon_auto}"
+                f"&hourly=precipitation"
+                f"&timezone=America/Argentina/Buenos_Aires"
+                f"&past_days=1"
+            )
+
+            r = requests.get(url).json()
+
+            if "hourly" in r:
+                df_auto = pd.DataFrame({
+                    "time": pd.to_datetime(r["hourly"]["time"]),
+                    "mm": r["hourly"]["precipitation"]
+                })
+
+                ahora = datetime.now()
+                df_auto = df_auto[df_auto["time"] <= ahora]
+
+                mm_total = df_auto["mm"].sum()
+
+                existe = supabase.table("registros_lluvia")\
+                    .select("id")\
+                    .eq("fecha", hoy_str)\
+                    .eq("productor_id", st.session_state.user_id)\
+                    .execute()
+
+                if not existe.data:
+                    supabase.table("registros_lluvia").insert({
+                        "fecha": hoy_str,
+                        "mm": float(mm_total),
+                        "lote": "🤖 Auto diario",
+                        "productor_id": st.session_state.user_id
+                    }).execute()
+
+            st.session_state.auto_last_run = hoy_str
+        except:
+            pass
+
+    # ==========================================================
+    # 📥 CARGAR DATOS
+    # ==========================================================
+    try:
+        res = supabase.table("registros_lluvia")\
+            .select("*")\
+            .eq("productor_id", st.session_state.user_id)\
+            .execute()
+
+        df = pd.DataFrame(res.data) if res.data else pd.DataFrame()
+
+        # ==========================================================
+        # 📊 MÉTRICAS (SI HAY DATOS)
+        # ==========================================================
+        if not df.empty:
+
+            df['fecha'] = pd.to_datetime(df['fecha'], utc=True, errors='coerce')
             df['mm'] = pd.to_numeric(df['mm'], errors='coerce').fillna(0)
-            from datetime import datetime, timezone
+
             hoy = datetime.now(timezone.utc)
 
-            # --- MÉTRICAS RÁPIDAS ---
-            df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)].copy()
-            df_año = df[df['fecha'].dt.year == hoy.year].copy()
-            
+            df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)]
+            df_año = df[df['fecha'].dt.year == hoy.year]
+
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("💧 Este Mes", f"{df_mes['mm'].sum():.1f} mm")
             c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
             c3.metric("⚡ Máx. Día", f"{df_mes['mm'].max() if not df_mes.empty else 0:.1f} mm")
             c4.metric("📊 Registros", f"{len(df)} eventos")
 
-            st.divider()
+            # ==========================================================
+            # 📊 GRÁFICO MENSUAL
+            # ==========================================================
+            df_mes['dia'] = df_mes['fecha'].dt.day
+            df_dia = df_mes.groupby('dia')['mm'].sum().reset_index()
 
-            # --- BOTÓN WHATSAPP ---
-            df_limpio = df[df['fecha'].notnull()].copy()
-            ultimos = df_limpio.sort_values('fecha', ascending=False).head(10)
-            detalle_tabla = ""
-            for _, row in ultimos.iterrows():
-                try:
-                    f_str = row['fecha'].strftime('%d/%m')
-                    detalle_tabla += f"📍 {f_str}: {row['mm']:.1f} mm\n"
-                except:
+            import plotly.express as px
+            fig = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
+            st.plotly_chart(fig, use_container_width=True)
+
+            # ==========================================================
+            # 🌧️ EVENTOS DE LLUVIA
+            # ==========================================================
+            df_eventos = df.sort_values("fecha")
+
+            eventos = []
+            actual = []
+            gap_horas = 6
+
+            for _, row in df_eventos.iterrows():
+
+                if not actual:
+                    actual.append(row)
                     continue
 
-            mensaje_wa = (
-                f"🌱 REPORTE AGROGUARDIAN\n"
-                f"📅 Fecha: {hoy.strftime('%d/%m/%Y')}\n"
-                f"--------------------------------\n"
-                f"💧 RESUMEN:\n"
-                f"• Mes: {df_mes['mm'].sum():.1f} mm\n"
-                f"• Año: {df_año['mm'].sum():.1f} mm\n"
-                f"--------------------------------\n"
-                f"📋 ÚLTIMOS REGISTROS:\n"
-                f"{detalle_tabla if detalle_tabla else 'Sin datos'}\n"
-                f"--------------------------------"
-            )
-            import urllib.parse
-            mensaje_url = urllib.parse.quote(mensaje_wa)
-            wa_url = f"https://wa.me/?text={mensaje_url}"
+                delta = (row["fecha"] - actual[-1]["fecha"]).total_seconds() / 3600
 
-            st.markdown(f"""
-                <a href="{wa_url}" target="_blank" style="text-decoration: none;">
-                    <div style="
-                        background-color: #25D366;
-                        color: white;
-                        padding: 15px;
-                        border-radius: 12px;
-                        text-align: center;
-                        font-weight: bold;
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 12px;
-                        box-shadow: 0px 6px 15px rgba(0,0,0,0.4);
-                    ">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="25px">
-                        ENVIAR REPORTE + TABLA DIARIA
-                    </div>
-                </a>
-            """, unsafe_allow_html=True)
-            st.write("")
+                if delta <= gap_horas:
+                    actual.append(row)
+                else:
+                    eventos.append(actual)
+                    actual = [row]
+
+            if actual:
+                eventos.append(actual)
+
+            eventos_data = []
+            for i, ev in enumerate(eventos):
+                total = sum([r["mm"] for r in ev])
+                eventos_data.append({"Evento": f"E{i+1}", "mm": total})
+
+            df_ev = pd.DataFrame(eventos_data)
+
+            if not df_ev.empty:
+                fig_ev = px.bar(df_ev, x="Evento", y="mm", text="mm", template="plotly_dark")
+                st.plotly_chart(fig_ev, use_container_width=True)
+
+            # ==========================================================
+            # 📥 EXPORTAR EXCEL
+            # ==========================================================
             st.divider()
-
-            # --- GRÁFICOS ---
-            estilo_grafico = dict(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color="#00ffc3"),
-                height=350,
-                margin=dict(l=10, r=10, t=30, b=20)
-            )
-
-            st.subheader(f"📅 Detalle Diario — {hoy.strftime('%B %Y')}")
-            df_mes['dia'] = df_mes['fecha'].dt.day
-            df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
-            fig1 = px.bar(df_dia, x='dia', y='mm', template="plotly_dark")
-            fig1.update_traces(marker_color='#1f77b4')
-            fig1.update_layout(**estilo_grafico)
-            st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
-
-            st.subheader(f"📊 Acumulado Mensual — Año {hoy.year}")
-            meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-            mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
-            df_anual = pd.DataFrame({'Mes': meses_nombres, 'Prec_mm': mensual.values})
-            fig2 = px.bar(df_anual, x='Mes', y='Prec_mm', template="plotly_dark",
-                          text_auto='.1f', title="Distribución de Lluvias por Mes")
-            fig2.update_traces(marker_color='#00ffc3', textposition="outside")
-            fig2.update_layout(**estilo_grafico)
-            st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
-
-            st.divider()
-
-            # --- GENERAR EXCEL (antes de mostrarlo) ---
-            import io
             df_excel = df.copy().sort_values('fecha', ascending=False)
-            df_excel['fecha'] = df_excel['fecha'].dt.tz_localize(None) if df_excel['fecha'].dt.tz is None else df_excel['fecha'].dt.tz_convert(None)
+            df_excel['fecha'] = df_excel['fecha'].dt.tz_localize(None)
+
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_excel[['fecha', 'lote', 'mm']].to_excel(writer, index=False, sheet_name='Registros_Lluvia')
-                workbook = writer.book
-                worksheet = writer.sheets['Registros_Lluvia']
-                for i, col in enumerate(['fecha', 'lote', 'mm']):
-                    column_len = max(df_excel[col].astype(str).map(len).max(), len(col)) + 2
-                    worksheet.set_column(i, i, column_len)
-            excel_data = output.getvalue()
-
-            # --- TABLA EDITABLE + BOTONES ---
-            st.subheader("📂 Base de Datos de Lluvias")
-            st.info("💡 Editá valores en la tabla. Para eliminar usá el selector de abajo.")
-
-            df_editable = df.copy().sort_values('fecha', ascending=False).reset_index(drop=True)
-
-            edited_df = st.data_editor(
-                df_editable[['id', 'fecha', 'lote', 'mm']],
-                key="editor_lluvias",
-                num_rows="fixed",
-                use_container_width=True,
-                disabled=["id", "fecha"],
-                column_config={
-                    "mm": st.column_config.NumberColumn("Milímetros", format="%.1f mm", min_value=0),
-                    "fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY HH:mm"),
-                    "lote": "Lote",
-                    "id": None
-                }
-            )
-
-            if st.button("💾 GUARDAR CAMBIOS", use_container_width=True):
-                try:
-                    for _, row in edited_df.iterrows():
-                        if pd.notnull(row['id']):
-                            supabase.table("registros_lluvia").update({
-                                "mm": float(row['mm']),
-                                "lote": str(row['lote'])
-                            }).eq("id", int(row['id'])).execute()
-                    st.success("✅ Cambios guardados")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
-
-            st.markdown("""
-                <style>
-                div.stDownloadButton > button {
-                    background-color:  #00b4d8 !important;
-                    color: white:#000000 !important;
-                    border: none !important;
-                    border-radius: 8px !important;
-                    padding: 10px 20px !important;
-                    font-weight: bold !important;
-                    width: 100% !important;
-                    font-size: 14px !important;
-                }
-                </style>
-            """, unsafe_allow_html=True)
+                df_excel[['fecha', 'lote', 'mm']].to_excel(writer, index=False)
 
             st.download_button(
-                label="📥 DESCARGAR EXCEL",
-                data=excel_data,
-                file_name=f'Lluvias_AgroGuardian_{hoy.strftime("%Y-%m-%d")}.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                "📥 Descargar Excel",
+                data=output.getvalue(),
+                file_name="lluvias.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
 
-            # --- BORRADOR DEDICADO ---
-            st.divider()
-            
-
-            opciones = {}
-            for _, row in df_editable.iterrows():
-                try:
-                    fecha_str = pd.Timestamp(row['fecha']).tz_convert(None).strftime('%d/%m/%Y')
-                except:
-                    try:
-                        fecha_str = pd.Timestamp(row['fecha']).tz_localize(None).strftime('%d/%m/%Y')
-                    except:
-                        fecha_str = "Sin fecha"
-                key = f"{fecha_str} — {row['lote']} — {row['mm']:.1f} mm"
-                opciones[key] = row['id']
-
-            fila_seleccionada = st.selectbox(
-                "Seleccioná el registro a eliminar:",
-                options=list(opciones.keys()),
-                key="selector_borrar"
-            )
-
-            if st.button("🗑️ ELIMINAR ESTE REGISTRO", type="primary", use_container_width=True):
-                try:
-                    id_borrar = opciones[fila_seleccionada]
-                    supabase.table("registros_lluvia").delete().eq("id", id_borrar).execute()
-                    st.success("✅ Registro eliminado correctamente")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error al eliminar: {e}")
-
-            # --- ✅ REGISTRO AUTOMÁTICO SATELITAL ---
-            st.divider()
-            st.markdown("### 🛰️ Registro Automático desde Satélite")
-            col_auto1, col_auto2 = st.columns([2, 1])
-
-            with col_auto1:
-                st.caption("Obtiene precipitaciones desde Open-Meteo usando tu ubicación GPS. Sin costo, sin límites.")
-
-            with col_auto2:
-                if st.button("📡 REGISTRAR HOY", type="primary"):
-                    try:
-                        from datetime import date
-                        lat_auto = LAT if LAT else -38.29
-                        lon_auto = LON if LON else -57.55
-                        hoy_fecha = date.today().isoformat()
-                        url_meteo = (
-                            f"https://api.open-meteo.com/v1/forecast?"
-                            f"latitude={lat_auto}&longitude={lon_auto}"
-                            f"&daily=precipitation_sum"
-                            f"&timezone=America/Argentina/Buenos_Aires"
-                            f"&start_date={hoy_fecha}&end_date={hoy_fecha}"
-                        )
-                        r = requests.get(url_meteo).json()
-                        import pandas as pd
-                        from datetime import datetime, timedelta
-                        
-                        data = r["hourly"]
-                        
-                        df = pd.DataFrame({
-                            "time": pd.to_datetime(data["time"]),
-                            "precipitation": data["precipitation"]
-                        })
-                        
-                        ahora = datetime.now()
-                        ayer_noche = ahora - timedelta(hours=12)
-                        
-                        df_filtrado = df[(df["time"] >= ayer_noche) & (df["time"] <= ahora)]
-                        
-                        mm_hoy = df_filtrado["precipitation"].sum()
-                        supabase.table("registros_lluvia").insert({
-                            "fecha": hoy_fecha,
-                            "mm": mm_hoy,
-                            "lote": "🛰️ Automático (Open-Meteo)",
-                            "productor_id": st.session_state.user_id
-                        }).execute()
-                        st.success(f"✅ Registrado: {mm_hoy:.1f} mm para hoy")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-
-            if st.button("📅 IMPORTAR ÚLTIMOS 7 DÍAS"):
-                try:
-                    from datetime import date, timedelta
-                    lat_auto = LAT if LAT else -38.29
-                    lon_auto = LON if LON else -57.55
-                    fecha_fin = date.today().isoformat()
-                    fecha_ini = (date.today() - timedelta(days=7)).isoformat()
-                    url_meteo = (
-                    f"https://api.open-meteo.com/v1/forecast?"
-                    f"latitude={lat_auto}&longitude={lon_auto}"
-                    f"&hourly=precipitation"
-                    f"&timezone=America/Argentina/Buenos_Aires"
-                    f"&past_days=1"
-                    )
-                    r = requests.get(url_meteo).json()
-                    fechas = r['daily']['time']
-                    lluvias = r['daily']['precipitation_sum']
-                    registros = 0
-                    for fecha, mm in zip(fechas, lluvias):
-                        if mm and mm > 0:
-                            supabase.table("registros_lluvia").insert({
-                                "fecha": fecha,
-                                "mm": mm,
-                                "lote": "🛰️ Automático (Open-Meteo)",
-                                "productor_id": st.session_state.user_id
-                            }).execute()
-                            registros += 1
-                    st.success(f"✅ Importados {registros} días con lluvia")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
-
         else:
-            st.info("🛰️ No hay registros de lluvia cargados todavía.")
+            st.warning("⚠️ No hay datos todavía")
+
+        # ==========================================================
+        # 🛰️ REGISTRO MANUAL
+        # ==========================================================
+        st.divider()
+        st.subheader("➕ Registro Manual")
+
+        with st.form("manual"):
+            fecha = st.date_input("Fecha")
+            mm = st.number_input("mm", 0.0)
+            lote = st.text_input("Lote", "Manual")
+
+            if st.form_submit_button("Guardar"):
+                supabase.table("registros_lluvia").insert({
+                    "fecha": fecha.isoformat(),
+                    "mm": mm,
+                    "lote": lote,
+                    "productor_id": st.session_state.user_id
+                }).execute()
+                st.success("Guardado")
+                st.rerun()
+
+        # ==========================================================
+        # 📡 DESCARGA SATELITAL
+        # ==========================================================
+        st.divider()
+        st.subheader("📡 Datos Satelitales")
+
+        col1, col2 = st.columns(2)
+
+        # HOY
+        with col1:
+            if st.button("📡 Hoy"):
+                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&hourly=precipitation&past_days=1"
+                r = requests.get(url).json()
+
+                df_sat = pd.DataFrame({
+                    "fecha": pd.to_datetime(r["hourly"]["time"]),
+                    "mm": r["hourly"]["precipitation"]
+                })
+
+                st.write(df_sat)
+
+        # 7 días
+        with col2:
+            if st.button("📡 7 días"):
+                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&daily=precipitation_sum&past_days=7"
+                r = requests.get(url).json()
+
+                df_sat = pd.DataFrame({
+                    "fecha": r["daily"]["time"],
+                    "mm": r["daily"]["precipitation_sum"]
+                })
+
+                st.write(df_sat)
 
     except Exception as e:
-        st.error(f"Error al procesar los datos de lluvia: {e}")
-
+        st.error(f"Error: {e}")
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
