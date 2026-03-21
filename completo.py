@@ -835,7 +835,8 @@ elif menu == "🌧️ Pluviómetro":
                 ahora = datetime.now()
                 df_auto = df_auto[df_auto["time"] <= ahora]
 
-                mm_total = df_auto["mm"].sum()
+                # Tomar el máximo del día, no la suma
+                mm_total = df_auto["mm"].max()
 
                 existe = supabase.table("registros_lluvia")\
                     .select("id")\
