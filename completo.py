@@ -1153,7 +1153,7 @@ elif menu == "💧 Balance Hídrico":
                 "🇺🇾 🌱 Uruguay (INUMET)",
                 "https://www.inumet.gub.uy/reportes/pages/productos-agro/"
             )        
-       
+        st.markdown("<br><br>", unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
 
