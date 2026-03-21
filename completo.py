@@ -1059,13 +1059,13 @@ elif menu == "🌧️ Pluviómetro":
                     fecha_fin = date.today().isoformat()
                     fecha_ini = (date.today() - timedelta(days=7)).isoformat()
                     url_meteo = (
-                        f"https://api.open-meteo.com/v1/forecast?"
-                        f"latitude={lat_auto}&longitude={lon_auto}"
-                        f"&daily=precipitation_sum"
-                        f"&timezone=America/Argentina/Buenos_Aires"
-                        f"&start_date={fecha_ini}&end_date={fecha_fin}"
+                    f"https://api.open-meteo.com/v1/forecast?"
+                    f"latitude={lat_auto}&longitude={lon_auto}"
+                    f"&hourly=precipitation"
+                    f"&timezone=America/Argentina/Buenos_Aires"
+                    f"&past_days=1"
                     )
-                    r = requests.get(url_meteo).json()
+                                    r = requests.get(url_meteo).json()
                     fechas = r['daily']['time']
                     lluvias = r['daily']['precipitation_sum']
                     registros = 0
