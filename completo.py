@@ -897,7 +897,7 @@ elif menu == "🌧️ Pluviómetro":
             # GRÁFICO MENSUAL
             fig = px.bar(df_dia, x='Día', y='mm', template="plotly_dark",
                 labels={'Día': 'Día del mes', 'mm': 'Precipitación (mm)'},
-                title=f"Lluvias del mes")
+                title=f"Lluvias del mes"),
             fig.update_layout(
                 xaxis=dict(
                     tickmode='array',
