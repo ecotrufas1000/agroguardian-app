@@ -564,6 +564,7 @@ def obtener_clima_completo(lat, lon):
                 "temp": t, "hum": h, "v_vel": round(r["wind"]["speed"] * 3.6, 1),
                 "v_dir": r["wind"].get("deg", 0), "rocio": round(rocio, 1),
                 "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural")
+                "nubes": r.get("clouds", {}).get("all", 0),
             }
     except:
         return None
@@ -1171,7 +1172,26 @@ elif menu == "❄️ Análisis de Heladas":
     
             if hum > 85 and temp < 5: puntos += 2; factores.append("🔴 Alta humedad con temperatura baja — riesgo de escarcha")
             elif hum > 70 and temp < 7: puntos += 1; factores.append("🟡 Humedad elevada con temperatura baja")
-    
+            # Nubosidad — las noches despejadas favorecen helada radiativa
+            nubes = clima.get('nubes', 0)
+            if nubes < 20: 
+                puntos += 2
+                factores.append("🔴 Cielo despejado — máximo riesgo de helada radiativa nocturna")
+            elif nubes < 50: 
+                puntos += 1
+                factores.append("🟡 Nubosidad parcial — riesgo moderado de helada radiativa")
+            else: 
+                factores.append("🟢 Cielo nublado — las nubes reducen la pérdida de calor nocturna")
+
+            # Inversión térmica — presión alta + viento calmo + cielo despejado
+            if clima['presion'] > 1020 and viento < 5 and nubes < 30:
+                puntos += 2
+                factores.append("🔴 Condiciones de inversión térmica — aire frío acumulado cerca del suelo")
+            elif clima['presion'] > 1015 and viento < 10:
+                puntos += 1
+                factores.append("🟡 Posible inversión térmica débil — monitorear temperatura al amanecer")
+
+            # Ajustar máximo de puntos en caption
             if puntos >= 7: nivel = "🚨 RIESGO EXTREMO"; color = "error"; consejo = "Activar sistemas de protección inmediatamente. Helada inminente o en curso."
             elif puntos >= 5: nivel = "🔴 RIESGO ALTO"; color = "error"; consejo = "Preparar sistemas de protección. Alta probabilidad de helada esta noche."
             elif puntos >= 3: nivel = "🟡 RIESGO MODERADO"; color = "warning"; consejo = "Monitorear cada 30 minutos. Posibilidad de helada en horas nocturnas."
@@ -1185,7 +1205,7 @@ elif menu == "❄️ Análisis de Heladas":
         with st.expander("🔍 Ver análisis detallado de factores"):
             for f in factores:
                 st.markdown(f"- {f}")
-            st.caption(f"Puntaje de riesgo: {puntos}/11 | Temp: {temp}°C | Rocío: {rocio}°C | Viento: {viento} km/h | Humedad: {hum}%")
+            st.caption(f"Puntaje de riesgo: {puntos}/15 | Temp: {temp}°C | Rocío: {rocio}°C | Viento: {viento} km/h | Humedad: {hum}%")
 
     st.divider()
 
