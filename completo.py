@@ -808,7 +808,7 @@ elif menu == "🌧️ Pluviómetro":
     # ==========================================================
     if "auto_last_run" not in st.session_state:
         st.session_state.auto_last_run = None
-
+    
     hoy_str = datetime.now().strftime("%Y-%m-%d")
 
     if st.session_state.auto_last_run != hoy_str:
