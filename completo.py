@@ -1143,7 +1143,7 @@ elif menu == "❄️ Análisis de Heladas":
         st.markdown("<h3 style='font-size: 20px;'>🌡️ Análisis de Riesgo Actual</h3>", unsafe_allow_html=True)
         temp = clima['temp']
         # SIMULADOR — sacar después de testear
-        simular = st.checkbox("🧪 Modo simulación")
+        simular = st.checkbox("🧪 Siular Condiciones")
         if simular:
             temp = st.slider("Temp simulada", -10.0, 15.0, 2.0)
             hum = st.slider("Humedad simulada", 0, 100, 85)
