@@ -893,6 +893,8 @@ elif menu == "🌧️ Pluviómetro":
             df_dia.columns = ['Día', 'mm']
 
             import plotly.express as px
+
+            # GRÁFICO MENSUAL
             fig = px.bar(df_dia, x='Día', y='mm', template="plotly_dark",
                 labels={'Día': 'Día del mes', 'mm': 'Precipitación (mm)'},
                 title=f"Lluvias del mes")
@@ -906,45 +908,24 @@ elif menu == "🌧️ Pluviómetro":
                 height=300
             )
             fig.update_traces(marker_color='#00ffc3')
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
-            # ==========================================================
-            # 🌧️ EVENTOS DE LLUVIA
-            # ==========================================================
-            df_eventos = df.sort_values("fecha")
-
-            eventos = []
-            actual = []
-            gap_horas = 6
-
-            for _, row in df_eventos.iterrows():
-
-                if not actual:
-                    actual.append(row)
-                    continue
-
-                delta = (row["fecha"] - actual[-1]["fecha"]).total_seconds() / 3600
-
-                if delta <= gap_horas:
-                    actual.append(row)
-                else:
-                    eventos.append(actual)
-                    actual = [row]
-
-            if actual:
-                eventos.append(actual)
-
-            eventos_data = []
-            for i, ev in enumerate(eventos):
-                total = sum([r["mm"] for r in ev])
-                eventos_data.append({"Evento": f"E{i+1}", "mm": total})
-
-            df_ev = pd.DataFrame(eventos_data)
-
-            if not df_ev.empty:
-                fig_ev = px.bar(df_ev, x="Evento", y="mm", text="mm", template="plotly_dark")
-                st.plotly_chart(fig_ev, use_container_width=True)
-
+            # GRÁFICO ANUAL
+            meses_nombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+            mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
+            df_anual = pd.DataFrame({'Mes': meses_nombres, 'mm': mensual.values})
+            fig2 = px.bar(df_anual, x='Mes', y='mm', template="plotly_dark",
+                text_auto='.1f',
+                title="Lluvias anuales por mes")
+            fig2.update_layout(
+                bargap=0.2,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#00ffc3"),
+                height=300
+            )
+            fig2.update_traces(marker_color='#1f77b4', textposition="outside")
+            st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
             # ==========================================================
             # 📥 EXPORTAR EXCEL
             # ==========================================================
