@@ -1145,6 +1145,7 @@ elif menu == "❄️ Análisis de Heladas":
         # SIMULADOR — sacar después de testear
         simular = st.checkbox("🧪 Siular Condiciones")
         if simular:
+            st.warning("⚠️ Modo simulación activo — los datos no son reales")
             temp = st.slider("Temp simulada", -10.0, 15.0, 2.0)
             hum = st.slider("Humedad simulada", 0, 100, 85)
             viento = st.slider("Viento simulado", 0.0, 30.0, 3.0)
