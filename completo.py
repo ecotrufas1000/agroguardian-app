@@ -1065,7 +1065,7 @@ elif menu == "🌧️ Pluviómetro":
                     f"&timezone=America/Argentina/Buenos_Aires"
                     f"&past_days=1"
                     )
-                                    r = requests.get(url_meteo).json()
+                    r = requests.get(url_meteo).json()
                     fechas = r['daily']['time']
                     lluvias = r['daily']['precipitation_sum']
                     registros = 0
