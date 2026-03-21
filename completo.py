@@ -899,14 +899,13 @@ elif menu == "🌧️ Pluviómetro":
                 labels={'Día': 'Día del mes', 'mm': 'Precipitación (mm)'},
                 title=f"Lluvias del mes")
             fig.update_layout(
-                xaxis=dict(tickmode='linear', dtick=1, range=[0.5, 31.5], tickangle=0),
-                yaxis=dict(range=[0, 200], title="mm"),
-                bargap=0.2,
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color="#00ffc3"),
-                height=300
-            )
+                xaxis=dict(
+                    tickmode='array',
+                    tickvals=[1, 10, 20, 30],
+                    ticktext=['1', '10', '20', '30'],
+                    tickangle=0,
+                    range=[0.5, 31.5]
+                ),
             fig.update_traces(marker_color='#00ffc3')
             st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
