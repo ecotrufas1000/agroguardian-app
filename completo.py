@@ -882,7 +882,7 @@ elif menu == "🌧️ Pluviómetro":
             # Agrupar por día para calcular el máximo correctamente
             df_mes_dia = df_mes.groupby(df_mes['fecha'].dt.date)['mm'].sum()
             max_dia = df_mes_dia.max() if not df_mes_dia.empty else 0
-
+            c1, c2, c3, c4 = st.columns(4)
             c1.metric("💧 Este Mes", f"{df_mes['mm'].sum():.1f} mm")
             c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
             c3.metric("⚡ Máx. Día", f"{max_dia:.1f} mm")
