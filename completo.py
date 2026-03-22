@@ -1608,7 +1608,33 @@ elif menu == "🔍 Diagnóstico IA":
         if st.button("🔬 ANALIZAR", type="primary", use_container_width=True):
             with st.status("Analizando...", expanded=True) as status:
                 try:
-                    prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
+                    prompt = """Sos un ingeniero agrónomo experto en cultivos extensivos e intensivos de Argentina y Uruguay.
+
+Analizá la imagen y respondé en este formato exacto:
+
+## 🔍 Diagnóstico
+Identificá claramente qué es lo que ves (plaga, enfermedad, deficiencia nutricional, daño abiótico, etc.)
+
+## 🌱 Cultivo Afectado
+Indicá el cultivo o especie si podés identificarlo.
+
+## ⚠️ Nivel de Severidad
+Clasificá como: Leve / Moderado / Severo / Crítico
+Justificá brevemente.
+
+## 🧪 Tratamiento Recomendado
+- Producto/s recomendado/s con principio activo
+- Dosis orientativa
+- Momento de aplicación
+- Condiciones ideales para aplicar (Delta T, viento, etc.)
+
+## 🔄 Medidas Preventivas
+Acciones para evitar recurrencia.
+
+## ⚕️ Urgencia de Intervención
+Indicá si requiere acción inmediata o puede esperar.
+
+Respondé siempre en español. Si la imagen no muestra claramente un problema agronómico, indicalo y pedí una foto más cercana."""
                     response = client.models.generate_content(
                         model="gemini-2.5-flash",
                         contents=[imagen_pil, prompt]
