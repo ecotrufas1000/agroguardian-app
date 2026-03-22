@@ -1497,7 +1497,6 @@ elif menu == "📝 Bitácora":
 
     with st.expander("📂 VER HISTORIAL COMPLETO DE ACTIVIDADES"):
         try:
-            # FILTRAR POR USUARIO LOGUEADO
             res = supabase.table("bitacora").select("*").eq("productor_id", st.session_state.user_id).order("fecha", desc=True).execute()
             if res.data:
                 df_bit = pd.DataFrame(res.data)
@@ -1507,11 +1506,27 @@ elif menu == "📝 Bitácora":
                         "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
                         "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")
                     })
+
+                st.divider()
+                st.subheader("🗑️ Borrar Registro")
+                opciones = {}
+                for _, row in df_bit.iterrows():
+                    key = f"{row['fecha']} — {row['tarea']} — {row['lote']}"
+                    opciones[key] = res.data[_]['id']
+
+                fila_sel = st.selectbox("Seleccioná el registro a eliminar:", list(opciones.keys()), key="sel_borrar_bitacora")
+
+                if st.button("🗑️ ELIMINAR", type="primary", use_container_width=True, key="btn_borrar_bitacora"):
+                    try:
+                        supabase.table("bitacora").delete().eq("id", opciones[fila_sel]).execute()
+                        st.success("✅ Registro eliminado")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {e}")
             else:
                 st.info("No hay registros cargados.")
         except Exception as e:
             st.error(f"Error al cargar: {e}")
-
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
