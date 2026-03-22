@@ -375,14 +375,28 @@ def cerrar_sesion():
 # 8. APP PRINCIPAL — solo llega acá si está logueado
 # ==========================================================
 with st.sidebar:
-    st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
+    try:
+        perfil = supabase.table("perfiles").select("nombre, campo, localidad").eq("id", st.session_state.user_id).execute()
+        if perfil.data:
+            p = perfil.data[0]
+            st.markdown(f"""
+            <div style='background:#161b22; border:1px solid #30363d; border-radius:10px; padding:12px; margin-bottom:8px;'>
+                <div style='color:#00ffc3; font-family:monospace; font-size:13px; font-weight:bold;'>👤 {p.get('nombre', 'Productor')}</div>
+                <div style='color:#888; font-family:monospace; font-size:11px; margin-top:4px;'>🌾 {p.get('campo', '')}</div>
+                <div style='color:#888; font-family:monospace; font-size:11px;'>📍 {p.get('localidad', '')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
+    except:
+        st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
+
     if st.button("🚪 Cerrar sesión"):
         cerrar_sesion()
         streamlit_js_eval(
             js_expressions='localStorage.clear(); window.location.reload();',
             key="ls_cerrar_y_recargar"
-    )
-
+        )
 
 # Ejecutar el JS de localStorage fuera del botón
 if st.session_state.get("cerrar"):
