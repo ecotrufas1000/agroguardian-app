@@ -716,7 +716,85 @@ if menu == "📊 Monitoreo Total":
             st.rerun()
 
     st.divider()
+    # ==========================================================
+    # 🚨 ALERTAS AUTOMÁTICAS
+    # ==========================================================
+    if clima:
+        alertas = []
+        temp = clima['temp']
+        hum = clima['hum']
+        viento = clima['v_vel']
+        presion = clima['presion']
+        rocio = clima['rocio']
+        nubes = clima.get('nubes', 0)
+        delta_t = round(temp - rocio, 1)
 
+        # Helada
+        if temp <= 0:
+            alertas.append(("🔴", "HELADA EN CURSO", f"Temperatura {temp}°C — activar protección inmediatamente"))
+        elif temp <= 4:
+            alertas.append(("🟠", "RIESGO DE HELADA", f"Temperatura {temp}°C con viento {viento} km/h"))
+
+        # Lluvia fuerte
+        try:
+            url_fc = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&daily=precipitation_sum&forecast_days=1&timezone=America%2FArgentina%2FBuenos_Aires"
+            r_fc = requests.get(url_fc).json()
+            lluvia_hoy = r_fc['daily']['precipitation_sum'][0] or 0
+            if lluvia_hoy > 30:
+                alertas.append(("🌧️", "LLUVIA INTENSA PREVISTA", f"{lluvia_hoy:.0f} mm esperados hoy"))
+            elif lluvia_hoy > 15:
+                alertas.append(("🟡", "LLUVIA MODERADA PREVISTA", f"{lluvia_hoy:.0f} mm esperados hoy"))
+        except:
+            pass
+
+        # Tormenta
+        if hum > 80 and temp > 25 and presion < 1005:
+            alertas.append(("⛈️", "RIESGO DE TORMENTA", f"Humedad {hum}% | Presión {presion} hPa"))
+
+        # Pulverización
+        if delta_t < 2 or delta_t > 8:
+            alertas.append(("💨", "NO PULVERIZAR", f"Delta T fuera de rango: {delta_t}°C"))
+
+        # Estrés hídrico
+        try:
+            url_hum = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&hourly=soil_moisture_28_to_100cm&models=ecmwf_ifs&forecast_days=1"
+            r_hum = requests.get(url_hum).json()
+            hum_suelo = r_hum['hourly']['soil_moisture_28_to_100cm'][0] * 720
+            if hum_suelo < 40:
+                alertas.append(("💧", "ESTRÉS HÍDRICO", f"Humedad del suelo: {hum_suelo:.0f} mm — considerar riego"))
+        except:
+            pass
+
+        # Mostrar alertas
+        if alertas:
+            st.markdown("### 🚨 Alertas Activas")
+            for emoji, titulo, detalle in alertas:
+                msg = f"{emoji} **{titulo}** — {detalle}"
+                if emoji in ["🔴", "⛈️"]:
+                    st.error(msg)
+                elif emoji in ["🟠", "💨"]:
+                    st.warning(msg)
+                else:
+                    st.info(msg)
+
+            # Botón WhatsApp con todas las alertas
+            texto_wa = "🚨 *ALERTAS AGROGUARDIAN*\n\n"
+            for emoji, titulo, detalle in alertas:
+                texto_wa += f"{emoji} *{titulo}*\n{detalle}\n\n"
+            texto_wa += f"📍 Ubicación: {LAT:.4f} | {LON:.4f}\n"
+            texto_wa += f"🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            wa_url = f"https://wa.me/?text={urllib.parse.quote(texto_wa)}"
+            st.markdown(f"""
+                <a href="{wa_url}" target="_blank" style="text-decoration:none;">
+                    <div style="background-color:#25D366; color:white; padding:12px; border-radius:10px; text-align:center; font-weight:bold; font-family:monospace; margin-top:8px;">
+                        📲 COMPARTIR ALERTAS POR WHATSAPP
+                    </div>
+                </a>
+            """, unsafe_allow_html=True)
+            st.divider()
+        else:
+            st.success("✅ Sin alertas activas — condiciones normales")
+            st.divider()
     if clima:
         col1, col2, col3, col4, col5 = st.columns(5)
         with col1: st.metric("Temperatura", f"{clima['temp']:.1f} °C")
@@ -1145,7 +1223,7 @@ elif menu == "❄️ Análisis de Heladas":
         st.markdown("<h3 style='font-size: 20px;'>🌡️ Análisis de Riesgo Actual</h3>", unsafe_allow_html=True)
         temp = clima['temp']
         # SIMULADOR — sacar después de testear
-        simular = st.checkbox("🧪 Siular Condiciones")
+        simular = st.checkbox("🧪 Simular Condiciones")
         if simular:
             st.warning("⚠️ Modo simulación activo — los datos no son reales")
             temp = st.slider("Temp simulada", -10.0, 15.0, 2.0)
