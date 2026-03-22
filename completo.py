@@ -778,11 +778,11 @@ if menu == "📊 Monitoreo Total":
                     st.info(msg)
 
             # Botón WhatsApp con todas las alertas
-            texto_wa = "🚨 *ALERTAS AGROGUARDIAN*\n\n"
+            texto_wa = "*ALERTAS AGROGUARDIAN*\n\n"
             for emoji, titulo, detalle in alertas:
                 texto_wa += f"{emoji} *{titulo}*\n{detalle}\n\n"
-            texto_wa += f"📍 Ubicación: {LAT:.4f} | {LON:.4f}\n"
-            texto_wa += f"🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            texto_wa += f"Ubicación: {LAT:.4f} | {LON:.4f}\n"
+            texto_wa += f"{datetime.now().strftime('%d/%m/%Y %H:%M')}"
             wa_url = f"https://wa.me/?text={urllib.parse.quote(texto_wa)}"
             st.markdown(f"""
                 <a href="{wa_url}" target="_blank" style="text-decoration:none;">
@@ -1631,4 +1631,3 @@ elif menu == "🔍 Diagnóstico IA":
     if st.button("🔄 REINICIAR"):
         st.session_state.resultado_analisis = None
         st.session_state.foto_bytes = None
-        st.rerun()
