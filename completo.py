@@ -1069,6 +1069,31 @@ elif menu == "🌧️ Pluviómetro":
                 st.success("Guardado")
                 st.rerun()
 
+        # BORRAR REGISTRO
+        st.divider()
+        st.subheader("🗑️ Borrar Registro")
+
+        if not df.empty:
+            opciones = {}
+            for _, row in df.sort_values('fecha', ascending=False).iterrows():
+                try:
+                    fecha_str = pd.Timestamp(row['fecha']).strftime('%d/%m/%Y')
+                except:
+                    fecha_str = "Sin fecha"
+                key = f"{fecha_str} — {row['lote']} — {row['mm']:.1f} mm"
+                opciones[key] = row['id']
+
+            fila_sel = st.selectbox("Seleccioná el registro a eliminar:", list(opciones.keys()))
+
+            if st.button("🗑️ ELIMINAR", type="primary", use_container_width=True):
+                try:
+                    supabase.table("registros_lluvia").delete().eq("id", opciones[fila_sel]).execute()
+                    st.success("✅ Registro eliminado")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {e}")
+        else:
+            st.info("No hay registros para eliminar.")
         # ==========================================================
         # 📡 DESCARGA SATELITAL
         # ==========================================================
