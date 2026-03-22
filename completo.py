@@ -1179,7 +1179,6 @@ elif menu == "💧 Balance Hídrico":
 # ==========================================================
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
-
     if LAT and LON and clima:
         c1, c2, c3 = st.columns(3)
         hum = clima['hum']
@@ -1187,7 +1186,6 @@ elif menu == "⛈️ Radar Granizo":
         presion = clima['presion']
         rocio = clima['rocio']
         with c1:
-            # Índice de inestabilidad compuesto
             idx = 0
             if temp > 25: idx += 2
             elif temp > 20: idx += 1
@@ -1201,13 +1199,11 @@ elif menu == "⛈️ Radar Granizo":
             if dif_rocio < 3: idx += 3
             elif dif_rocio < 6: idx += 2
             elif dif_rocio < 10: idx += 1
-
             if idx >= 8: riesgo = "🔴 SEVERO"; delta_txt = "Tormenta severa probable"
             elif idx >= 6: riesgo = "🟠 ALTO"; delta_txt = "Tormenta probable"
             elif idx >= 4: riesgo = "🟡 MODERADO"; delta_txt = "Tormenta posible"
             elif idx >= 2: riesgo = "🟢 BAJO"; delta_txt = "Condiciones estables"
             else: riesgo = "✅ NULO"; delta_txt = "Sin riesgo convectivo"
-
             st.metric("Inestabilidad Atmosférica", riesgo, delta=delta_txt)
         with c2:
             st.metric("Presión Atmosférica", f"{presion} hPa")
@@ -1226,29 +1222,17 @@ elif menu == "⛈️ Radar Granizo":
             - **Colores Púrpura/Blanco:** Celdas de granizo pesado o tormentas severas.
             - **Capa de Rayos:** Las cruces brillantes indican actividad eléctrica en tiempo real.
             """)
-            with c1:
-            # Índice de inestabilidad compuesto
-            idx = 0
-            if temp > 25: idx += 2
-            elif temp > 20: idx += 1
-            if hum > 80: idx += 3
-            elif hum > 65: idx += 2
-            elif hum > 50: idx += 1
-            if presion < 1000: idx += 3
-            elif presion < 1008: idx += 2
-            elif presion < 1015: idx += 1
-            dif_rocio = temp - rocio
-            if dif_rocio < 3: idx += 3
-            elif dif_rocio < 6: idx += 2
-            elif dif_rocio < 10: idx += 1
-
-            if idx >= 8: riesgo = "🔴 SEVERO"; delta_txt = "Tormenta severa probable"
-            elif idx >= 6: riesgo = "🟠 ALTO"; delta_txt = "Tormenta probable"
-            elif idx >= 4: riesgo = "🟡 MODERADO"; delta_txt = "Tormenta posible"
-            elif idx >= 2: riesgo = "🟢 BAJO"; delta_txt = "Condiciones estables"
-            else: riesgo = "✅ NULO"; delta_txt = "Sin riesgo convectivo"
-
-            st.metric("Inestabilidad Atmosférica", riesgo, delta=delta_txt)
+        with st.expander("📊 Ver detalle del índice de inestabilidad"):
+            st.markdown(f"""
+            | Factor | Valor | Aporte |
+            |--------|-------|--------|
+            | Temperatura | {temp}°C | {"Alto" if temp > 25 else "Moderado" if temp > 20 else "Bajo"} |
+            | Humedad | {hum}% | {"Alto" if hum > 80 else "Moderado" if hum > 65 else "Bajo"} |
+            | Presión | {presion} hPa | {"Alto" if presion < 1000 else "Moderado" if presion < 1008 else "Bajo"} |
+            | Dif. Temp-Rocío | {round(temp-rocio,1)}°C | {"Alto" if temp-rocio < 3 else "Moderado" if temp-rocio < 6 else "Bajo"} |
+            
+            **Índice total: {idx}/11**
+            """)
     else:
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
 
