@@ -1071,29 +1071,31 @@ elif menu == "💧 Balance Hídrico":
         
         </style>
         """, unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
+        col_izq, c1, c2, c3, col_der = st.columns([0.5, 1, 1, 1, 0.5])
         
         with c1:
             st.link_button(
                 "🇦🇷 🌱 % Agua Útil (0-2m)",
-                "https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/"
+                "https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/",
+                use_container_width=True
             )
         
         with c2:
             st.link_button(
                 "🇦🇷 💧 Agua Disponible (mm)",
-                "https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/"
+                "https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/",
+                use_container_width=True
             )
         
         with c3:
             st.link_button(
                 "🇺🇾 🌱 Uruguay (INUMET)",
-                "https://www.inumet.gub.uy/reportes/pages/productos-agro/"
+                "https://www.inumet.gub.uy/reportes/pages/productos-agro/",
+                use_container_width=True
             )        
         st.markdown("<br><br>", unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
-
 # ==========================================================
 # MENÚ: RADAR GRANIZO
 # ==========================================================
