@@ -1760,9 +1760,12 @@ if menu == "🛰️ Satélite (ECOSTRESS)":
             coleccion = (ee.ImageCollection('CAS/ECOSTRESS/L2_LST')
                          .filterBounds(punto)
                          .filterDate('2024-01-01', '2025-12-31')
-                         .sort('system:time_start', False))
-        
-            imagen = coleccion.first()
+                         .sort('system:time_start', False)
+                         .limit(1))   # 🔥 esto cambia todo
+            
+            lista = coleccion.toList(1)
+            
+            imagen = ee.Image(lista.get(0))
         
             if imagen is not None:
         
@@ -1773,7 +1776,9 @@ if menu == "🛰️ Satélite (ECOSTRESS)":
                     'max': 35,
                     'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
                 }
-    
+                if imagen is None:
+                    st.warning("No hay imágenes ECOSTRESS disponibles")
+                    st.stop()
                 map_id = lst.getMapId(vis)
     
                 m = folium.Map(location=[lat, lon], zoom_start=15)
