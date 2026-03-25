@@ -1,11 +1,7 @@
 setuptools>=65.0.0
-
-# Core de Streamlit
 streamlit
 streamlit-folium
 folium
-
-# Datos y APIs
 pandas
 requests
 supabase
@@ -13,25 +9,14 @@ plotly
 pyTelegramBotAPI
 google-genai
 python-dotenv
-
-# Visualización / documentos
 Pillow
 flask
 reportlab
 xlsxwriter
 streamlit-js-eval
-
-# Librerías geoespaciales (precompiladas, sin compilar GDAL)
 shapely
 pyproj
 pyogrio
-
-# Compatibilidad para Python > 3.12
-setuptools
-
-# Motor de Google Earth Engine y Mapas
 earthengine-api
-geemap==0.34.0
+geemap==0.37.1
 python-box==6.1.0
-streamlit-folium
-folium
