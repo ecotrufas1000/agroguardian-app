@@ -1,4 +1,3 @@
-import geemap.foliumap as geemap
 from streamlit_folium import st_folium
 import streamlit as st
 from google import genai
