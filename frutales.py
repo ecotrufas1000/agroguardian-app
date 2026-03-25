@@ -533,6 +533,7 @@ except Exception as e:
 # CONFIGURACIÓN DE PÁGINA
 # ==========================================================
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
+
 st.markdown("""
     <style>
         .stApp { background-color: #0d1117 !important; color: #00ffc3 !important; }
@@ -543,18 +544,6 @@ st.markdown("""
         .block-container { padding-top: 0rem !important; padding-bottom: 0rem !important; padding-left: 0rem !important; padding-right: 0rem !important; }
         iframe { width: 100% !important; height: 85vh !important; border: none !important; }
         .leaflet-control-attribution { display: none !important; }
-        [data-testid="stExpander"] details[open] summary {
-            background-color: #161b22 !important;
-            color: #00ffc3 !important;
-        }
-        [data-testid="stExpander"] summary {
-            background-color: #161b22 !important;
-            color: #00ffc3 !important;
-        }
-        [data-testid="stExpander"] summary:hover {
-            background-color: #1f2d25 !important;
-            color: #00ffc3 !important;
-        }
     </style>
 """, unsafe_allow_html=True)
 # ==========================================================
