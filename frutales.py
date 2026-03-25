@@ -39,7 +39,7 @@ st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
 st.markdown("""
 <style>
 
-/* Boton cerrar sesion */
+/* Botón cerrar sesión */
 div.stButton > button {
     background-color: #0066ff;
     color: #ff9900;
@@ -47,24 +47,10 @@ div.stButton > button {
     border: none;
     font-weight: bold;
 }
+
 div.stButton > button:hover {
     background-color: #0052cc;
     color: #ff9900;
-}
-
-[data-testid="stExpander"] details[open] summary {
-    background-color: #161b22 !important;
-    color: #00ffc3 !important;
-}
-
-[data-testid="stExpander"] summary {
-    background-color: #161b22 !important;
-    color: #00ffc3 !important;
-}
-
-[data-testid="stExpander"] summary:hover {
-    background-color: #1f2d25 !important;
-    color: #00ffc3 !important;
 }
 
 </style>
