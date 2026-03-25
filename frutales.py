@@ -1342,7 +1342,8 @@ elif menu == "❄️ Análisis de Heladas":
             f"&end_date={fecha_fin_utah.isoformat()}"
         )
         r_fc = requests.get(url_forecast).json()
-
+        from datetime import date
+        fecha_inicio_utah = date(date.today().year, 4, 1)
         horas = r_fc['hourly']['time'][:24]
         temps = r_fc['hourly']['temperature_2m'][:24]
         humedades = r_fc['hourly']['relativehumidity_2m'][:24]
@@ -1365,8 +1366,7 @@ elif menu == "❄️ Análisis de Heladas":
             else ('⚠️ ALERTA' if t <= umbral_daño + 2
             else ('🟡 PRECAUCIÓN' if t <= umbral_daño + 5 else '✅ OK'))
         )
-        from datetime import date
-        fecha_inicio_utah = date(date.today().year, 4, 1)
+       
         # Gráfico de temperatura con umbral
         import plotly.graph_objects as go
         fig = go.Figure()
