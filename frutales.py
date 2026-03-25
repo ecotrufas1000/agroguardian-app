@@ -1737,7 +1737,7 @@ import folium
 from streamlit_folium import st_folium
 import streamlit as st
 
-elif menu == "🛰️ Satélite (ECOSTRESS)":
+if menu == "🛰️ Satélite (ECOSTRESS)":
     st.header("🛰️ Monitoreo Térmico de Precisión")
 
     # Inicializar EE
