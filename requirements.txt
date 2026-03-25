@@ -32,7 +32,7 @@ setuptools
 
 # Motor de Google Earth Engine y Mapas
 earthengine-api
-geemap==0.34.3
+geemap==0.34.0
 python-box==6.1.0
 streamlit-folium
 folium
