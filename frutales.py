@@ -1365,7 +1365,8 @@ elif menu == "❄️ Análisis de Heladas":
             else ('⚠️ ALERTA' if t <= umbral_daño + 2
             else ('🟡 PRECAUCIÓN' if t <= umbral_daño + 5 else '✅ OK'))
         )
-
+        from datetime import date
+        fecha_inicio_utah = date(date.today().year, 4, 1)
         # Gráfico de temperatura con umbral
         import plotly.graph_objects as go
         fig = go.Figure()
