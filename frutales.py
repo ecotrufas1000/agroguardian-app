@@ -1,19 +1,9 @@
 import streamlit as st
-import uuid
-
-# ==========================================================
-# IDENTIFICADOR AUTOMÁTICO DE PRODUCTOR
-# ==========================================================
-if "usuario_id" not in st.session_state:
-    st.session_state.usuario_id = "prod_" + str(uuid.uuid4())[:8]
-
-usuario_id = st.session_state.usuario_id
 from google import genai
 import requests
 import json
 import os
 import math
-import datetime
 import pandas as pd
 import io
 import plotly.express as px
@@ -30,23 +20,400 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from datetime import datetime
-import streamlit as st
-from inicializacion_supabase import get_supabase_client
+from datetime import datetime, timedelta
+import secrets
+import string
 
-# -----------------------------
-# Conexión a Supabase
-# -----------------------------
-@st.cache_resource
-def conectar():
-    return get_supabase_client()
+def generar_password_temporal():
+    
+    caracteres = string.ascii_letters + string.digits
+    
+    return ''.join(secrets.choice(caracteres) for _ in range(10))
 
-supabase = conectar()
+# ==========================================================
+# 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
+# ==========================================================
+st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
+st.markdown("""
+<style>
 
-if supabase is None:
-    st.warning("⚠️ Error de conexión con Supabase.")
-else:
-    st.success("✅ Conexión con Supabase establecida.")
+/* Botón cerrar sesión */
+div.stButton > button {
+    background-color: #0066ff;
+    color: #ff9900;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+}
+
+div.stButton > button:hover {
+    background-color: #0052cc;
+    color: #ff9900;
+}
+
+</style>
+""", unsafe_allow_html=True)
+# ==========================================================
+# 2. SUPABASE
+# ==========================================================
+try:
+    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+except:
+    st.error("🚨 Error de conexión con Supabase.")
+    st.stop()
+
+# ==========================================================
+# 3. SESSION STATE — inicializar siempre primero
+# ==========================================================
+if "usuario" not in st.session_state:
+    st.session_state.usuario = None
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+if "cerrando_sesion" not in st.session_state:
+    st.session_state.cerrando_sesion = False
+if "forzar_cambio_password" not in st.session_state:
+    st.session_state.forzar_cambio_password = False
+
+# ==========================================================
+# 4. LIMPIAR localStorage si se está cerrando sesión
+#    (debe ir ANTES de leer localStorage)
+# ==========================================================
+if st.session_state.cerrando_sesion:
+    st.session_state.cerrando_sesion = False
+    streamlit_js_eval(
+        js_expressions='localStorage.clear();',
+        key="ls_clear_cerrar"
+    )
+    import time
+    time.sleep(1)
+    st.rerun()
+# ==========================================================
+# 5. RESTAURAR SESIÓN DESDE localStorage
+#===========================================================
+if st.session_state.usuario is None and not st.session_state.cerrando_sesion:
+    ls_usuario = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_usuario")',
+        key="ls_get_usuario"
+    )
+    ls_user_id = streamlit_js_eval(
+        js_expressions='localStorage.getItem("ag_user_id")',
+        key="ls_get_user_id"
+    )
+    if ls_usuario and ls_user_id:
+        st.session_state.usuario = ls_usuario
+        st.session_state.user_id = ls_user_id
+        st.rerun()
+# ==========================================================
+# 6. FUNCIONES DE AUTH
+# ==========================================================
+def login(email, password):
+    try:
+        res = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+
+        # guardar datos usuario
+        st.session_state.usuario = res.user.email
+        st.session_state.user_id = res.user.id
+
+        # guardar sesión supabase
+        st.session_state.supabase_session = res.session
+
+        streamlit_js_eval(
+            js_expressions=f'localStorage.setItem("ag_usuario", "{res.user.email}"); localStorage.setItem("ag_user_id", "{res.user.id}");',
+            key="ls_set_sesion"
+        )
+
+        # verificar contraseña temporal
+        perfil = supabase.table("perfiles").select("password_temporal").eq("id", res.user.id).execute()
+
+        if perfil.data and perfil.data[0]["password_temporal"]:
+            st.session_state.forzar_cambio_password = True
+
+        return True
+    except Exception as e:
+       st.error(f"❌ Error al registrarse: {e}")
+       return False   
+def registrar(email, password, nombre, campo, localidad):
+    try:
+        res = supabase.auth.sign_up({
+            "email": email,
+            "password": password
+        })
+        if res.user:
+            supabase.table("perfiles").insert({
+                "id": res.user.id,
+                "nombre": nombre,
+                "campo": campo,
+                "localidad": localidad,
+                "password_temporal": False
+            }).execute()
+            return True
+        return False
+    except Exception as e:
+        st.error(f"❌ Error al registrarse: {e}")
+        return False   
+# ==========================================================
+# CAMBIO OBLIGATORIO DE CONTRASEÑA
+# ==========================================================
+# ==========================================================
+# ==========================================================
+# 7. PANTALLA DE LOGIN
+# ==========================================================
+if st.session_state.usuario is None:
+
+    st.markdown("""
+        <style>
+            .stApp { background-color: #0d1117 !important; }
+            section[data-testid="stSidebar"] { display: none !important; }
+            header[data-testid="stHeader"] { background: #0d1117 !important; }
+            h1, h2, h3, p, label { color: #00ffc3 !important; font-family: 'Courier New', monospace !important; }
+            .stTextInput > div > div > input {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #30363d !important;
+                border-radius: 6px !important;
+                padding: 4px 8px !important;
+                font-size: 12px !important;
+                height: 32px !important;
+                min-height: 32px !important;
+                max-height: 32px !important;
+            }
+            .stTextInput {
+                margin-bottom: 4px !important;
+            }
+            .stTextInput label p {
+                font-size: 11px !important;
+                margin-bottom: 2px !important;
+            }
+            .stButton > button {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #00ffc3 !important;
+                border-radius: 6px !important;
+                font-weight: bold !important;
+                padding: 4px 12px !important;
+                font-size: 12px !important;
+                height: 32px !important;
+                min-height: 32px !important;
+                line-height: 1 !important;
+             }               
+             .stButton > button {
+                background-color: #161b22 !important;
+                color: #00ffc3 !important;
+                border: 1px solid #00ffc3 !important;
+                border-radius: 8px !important;
+                font-weight: bold;
+            }
+            .stButton > button:hover {
+                background-color: #00ffc3 !important;
+                color: #0d1117 !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: #00ffc3 !important;
+                font-family: monospace !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div style='text-align:center; padding:40px;'>
+            <div style='display:flex; align-items:center; justify-content:center; gap:12px;'>
+                <img src='https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png' width='50px'>
+                <h1 style='color:#00ffc3; font-family:monospace; margin:0; font-size:22px;'>AgroGuardian</h1>
+            </div>
+            <p style='color:#888; font-family:monospace; font-size:15px;'>Precision Lab v2.6</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    #tab1, tab2 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
+    tab_activo = st.session_state.get("tab_activo", 0)
+    tab1, tab2, tab3 = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse", "🔑 Recuperar Contraseña"])
+
+    with tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            email = st.text_input("Email", key="login_email")
+        with col2:
+            password = st.text_input("Contraseña", type="password", key="login_pass")
+        if st.button("INGRESAR", use_container_width=True):
+            if login(email, password):
+                st.rerun()
+
+    with tab2:
+        col1, col2 = st.columns(2)
+        with col1:
+            nombre = st.text_input("Nombre completo", key="reg_nombre")
+            campo = st.text_input("Nombre del campo", key="reg_campo")
+            localidad = st.text_input("Localidad", key="reg_localidad")
+        with col2:
+            email_r = st.text_input("Email", key="reg_email")
+            pass_r = st.text_input("Contraseña", type="password", key="reg_pass")
+            pass_r2 = st.text_input("Confirmar contraseña", type="password", key="reg_pass2")
+        if st.button("CREAR CUENTA", use_container_width=True):
+            if pass_r != pass_r2:
+                st.error("❌ Las contraseñas no coinciden")
+            elif len(pass_r) < 6:
+                st.error("❌ La contraseña debe tener al menos 6 caracteres")
+            else:
+                if registrar(email_r, pass_r, nombre, campo, localidad):
+                    st.success("✅ Cuenta creada. Ya podés iniciar sesión.")
+                    import time
+                    time.sleep(1.5)
+                    st.session_state.tab_activo = 0
+                    st.rerun()
+
+    with tab3:
+
+        st.markdown(
+            "<p style='color:#888; font-family:monospace;'>Ingresá tu email y generaremos una contraseña temporal.</p>",
+            unsafe_allow_html=True
+        )
+
+        email_rec = st.text_input("Email registrado", key="rec_email")
+
+        if st.button("GENERAR CONTRASEÑA TEMPORAL", use_container_width=True):
+
+            if not email_rec:
+                st.error("Ingresá tu email")
+
+            else:
+
+                try:
+
+                    password_temp = generar_password_temporal()
+
+                    users = supabase.auth.admin.list_users()
+
+                    user_id = None
+
+                    for u in users:
+                        if u.email == email_rec:
+                            user_id = u.id
+                            break
+
+                    if user_id is None:
+
+                        st.error("Usuario no encontrado")
+
+                    else:
+
+                        supabase.auth.admin.update_user_by_id(
+                            user_id,
+                            {"password": password_temp}
+                        )
+
+                        supabase.table("perfiles").update({
+                            "password_temporal": True
+                        }).eq("id", user_id).execute()
+
+                        st.success("Se generó una contraseña temporal")
+                        st.info(f"Tu contraseña temporal es: {password_temp}")
+
+                except Exception as e:
+                    st.error(f"Error: {e}")
+# ==========================================================
+# ==========================================================
+# CAMBIO OBLIGATORIO DE CONTRASEÑA
+# ==========================================================
+if st.session_state.get("forzar_cambio_password", False):
+
+    st.title("🔐 Cambio obligatorio de contraseña")
+
+    nueva = st.text_input("Nueva contraseña", type="password")
+    confirmar = st.text_input("Confirmar contraseña", type="password")
+
+    if st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambio_password"):
+
+        if not nueva or not confirmar:
+            st.error("Completá ambos campos")
+
+        elif nueva != confirmar:
+            st.error("Las contraseñas no coinciden")
+
+        elif len(nueva) < 6:
+            st.error("La contraseña debe tener al menos 6 caracteres")
+
+        else:
+
+            try:
+
+                supabase.auth.set_session(
+                    st.session_state.supabase_session.access_token,
+                    st.session_state.supabase_session.refresh_token
+                )
+
+                supabase.auth.update_user({
+                    "password": nueva
+                })
+
+                supabase.table("perfiles").update({
+                    "password_temporal": False
+                }).eq("id", st.session_state.user_id).execute()
+
+                st.success("✅ Contraseña actualizada correctamente")
+
+                st.session_state.forzar_cambio_password = False
+
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Error al actualizar contraseña: {e}")
+
+    
+def cerrar_sesion():
+    st.session_state.usuario = None
+    st.session_state.user_id = None
+    st.session_state.cerrando_sesion = True
+    try:
+        supabase.auth.sign_out()
+    except:
+        pass
+    st.rerun()
+#==========================================================
+# 8. APP PRINCIPAL — solo llega acá si está logueado
+# ==========================================================
+with st.sidebar:
+    try:
+        perfil = supabase.table("perfiles").select("nombre, campo, localidad").eq("id", st.session_state.user_id).execute()
+        if perfil.data:
+            p = perfil.data[0]
+            st.markdown(f"""
+            <div style='background:#161b22; border:1px solid #30363d; border-radius:10px; padding:12px; margin-bottom:8px;'>
+                <div style='color:#00ffc3; font-family:monospace; font-size:13px; font-weight:bold;'>👤 {p.get('nombre', 'Productor')}</div>
+                <div style='color:#888; font-family:monospace; font-size:11px; margin-top:4px;'>🌾 {p.get('campo', '')}</div>
+                <div style='color:#888; font-family:monospace; font-size:11px;'>📍 {p.get('localidad', '')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
+    except:
+        st.markdown(f"👤 **{st.session_state.get('usuario', '')}**")
+
+    if st.button("🚪 Cerrar sesión"):
+        cerrar_sesion()
+        streamlit_js_eval(
+            js_expressions='localStorage.clear(); window.location.reload();',
+            key="ls_cerrar_y_recargar"
+        )
+
+# Ejecutar el JS de localStorage fuera del botón
+if st.session_state.get("cerrar"):
+    st.session_state.cerrar = False
+    st.session_state.usuario = None
+    st.session_state.user_id = None
+    streamlit_js_eval(
+        js_expressions='localStorage.removeItem("ag_usuario"); localStorage.removeItem("ag_user_id");',
+        key="ls_remove_sesion"
+    )
+    try:
+        supabase.auth.sign_out()
+    except:
+        pass
+    st.rerun()
+if st.session_state.usuario is None:
+    st.stop()
 # ==========================================================
 # PWA / META TAGS
 # ==========================================================
@@ -115,20 +482,6 @@ def generar_pdf(texto_analisis, nombre_imagen="muestra"):
     from reportlab.platypus import Image as RLImage, Table, TableStyle
     import urllib.request
     import io as io_module
-    def obtener_pronostico(lat, lon):
-
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=temperature_2m,dewpoint_2m,windspeed_10m&forecast_days=1"
-
-    r = requests.get(url)
-
-    data = r.json()
-
-    temps = data["hourly"]["temperature_2m"]
-    dew = data["hourly"]["dewpoint_2m"]
-    wind = data["hourly"]["windspeed_10m"]
-    time = data["hourly"]["time"]
-
-    return temps, dew, wind, time
 
     try:
         logo_url = "https://raw.githubusercontent.com/ecotrufas1000/agroguardian-app/main/logo1.png"
@@ -224,7 +577,8 @@ def obtener_clima_completo(lat, lon):
             return {
                 "temp": t, "hum": h, "v_vel": round(r["wind"]["speed"] * 3.6, 1),
                 "v_dir": r["wind"].get("deg", 0), "rocio": round(rocio, 1),
-                "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural")
+                "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural"),
+                "nubes": r.get("clouds", {}).get("all", 0),
             }
     except:
         return None
@@ -271,7 +625,7 @@ with st.sidebar:
 
     import streamlit.components.v1 as components_sidebar
     components_sidebar.html("""
-        <a href="https://wa.me/5491154074144?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20tecnico" target="_blank" style="text-decoration:none;">
+        <a href="https://wa.me/5491127923471?text=Hola%20AgroGuardian%2C%20necesito%20soporte%20tecnico" target="_blank" style="text-decoration:none;">
             <div style="
                 background-color: #25D366;
                 color: white;
@@ -280,7 +634,7 @@ with st.sidebar:
                 text-align: center;
                 font-weight: bold;
                 font-family: 'Courier New', monospace;
-                font-size: 13px;
+                font-size: 15px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -299,75 +653,48 @@ with st.sidebar:
 # ==========================================================
 # GPS - INICIALIZACIÓN (corre siempre, en silencio)
 # ==========================================================
-#INICIALIZACIÓN
-# ==========================
 if 'lat' not in st.session_state:
     st.session_state.lat = -34.59
-
 if 'lon' not in st.session_state:
     st.session_state.lon = -58.50
-
 if 'modo_gps' not in st.session_state:
-    st.session_state.modo_gps = False  # empieza en manual
+    st.session_state.modo_gps = True
 
-
-# ==========================
-# ENTRADA MANUAL DE COORDENADAS
-# ==========================
-
-
-# ==========================
-# GPS AUTOMÁTICO (OPCIONAL)
-# ==========================
-gps_disponible = False
-
-if st.session_state.modo_gps:
-    loc = streamlit_js_eval(
-        js_expressions="""
-        new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
-                (err) => resolve({error: err.message}),
-                {enableHighAccuracy: true, timeout: 15000}
-            )
-        })
-        """,
-        key="get_loc_auto"
+loc = streamlit_js_eval(js_expressions="""
+new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
+        (err) => resolve({error: err.message}),
+        {enableHighAccuracy: true, timeout: 5000}
     )
+})
+""", key='get_loc_auto')
 
-    if loc and isinstance(loc, dict) and "latitude" in loc:
-        st.session_state.lat = loc["latitude"]
-        st.session_state.lon = loc["longitude"]
-        gps_disponible = True
-    else:
-        st.warning(
-            f"No se pudo obtener GPS: {loc.get('error') if isinstance(loc, dict) else 'desconocido'}"
-        )
+gps_disponible = False
+if loc and isinstance(loc, dict) and 'latitude' in loc:
+    lat_auto, lon_auto = loc['latitude'], loc['longitude']
+    gps_disponible = True
+else:
+    lat_auto, lon_auto = None, None
 
-
-# ==========================
-# COORDENADAS FINALES
-# ==========================
-LAT = st.session_state.lat
-LON = st.session_state.lon
-
-#st.write("LAT actual:", LAT)
-#st.write("LON actual:", LON)
-
-
-# ==========================
-# CLIMA
-# ==========================
-clima = obtener_clima_completo(LAT, LON)
-
-#st.write("CLIMA:", clima)
-# Colores de pastillas
 if st.session_state.modo_gps and gps_disponible:
+    st.session_state.lat = lat_auto
+    st.session_state.lon = lon_auto
     gps_color, man_color = "#00ffc3", "#222"
     g_text, m_text = "#000", "#666"
 else:
     gps_color, man_color = "#222", "#00ffc3"
     g_text, m_text = "#666", "#000"
+
+# ==========================================================
+# DATOS GLOBALES (corre siempre)
+# ==========================================================
+LAT = st.session_state.get('lat')
+LON = st.session_state.get('lon')
+clima = obtener_clima_completo(LAT, LON)
+
+if clima:
+    st.session_state.clima_data = clima
 
 # ===========================
 # MENÚ: MONITOREO TOTAL
