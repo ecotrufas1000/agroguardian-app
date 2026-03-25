@@ -23,3 +23,7 @@ streamlit-js-eval
 shapely
 pyproj
 pyogrio
+
+# Motor de Google Earth Engine y Mapas interactivos
+earthengine-api
+geemap
