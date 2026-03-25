@@ -24,7 +24,10 @@ shapely
 pyproj
 pyogrio
 
-# Motor de Google Earth Engine y Mapas interactivos
+# Compatibilidad para Python > 3.12
+setuptools
+
+# Motor de Google Earth Engine y Mapas
 earthengine-api
 geemap==0.34.3
 python-box==6.1.0
