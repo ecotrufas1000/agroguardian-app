@@ -614,7 +614,7 @@ with st.sidebar:
     except:
         st.markdown("<h2 style='text-align:center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
 
-    st.markdown("<p style='text-align:center; font-size:10px; opacity:0.7;'>PRECISION LAB v2.6</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-size:10px; opacity:0.7;'>FRUTALES - PRECISION LAB v3.6</p>", unsafe_allow_html=True)
     st.divider()
 
     menu = st.radio(
