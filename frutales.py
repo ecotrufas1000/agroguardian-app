@@ -36,11 +36,10 @@ st.markdown("""
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
-
 st.markdown("""
 <style>
 
-/* Botón cerrar sesión */
+/* Boton cerrar sesion */
 div.stButton > button {
     background-color: #0066ff;
     color: #ff9900;
