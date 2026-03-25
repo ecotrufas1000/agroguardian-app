@@ -1757,19 +1757,15 @@ if menu == "🛰️ Satélite (ECOSTRESS)":
 
             punto = ee.Geometry.Point([lon, lat])
         
-            coleccion = (ee.ImageCollection('CAS/ECOSTRESS/L2_LST')
+            coleccion = (ee.ImageCollection("MODIS/061/MOD11A1")
                          .filterBounds(punto)
                          .filterDate('2024-01-01', '2025-12-31')
                          .sort('system:time_start', False)
-                         .limit(1))   # 🔥 esto cambia todo
+                         .limit(1))
             
-            lista = coleccion.toList(1)
+            imagen = ee.Image(coleccion.first())
             
-            imagen = ee.Image(lista.get(0))
-        
-            if imagen is not None:
-        
-                lst = imagen.select('LST').multiply(0.02).subtract(273.15)
+            lst = imagen.select('LST_Day_1km').multiply(0.02).subtract(273.15)
     
                 vis = {
                     'min': -5,
