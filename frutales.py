@@ -1786,33 +1786,33 @@ if menu == "🛰️ Satélite (ECOSTRESS)":
     
                 datos = st_folium(m, width=700, height=500)
 
-            # Click en mapa
-            if datos and datos.get("last_clicked"):
-                c_lat = datos["last_clicked"]["lat"]
-                c_lon = datos["last_clicked"]["lng"]
-
-                punto_click = ee.Geometry.Point([c_lon, c_lat])
-
-                muestra = lst.sample(punto_click, 70).first()
-
-                if muestra:
-                    valor = muestra.getInfo()
-
-                    if valor and "properties" in valor:
-                        temp = valor["properties"]["LST"]
-
-                        st.metric("Temperatura", f"{temp:.1f} °C")
-
-                        if temp > 30:
-                            st.error("🔥 Estrés térmico")
-                        elif temp < 5:
-                            st.warning("❄️ Riesgo de helada")
-
-        else:
-            st.warning("No hay datos ECOSTRESS en esta zona")
-
-    except Exception as e:
-        st.error(f"Error: {e}")
+                # Click en mapa
+                if datos and datos.get("last_clicked"):
+                    c_lat = datos["last_clicked"]["lat"]
+                    c_lon = datos["last_clicked"]["lng"]
+    
+                    punto_click = ee.Geometry.Point([c_lon, c_lat])
+    
+                    muestra = lst.sample(punto_click, 70).first()
+    
+                    if muestra:
+                        valor = muestra.getInfo()
+    
+                        if valor and "properties" in valor:
+                            temp = valor["properties"]["LST"]
+    
+                            st.metric("Temperatura", f"{temp:.1f} °C")
+    
+                            if temp > 30:
+                                st.error("🔥 Estrés térmico")
+                            elif temp < 5:
+                                st.warning("❄️ Riesgo de helada")
+    
+            else:
+                st.warning("No hay datos ECOSTRESS en esta zona")
+    
+        except Exception as e:
+            st.error(f"Error: {e}")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
