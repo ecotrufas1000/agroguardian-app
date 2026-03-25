@@ -1,5 +1,5 @@
 # Parche para el error de pkg_resources
-setuptools
+setuptools>=65.0.0
 
 # Core de Streamlit
 streamlit
