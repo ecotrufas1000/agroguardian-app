@@ -1728,6 +1728,81 @@ elif menu == "📝 Bitácora":
         except Exception as e:
             st.error(f"Error al cargar: {e}")
 # ==========================================================
+# MENÚ: SATÉLITE (ECOSTRESS)
+# ==========================================================
+elif menu == "🛰️ Satélite (ECOSTRESS)":
+    st.header("🛰️ Monitoreo Térmico de Precisión")
+    st.subheader("Análisis de temperatura de suelo (Resolución 70m)")
+
+    import geemap.foliumap as geemap
+    from streamlit_folium import st_folium
+
+    # Podés usar las coordenadas de tu lote principal o dejar que el usuario las ponga
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        lat_input = st.number_input("Latitud", value=-34.6000, format="%.4f")
+    with col_c2:
+        lon_input = st.number_input("Longitud", value=-58.5100, format="%.4f")
+
+    # Inicializar Mapa
+    m = geemap.Map(center=[lat_input, lon_input], zoom=15)
+
+    try:
+        # 1. Traer datos de ECOSTRESS vía Earth Engine
+        punto = ee.Geometry.Point([lon_input, lat_input])
+        
+        # Buscamos la imagen más reciente (LST: Land Surface Temperature)
+        coleccion = (ee.ImageCollection('CAS/ECOSTRESS/L2_LST')
+                     .filterBounds(punto)
+                     .sort('system:time_start', False))
+        
+        imagen = coleccion.first()
+
+        if imagen:
+            # Procesar: Factor de escala 0.02 y pasar de Kelvin a Celsius
+            lst_celsius = imagen.select('LST').multiply(0.02).subtract(273.15)
+            
+            # Configuración de colores (de azul helada a rojo calor)
+            vis_params = {
+                'min': -5, 'max': 35,
+                'palette': ['#0000FF', '#00FFFF', '#00FF00', '#FFFF00', '#FF0000']
+            }
+
+            # Añadir capa al mapa
+            m.addLayer(lst_celsius, vis_params, 'Temperatura Suelo (°C)')
+            m.add_colorbar(vis_params, label="Temperatura de Superficie (°C)")
+            
+            # Obtener fecha de la toma
+            fecha_toma = ee.Date(imagen.get('system:time_start')).format('dd/MM/yyyy HH:mm').getInfo()
+            st.info(f"📸 Última pasada de la ISS sobre el lote: **{fecha_toma}**")
+
+            # 2. Renderizar Mapa Interactivo
+            # st_folium permite capturar el clic
+            datos_clic = st_folium(m, width=700, height=500)
+
+            # 3. Lógica del Inspector (Clic en el mapa)
+            if datos_clic and datos_clic['last_clicked']:
+                c_lat = datos_clic['last_clicked']['lat']
+                c_lon = datos_clic['last_clicked']['lng']
+                
+                # Extraer valor del píxel en el punto del clic
+                punto_clic = ee.Geometry.Point([c_lon, c_lat])
+                valor = lst_celsius.sample(punto_clic, 70).first().get('LST').getInfo()
+                
+                if valor:
+                    st.metric(label=f"Temp. en punto seleccionado ({c_lat:.4f})", value=f"{valor:.1f} °C")
+                    if valor < 0:
+                        st.snow()
+                        st.warning("⚠️ Zona con temperatura bajo cero detectada.")
+                else:
+                    st.write("Hacé clic dentro de la zona coloreada para ver la temperatura.")
+        else:
+            st.warning("No se encontraron imágenes recientes de ECOSTRESS para esta zona.")
+
+    except Exception as e:
+        st.error(f"Error al conectar con Earth Engine: {e}")
+        st.info("Asegurate de tener configuradas las credenciales de EE en el servidor.")            
+# ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
