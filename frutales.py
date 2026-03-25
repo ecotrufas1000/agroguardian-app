@@ -1133,75 +1133,338 @@ elif menu == "⛈️ Radar Granizo":
 # ==========================================================
 # ==========================================================
 # ==========================================================
-elif menu == "❄️ Análisis de Heladas":
-    st.markdown("<h2 style='font-size: 24px;'>❄️ Heladas Agrometeorológicas — Frutales</h2>", unsafe_allow_html=True)
+# ========================================================== 
+elif menu == "❄️ Análisis de Heladas": 
 
-    # 1. DATOS DE CULTIVOS
-    CULTIVOS = {
-        "🍎 Manzano": {"estados": {"Yema dormida": -15.0, "Yema hinchada": -8.0, "Puntas verdes": -4.0, "Media pulgada verde": -3.0, "Punta rosada": -2.8, "Flor abierta": -2.2, "Fruto cuajado": -1.7}},
-        "🍑 Duraznero": {"estados": {"Yema dormida": -15.0, "Yema hinchada": -5.0, "Botón rosado": -3.9, "Flor abierta": -2.8, "Plena floración": -2.2, "Fruto cuajado": -1.1}},
-        "🍒 Cerezo": {"estados": {"Yema dormida": -15.0, "Yema hinchada": -5.0, "Botón floral": -3.3, "Flor abierta": -2.8, "Plena floración": -2.2, "Fruto cuajado": -1.1}},
-        "🍐 Peral": {"estados": {"Yema dormida": -15.0, "Yema hinchada": -7.0, "Puntas verdes": -4.0, "Flor abierta": -2.2, "Plena floración": -2.0, "Fruto cuajado": -1.7}},
-        "🫐 Ciruelo": {"estados": {"Yema dormida": -15.0, "Yema hinchada": -5.5, "Botón floral": -3.9, "Flor abierta": -2.8, "Plena floración": -2.2, "Fruto cuajado": -1.1}},
-        "🌰 Almendro": {"estados": {"Yema dormida": -15.0, "Yema hinchada": -6.0, "Botón rosado": -4.0, "Flor abierta": -2.2, "Plena floración": -2.0, "Fruto cuajado": -1.5}},
-        "🥜 Pistacho": {"estados": {"Yema dormida": -15.0, "Yema hinchada": -6.5, "Brote verde": -3.5, "Floración": -2.5, "Cuaje": -1.8, "Fruto joven": -1.5}},
-        "🌰 Pecan": {"estados": {"Yema dormida": -18.0, "Yema hinchada": -8.0, "Brotación": -4.0, "Hoja expandiéndose": -2.5, "Floración": -2.0, "Fruto cuajado": -1.5}}
-    }
+    st.markdown("<h2 style='font-size: 24px;'>❄️ Heladas Agrometeorológicas — Frutales</h2>", unsafe_allow_html=True) 
 
-    # 2. SELECTORES
-    st.markdown("### 🌳 Configuración del Cultivo")
-    col_c1, col_c2 = st.columns(2)
-    with col_c1:
-        cultivo_sel = st.selectbox("Cultivo:", list(CULTIVOS.keys()))
-    with col_c2:
-        estado_sel = st.selectbox("Estado Fenológico:", list(CULTIVOS[cultivo_sel]["estados"].keys()))
+    # ========================================================== 
+    # DATOS DE CULTIVOS: umbral de daño por estado fenológico 
+    # ========================================================== 
+    CULTIVOS = { 
+        "🍎 Manzano": { 
+            "estados": { 
+                "Yema dormida":       -15.0, 
+                "Yema hinchada":       -8.0, 
+                "Puntas verdes":       -4.0, 
+                "Media pulgada verde": -3.0, 
+                "Punta rosada":        -2.8, 
+                "Flor abierta":        -2.2, 
+                "Fruto cuajado":       -1.7, 
+            } 
+        }, 
+        "🍑 Duraznero": { 
+            "estados": { 
+                "Yema dormida":        -15.0, 
+                "Yema hinchada":        -5.0, 
+                "Botón rosado":         -3.9, 
+                "Flor abierta":         -2.8, 
+                "Plena floración":      -2.2, 
+                "Fruto cuajado":        -1.1, 
+            } 
+        }, 
+        "🍒 Cerezo": { 
+            "estados": { 
+                "Yema dormida":        -15.0, 
+                "Yema hinchada":        -5.0, 
+                "Botón floral":         -3.3, 
+                "Flor abierta":         -2.8, 
+                "Plena floración":      -2.2, 
+                "Fruto cuajado":        -1.1, 
+            } 
+        }, 
+        "🍐 Peral": { 
+            "estados": { 
+                "Yema dormida":        -15.0, 
+                "Yema hinchada":        -7.0, 
+                "Puntas verdes":        -4.0, 
+                "Flor abierta":         -2.2, 
+                "Plena floración":      -2.0, 
+                "Fruto cuajado":        -1.7, 
+            } 
+        }, 
+        "🫐 Ciruelo": { 
+            "estados": { 
+                "Yema dormida":        -15.0, 
+                "Yema hinchada":        -5.5, 
+                "Botón floral":         -3.9, 
+                "Flor abierta":         -2.8, 
+                "Plena floración":      -2.2, 
+                "Fruto cuajado":        -1.1, 
+            } 
+        }, 
+        "🌰 Almendro": { 
+            "estados": { 
+                "Yema dormida":        -15.0, 
+                "Yema hinchada":        -6.0, 
+                "Botón rosado":         -4.0, 
+                "Flor abierta":         -2.2, 
+                "Plena floración":      -2.0, 
+                "Fruto cuajado":        -1.5, 
+            } 
+        }, 
+        "🥜 Pistacho": { 
+            "estados": { 
+                "Yema dormida": -15.0, 
+                "Yema hinchada": -6.5, 
+                "Brote verde": -3.5, 
+                "Floración": -2.5, 
+                "Cuaje": -1.8, 
+                "Fruto joven": -1.5, 
+            } 
+        }, 
+        "🌰 Pecan": { 
+            "estados": { 
+                "Yema dormida": -18.0, 
+                "Yema hinchada": -8.0, 
+                "Brotación": -4.0, 
+                "Hoja expandiéndose": -2.5, 
+                "Floración": -2.0, 
+                "Fruto cuajado": -1.5, 
+            } 
+        } 
+    } 
+    
+    # ========================================================== 
+    # SELECTOR DE CULTIVO Y ESTADO FENOLÓGICO 
+    # ========================================================== 
+    st.markdown("### 🌳 Configuración del Cultivo") 
+    col_c1, col_c2 = st.columns(2) 
+    with col_c1: 
+        cultivo_sel = st.selectbox("Cultivo:", list(CULTIVOS.keys())) 
+    with col_c2: 
+        estado_sel = st.selectbox("Estado Fenológico:", list(CULTIVOS[cultivo_sel]["estados"].keys())) 
 
-    umbral_daño = CULTIVOS[cultivo_sel]["estados"][estado_sel]
+    umbral_daño = CULTIVOS[cultivo_sel]["estados"][estado_sel] 
 
-    # 3. CONDICIONES ACTUALES Y RIESGO RADIATIVO (Tu lógica de clima actual...)
-    if clima:
-        temp_actual = clima['temp']
-        margen = temp_actual - umbral_daño
-        st.metric("🌡️ Temperatura", f"{temp_actual:.1f}°C", delta=f"{margen:+.1f}° del umbral")
-        # ... (aquí iría el resto de tus métricas de clima actual)
+    st.markdown(f""" 
+    <div style='background:#161b22; padding:12px; border-radius:10px; border:1px solid #30363d; margin-bottom:12px;'> 
+        <span style='color:#00ffc3; font-family:monospace; font-size:14px;'> 
+            ⚠️ Temperatura de daño para <b>{cultivo_sel}</b> en <b>{estado_sel}</b>:  
+            <span style='color:#ff4b4b; font-size:18px;'><b>{umbral_daño}°C</b></span> 
+        </span> 
+    </div> 
+    """, unsafe_allow_html=True) 
 
-    st.divider()
+    st.divider() 
 
-    # 4. HORAS DE FRÍO (IMPORTANTE: Ahora está indentado dentro del elif menu)
-    st.markdown("### 🧊 Horas de Frío Acumuladas — Modelo Utah")
-    try:
-        from datetime import date
-        fecha_hoy = date.today()
-        fecha_inicio_utah = st.date_input("Inicio cálculo:", value=fecha_hoy, key="utah_inicio", max_value=fecha_hoy)
+    # ========================================================== 
+    # CONDICIONES ACTUALES 
+    # ========================================================== 
+    st.markdown("### 🌡️ Condiciones Actuales") 
+
+    if clima: 
+        temp_actual = clima['temp'] 
+        rocio = clima['rocio'] 
+        viento = clima['v_vel'] 
+        hum = clima['hum'] 
         
-        # Aquí va la lógica de Open-Meteo Archive que ya teníamos...
-        # (Asegúrate de que lat_h y lon_h estén definidos)
-        lat_h = LAT if 'LAT' in locals() and LAT else -34.59
-        lon_h = LON if 'LON' in locals() and LON else -58.50
+        margen = temp_actual - umbral_daño 
+
+        c1, c2, c3, c4 = st.columns(4) 
+        with c1: st.metric("🌡️ Temperatura", f"{temp_actual:.1f}°C", delta=f"{margen:+.1f}° del umbral") 
+        with c2: st.metric("💧 Punto de Rocío", f"{rocio:.1f}°C") 
+        with c3: st.metric("💨 Viento", f"{viento:.1f} km/h") 
+        with c4: st.metric("💦 Humedad", f"{hum}%") 
+
+        # --- ÍNDICE DE HELADA RADIATIVA --- 
+        st.markdown("### 🔭 Índice de Helada Radiativa") 
+        riesgo_rad = 0 
+        factores_rad = [] 
+
+        if viento < 5: 
+            riesgo_rad += 3 
+            factores_rad.append("🔴 Viento calmo — inversión térmica probable") 
+        elif viento < 10: 
+            riesgo_rad += 1 
+            factores_rad.append("🟡 Viento leve") 
+        else: 
+            factores_rad.append("🟢 Viento suficiente — mezcla de aire activa") 
+
+        if hum < 40: 
+            riesgo_rad += 2 
+            factores_rad.append("🔴 Humedad muy baja — enfriamiento nocturno intenso") 
+        elif hum < 60: 
+            riesgo_rad += 1 
+            factores_rad.append("🟡 Humedad moderada") 
+        else: 
+            factores_rad.append("🟢 Humedad alta — amortigua el enfriamiento") 
+
+        dif_rocio = temp_actual - rocio 
+        if dif_rocio < 2: 
+            riesgo_rad += 3 
+            factores_rad.append("🔴 Punto de rocío muy cercano — escarcha posible") 
+        elif dif_rocio < 5: 
+            riesgo_rad += 1 
+            factores_rad.append("🟡 Diferencia temp-rocío moderada") 
+        else: 
+            factores_rad.append("🟢 Diferencia temp-rocío alta") 
+
+        if riesgo_rad >= 6: 
+            st.error(f"🚨 RIESGO RADIATIVO EXTREMO — Condiciones ideales para helada severa esta noche") 
+        elif riesgo_rad >= 4: 
+            st.warning(f"⚠️ RIESGO RADIATIVO ALTO — Probabilidad elevada de helada nocturna") 
+        elif riesgo_rad >= 2: 
+            st.warning(f"🟡 RIESGO RADIATIVO MODERADO — Monitorear de madrugada") 
+        else: 
+            st.success(f"✅ RIESGO RADIATIVO BAJO — Condiciones desfavorables para helada") 
+
+        with st.expander("🔍 Ver factores del índice radiativo"): 
+            for f in factores_rad: 
+                st.markdown(f"- {f}") 
+
+        # --- ALERTA ESPECÍFICA POR CULTIVO --- 
+        st.divider() 
+        st.markdown("### 🌳 Alerta por Cultivo") 
+        if temp_actual <= umbral_daño: 
+            st.error(f"🚨 DAÑO EN CURSO — La temperatura actual ({temp_actual}°C) está por debajo del umbral de daño ({umbral_daño}°C) para {cultivo_sel} en {estado_sel}") 
+        elif temp_actual <= umbral_daño + 2: 
+            st.warning(f"⚠️ ALERTA CRÍTICA — Temperatura a {margen:.1f}° del umbral de daño. Activar protección.") 
+        elif temp_actual <= umbral_daño + 5: 
+            st.warning(f"🟡 PRECAUCIÓN — Temperatura a {margen:.1f}° del umbral. Mantener vigilancia.") 
+        else: 
+            st.success(f"✅ SIN RIESGO INMEDIATO — Margen de {margen:.1f}° sobre el umbral de daño.") 
+    else: 
+        st.info("📍 Activá el GPS para ver las condiciones actuales.") 
+
+    st.divider() 
+
+    # ========================================================== 
+    # PRONÓSTICO 24HS CON OPEN-METEO 
+    # ========================================================== 
+    st.markdown("### 📅 Pronóstico Horario — Próximas 24 horas") 
+
+    try: 
+        lat_h = LAT if 'LAT' in locals() and LAT else -34.59 
+        lon_h = LON if 'LON' in locals() and LON else -58.50 
+
+        url_forecast = ( 
+            f"https://api.open-meteo.com/v1/forecast?" 
+            f"latitude={lat_h}&longitude={lon_h}" 
+            f"&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,cloudcover,dewpoint_2m" 
+            f"&timezone=America/Argentina/Buenos_Aires" 
+            f"&forecast_days=2" 
+        ) 
+        r_fc = requests.get(url_forecast).json() 
+        horas = r_fc['hourly']['time'][:24] 
+        temps = r_fc['hourly']['temperature_2m'][:24] 
+        humedades = r_fc['hourly']['relativehumidity_2m'][:24] 
+        vientos = r_fc['hourly']['windspeed_10m'][:24] 
+        nubes = r_fc['hourly']['cloudcover'][:24] 
+        rocio_fc = r_fc['hourly']['dewpoint_2m'][:24] 
+
+        df_fc = pd.DataFrame({ 
+            'hora': [h[11:16] for h in horas], 
+            'temp': temps, 
+            'hum': humedades, 
+            'viento': vientos, 
+            'nubes': nubes, 
+            'rocio': rocio_fc 
+        }) 
+
+        df_fc['riesgo'] = df_fc['temp'].apply( 
+            lambda t: '🚨 DAÑO' if t <= umbral_daño 
+            else ('⚠️ ALERTA' if t <= umbral_daño + 2 
+            else ('🟡 PRECAUCIÓN' if t <= umbral_daño + 5 else '✅ OK')) 
+        ) 
         
-        # ... (Cálculo de horas de frío Utah y Pascale-Damario)
-        st.info("📊 Cálculo dinámico activo.")
+        import plotly.graph_objects as go 
+        fig = go.Figure() 
+        fig.add_trace(go.Scatter(x=df_fc['hora'], y=df_fc['temp'], mode='lines+markers', name='Temperatura', line=dict(color='#00ffc3', width=2))) 
+        fig.add_hline(y=umbral_daño, line_dash="dash", line_color="#ff4b4b", annotation_text=f"Umbral daño: {umbral_daño}°C") 
 
-    except Exception as e:
-        st.error(f"Error en Horas de Frío: {e}")
+        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#00ffc3"), height=300) 
+        st.plotly_chart(fig, use_container_width=True) 
 
-    st.divider()
+        # Tabla resumen horaria 
+        with st.expander("📋 Ver tabla horaria completa"): 
+            st.dataframe(df_fc[['hora', 'temp', 'rocio', 'hum', 'viento', 'nubes', 'riesgo']], use_container_width=True) 
 
-    # 5. REGISTRO HISTÓRICO DE HELADAS (También indentado dentro del elif)
-    st.markdown("### 📋 Bitácora Histórica de Heladas")
-    try:
+        # Mínima pronosticada
+        temp_min = min(temps) 
+        hora_min = df_fc.loc[df_fc['temp'].idxmin(), 'hora'] 
+
+        st.markdown(f""" 
+        <div style='background:#161b22; padding:12px; border-radius:10px; border:1px solid #30363d; margin-top:12px;'> 
+            <span style='color:#00ffc3; font-family:monospace;'> 
+                🌙 Mínima pronosticada: <b style='color:{"#ff4b4b" if temp_min <= umbral_daño else "#00ffc3"}'>{temp_min:.1f}°C</b>  
+                a las <b>{hora_min}hs</b> —  
+                {"🚨 POR DEBAJO DEL UMBRAL DE DAÑO" if temp_min <= umbral_daño else f"Margen de {temp_min - umbral_daño:.1f}° sobre el umbral"} 
+            </span> 
+        </div> 
+        """, unsafe_allow_html=True) 
+
+    except Exception as e: 
+        st.error(f"Error al obtener pronóstico: {e}") 
+
+    st.divider() 
+
+    # ========================================================== 
+    # HORAS DE FRÍO — MODELO UTAH Y PASCALE-DAMARIO
+    # ========================================================== 
+    st.markdown("### 🧊 Horas de Frío Acumuladas") 
+    
+    try: 
+        from datetime import date 
+        fecha_hoy = date.today() 
+        fecha_inicio_utah = st.date_input("Seleccione fecha de inicio del cálculo:", value=date(fecha_hoy.year, 5, 1), key="utah_inicio", max_value=fecha_hoy) 
+
+        url_utah = ( 
+            f"https://archive-api.open-meteo.com/v1/archive?" 
+            f"latitude={lat_h}&longitude={lon_h}" 
+            f"&hourly=temperature_2m&timezone=America/Argentina/Buenos_Aires" 
+            f"&start_date={fecha_inicio_utah.isoformat()}&end_date={fecha_hoy.isoformat()}" 
+        ) 
+        r_utah = requests.get(url_utah).json() 
+        temps_utah = r_utah['hourly']['temperature_2m'] 
+
+        # Métodos de Cálculo
+        horas_frio = sum(1 for t in temps_utah if t is not None and 0 <= t <= 7) 
+        
+        def unidades_pd(t): 
+            if t is None or t < 1.4: return 0 
+            elif t <= 2.4: return 0.5 
+            elif t <= 9.1: return 1 
+            elif t <= 12.4: return 0.5 
+            elif t <= 15.9: return 0 
+            elif t <= 18.0: return -0.5 
+            else: return -1 
+
+        unidades_pascale = max(0, round(sum(unidades_pd(t) for t in temps_utah))) 
+
+        # Comparación y visualización
+        c1, c2 = st.columns(2) 
+        c1.metric("🧊 Utah (0-7°C)", f"{horas_frio} hs") 
+        c2.metric("🌡️ Pascale-Damario", f"{unidades_pascale} UF") 
+
+        st.markdown("#### 📊 Comparación de Métodos") 
+        df_comp = pd.DataFrame({ 
+            "Método": ["Utah", "Pascale-Damario"], 
+            "Acumuladas": [f"{horas_frio} hs", f"{unidades_pascale} UF"], 
+            "Estado": ["✅ Óptimo" if horas_frio > 400 else "🟡 En proceso", "✅ Óptimo" if unidades_pascale > 350 else "🟡 En proceso"] 
+        }) 
+        st.table(df_comp) 
+
+    except Exception as e: 
+        st.error(f"Error al calcular horas de frío: {e}") 
+
+    st.divider() 
+
+    # ========================================================== 
+    # REGISTRO HISTÓRICO DE HELADAS 
+    # ========================================================== 
+    try: 
+        # (Aquí va el bloque de Supabase que ya tenías para el historial)
+        st.markdown("### 📋 Historial de Heladas Registradas")
         res_h = supabase.table("registros_heladas").select("*").execute()
-        # ... (Toda tu lógica de la tabla de registros y el formulario de nueva helada)
-        st.success("Módulo de historial cargado.")
+        if res_h.data:
+            st.dataframe(pd.DataFrame(res_h.data), use_container_width=True)
     except Exception as e:
-        st.error(f"Error en Historial: {e}")
+        st.error(f"Error en registros: {e}")
 
+# ========================================================== 
+# CONTINUACIÓN DEL CÓDIGO (Ej: Bitácora)
 # ==========================================================
-# AQUÍ SÍ PUEDE SEGUIR EL ELIF DE BITÁCORA
-# ==========================================================
-elif menu == "📝 Bitácora":
-    st.header("📝 Cuaderno de Campo Digital")
-    # ... resto del código de bitácora
 # ==========================================================
 elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
