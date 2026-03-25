@@ -1333,14 +1333,14 @@ elif menu == "❄️ Análisis de Heladas":
         lat_h = LAT if LAT else -34.59
         lon_h = LON if LON else -58.50
 
-        url_forecast = (
-            url_utah = (
-                f"https://archive-api.open-meteo.com/v1/archive?"
+        url_utah = (
+            f"https://archive-api.open-meteo.com/v1/archive?"
             f"latitude={lat_h}&longitude={lon_h}"
-            f"&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,cloudcover,dewpoint_2m"
+            f"&hourly=temperature_2m"
             f"&timezone=America/Argentina/Buenos_Aires"
-            f"&forecast_days=2"
-        ))
+            f"&start_date={fecha_inicio_utah.isoformat()}"
+            f"&end_date={fecha_fin_utah.isoformat()}"
+        )
         r_fc = requests.get(url_forecast).json()
 
         horas = r_fc['hourly']['time'][:24]
