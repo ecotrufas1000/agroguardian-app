@@ -1666,52 +1666,41 @@ except Exception as e:
 st.divider()
 # ==========================================================
 # ==========================================================
-# MENÚ: BITÁCORA
-# ==========================================================
 elif menu == "📝 Bitácora":
     st.header("📝 Cuaderno de Campo Digital")
 
     with st.form("nueva_nota", clear_on_submit=False):
         st.subheader("Registrar Evento o Tarea")
         c1, c2 = st.columns(2)
-        
         with c1:
             tarea = st.selectbox("Evento/Tarea", ["Fumigación", "Siembra", "Cosecha", "Fertilización", "Monitoreo", "❄️ Helada", "☄️ Granizo", "Otro"])
             lote = st.text_input("Lote", placeholder="Ej: Lote Norte")
-        
         with c2:
             if tarea == "❄️ Helada":
                 detalle_extra = st.selectbox("Intensidad de Helada", ["Leve (0° a -2°)", "Moderada (-2° a -4°)", "Fuerte (<-4°)"])
             elif tarea == "☄️ Granizo":
-                detalle_extra = st.selectbox("Tamaño del Granizo", ["Pequeño (Arroz)", "Mediano (Uva)", "Grande (Huevo)"])
+                detalle_extra = st.selectbox("Tamaño del Granizo", ["Pequeno (Arroz)", "Mediano (Uva)", "Grande (Huevo)"])
             else:
                 detalle_extra = ""
-            
             nota_adicional = st.text_area("Observaciones del evento", placeholder="Describa daños visibles o detalles...")
-        
         btn_guardar = st.form_submit_button("💾 GUARDAR Y GENERAR REPORTE")
 
         if btn_guardar:
             if lote and tarea:
                 try:
-                    # Obtenemos clima actual si está disponible
-                    t_act = clima['temp'] if 'clima' in locals() and clima else 0
-                    v_act = clima['v_vel'] if 'clima' in locals() and clima else 0
-                    
+                    t_act = clima['temp'] if clima else 0
+                    v_act = clima['v_vel'] if clima else 0
                     nota_final = f"[{detalle_extra}] {nota_adicional}" if detalle_extra else nota_adicional
-                    
                     datos = {
-                        "tarea": tarea, 
-                        "lote": lote, 
-                        "nota": nota_final, 
-                        "clima_temp": t_act, 
-                        "clima_viento": v_act
+                        "tarea": tarea,
+                        "lote": lote,
+                        "nota": nota_final,
+                        "clima_temp": t_act,
+                        "clima_viento": v_act,
+                        "productor_id": st.session_state.user_id  # ← asociar al usuario
                     }
-                    
                     supabase.table("bitacora").insert(datos).execute()
                     st.success(f"✅ ¡{tarea} registrada con éxito!")
-                    
-                    # Generar link de WhatsApp (asegurate de tener esta función definida arriba)
                     link_wa = generar_link_whatsapp(tarea, lote, t_act, v_act, nota_final)
                     st.markdown(f"""
                         <a href="{link_wa}" target="_blank" style="text-decoration: none;">
@@ -1721,7 +1710,7 @@ elif menu == "📝 Bitácora":
                         </a>
                     """, unsafe_allow_html=True)
                 except Exception as e:
-                    st.error(f"Error al guardar en base de datos: {e}")
+                    st.error(f"Error: {e}")
             else:
                 st.warning("⚠️ Completá Lote y Evento.")
 
@@ -1729,25 +1718,36 @@ elif menu == "📝 Bitácora":
 
     with st.expander("📂 VER HISTORIAL COMPLETO DE ACTIVIDADES"):
         try:
-            res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
+            res = supabase.table("bitacora").select("*").eq("productor_id", st.session_state.user_id).order("fecha", desc=True).execute()
             if res.data:
                 df_bit = pd.DataFrame(res.data)
-                # Formateo de fecha para que el productor lo lea fácil
-                if 'fecha' in df_bit.columns:
-                    df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
-                
-                st.dataframe(
-                    df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']], 
-                    use_container_width=True,
+                df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+                st.dataframe(df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']], use_container_width=True,
                     column_config={
                         "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
                         "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")
-                    }
-                )
+                    })
+
+                st.divider()
+                st.subheader("🗑️ Borrar Registro")
+                opciones = {}
+                for _, row in df_bit.iterrows():
+                    key = f"{row['fecha']} — {row['tarea']} — {row['lote']}"
+                    opciones[key] = res.data[_]['id']
+
+                fila_sel = st.selectbox("Seleccioná el registro a eliminar:", list(opciones.keys()), key="sel_borrar_bitacora")
+
+                if st.button("🗑️ ELIMINAR", type="primary", use_container_width=True, key="btn_borrar_bitacora"):
+                    try:
+                        supabase.table("bitacora").delete().eq("id", opciones[fila_sel]).execute()
+                        st.success("✅ Registro eliminado")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {e}")
             else:
-                st.info("No hay registros cargados aún.")
+                st.info("No hay registros cargados.")
         except Exception as e:
-            st.error(f"Error al cargar historial: {e}")
+            st.error(f"Error al cargar: {e}")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
@@ -1762,39 +1762,97 @@ elif menu == "🛰️ Índices Satelitales":
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d"
 
     @st.cache_data
-    def cargar_limites_argentina():
-        ruta_gpkg = "gadm41_AGR_2.gpkg"
-        if os.path.exists(ruta_gpkg):
-            return gpd.read_file(ruta_gpkg, engine="pyogrio")
-        return None
-
-    gdf_argentina = cargar_limites_argentina()
+    def cargar_limites():
+        gdf_arg = None
+        gdf_ury = None
+        if os.path.exists("gadm41_AGR_2.gpkg"):
+            gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
+            gdf_arg["PAIS"] = "Argentina"
+        if os.path.exists("gadm41_URY.gpkg"):
+            gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
+            gdf_ury["PAIS"] = "Uruguay"
+            gdf_ury = gdf_ury.rename(columns={"NAME_1": "NAME_1", "NAME_2": "NAME_2"})
+        if gdf_arg is not None and gdf_ury is not None:
+            return gpd.GeoDataFrame(pd.concat([gdf_arg, gdf_ury], ignore_index=True))
+        return gdf_arg
+    
+    gdf_argentina = cargar_limites()
 
     if gdf_argentina is not None:
         col_prov = "NAME_1"
         col_depto = "NAME_2"
-        c1, c2, c3 = st.columns([1, 1, 1])
+        c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
+        with c0:
+            pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Uruguay"])
         with c1:
-            provincias = sorted(gdf_argentina[col_prov].unique())
-            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."] + provincias)
-        with c2:
-            if prov_sel != "Seleccionar...":
-                deptos = sorted(gdf_argentina[gdf_argentina[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox("Departamento:", ["Seleccionar..."] + deptos)
+            if pais_sel == "Argentina":
+                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Argentina"]
+                label_prov = "Provincia:"
+                label_depto = "Departamento:"
+                opciones_prov = sorted(gdf_pais[col_prov].unique())
+                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
+            elif pais_sel == "Uruguay":
+                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Uruguay"]
+                label_prov = "Departamento:"
+                label_depto = "Sección:"
+                opciones_prov = sorted(gdf_pais[col_prov].unique())
+                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
             else:
-                depto_sel = st.selectbox("Departamento:", ["Esperando..."], disabled=True)
+                prov_sel = st.selectbox("Provincia:", ["Seleccionar..."], disabled=True)
+                gdf_pais = gdf_argentina
+        with c2:
+            if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar...":
+                deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
+                depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
+            else:
+                depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
         with c3:
-            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR"])
+            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "EVI"])
 
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
             with st.spinner(f"Calculando {indice_sel}..."):
-                gdf_loc = gdf_argentina[(gdf_argentina[col_prov] == prov_sel) & (gdf_argentina[col_depto] == depto_sel)]
+                gdf_loc = gdf_pais[(gdf_pais[col_prov] == prov_sel) & (gdf_pais[col_depto] == depto_sel)]
                 centro = gdf_loc.geometry.centroid.iloc[0]
                 m = folium.Map(location=[centro.y, centro.x], zoom_start=13, tiles='OpenStreetMap', attr=' ', height='100%', width='100%')
-                folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=indice_sel, name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
-                folium.GeoJson(gdf_loc, style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
+                capa_wms = {
+                    "NDVI": "NDVI",
+                    "NDWI": "NDWI",
+                    "TRUE-COLOR": "TRUE-COLOR",
+                    "NDMI": "NDMI",
+                    "EVI": "EVI"
+                }    
+
+                folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=capa_wms[indice_sel], name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
+                # Todos los departamentos de la provincia en gris
+                gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+                folium.GeoJson(
+                    gdf_prov,
+                    style_function=lambda x: {
+                        'fillColor': '#333333',
+                        'color': '#666666',
+                        'weight': 1,
+                        'fillOpacity': 0.3
+                    }
+                ).add_to(m)
+                
+                # Departamento seleccionado resaltado en verde
+                folium.GeoJson(
+                    gdf_loc,
+                    style_function=lambda x: {
+                        'fillColor': 'transparent',
+                        'color': '#00ffc3',
+                        'weight': 3,
+                        'fillOpacity': 0
+                    }
+                ).add_to(m)
+                
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                components.html(m.get_root().render(), height=1000, width=None)
+                mapa_html = m.get_root().render()
+                mapa_html = mapa_html.replace(
+                    '</head>',
+                    '<style>.leaflet-control-attribution { display: none !important; } .leaflet-control-container .leaflet-top, .leaflet-control-container .leaflet-bottom { display: none !important; }</style></head>'
+                )
+                components.html(mapa_html, height=1000, width=None)
                 st.write("---")
 
                 if indice_sel == "NDVI":
@@ -1806,6 +1864,12 @@ elif menu == "🛰️ Índices Satelitales":
                 elif indice_sel == "TRUE-COLOR":
                     st.subheader("📸 Fotografía Satelital Real (True Color)")
                     st.markdown("""Composición de color natural (RGB):\n* 🌿 **Verdes:** Cultivos activos y montes.\n* 🪵 **Marrones/Grises:** Lotes preparados o rastrojo.\n* ⚫ **Oscuros:** Agua profunda o sombras.\n* ☁️ **Blanco Brillante:** Nubes.""")
+                elif indice_sel == "NDMI":
+                    st.subheader("💦 Índice de Humedad del Cultivo (NDMI)")
+                    st.markdown("""El **NDMI** detecta el contenido de agua en la vegetación:\n* 🔵 **Azul Oscuro:** Alta humedad en canopeo — cultivo bien abastecido.\n* 🟦 **Celeste:** Humedad moderada — monitorear.\n* 🟨 **Amarillo:** Humedad baja — estrés hídrico incipiente.\n* 🟥 **Rojo:** Estrés hídrico severo — intervención urgente.""")
+                elif indice_sel == "EVI":
+                    st.subheader("🌱 Índice de Vegetación Mejorado (EVI)")
+                    st.markdown("""El **EVI** mejora el NDVI en zonas de alta biomasa:\n* 🟩 **Verde Oscuro:** Cultivo muy denso y sano.\n* 🟩 **Verde Claro:** Vegetación activa en crecimiento.\n* 🟨 **Amarillo:** Cultivo con estrés o baja densidad.\n* 🟥 **Rojo/Naranja:** Suelo desnudo o cultivo muy estresado.""")
 
                 fecha_reporte = datetime.now().strftime('%d/%m/%Y')
                 texto_reporte = f"📊 INFORME DE MONITOREO SATELITAL\n---------------------------------\n📍 Ubicación: {depto_sel}, {prov_sel}\n📅 Fecha: {fecha_reporte}\n🛰️ Capa: {indice_sel}\n"
@@ -1846,7 +1910,33 @@ elif menu == "🔍 Diagnóstico IA":
         if st.button("🔬 ANALIZAR", type="primary", use_container_width=True):
             with st.status("Analizando...", expanded=True) as status:
                 try:
-                    prompt = "Sos un agrónomo experto. Identificá plaga/enfermedad y sugerí tratamiento."
+                    prompt = """Sos un ingeniero agrónomo experto en cultivos extensivos e intensivos de Argentina y Uruguay.
+
+Analizá la imagen y respondé en este formato exacto:
+
+## 🔍 Diagnóstico
+Identificá claramente qué es lo que ves (plaga, enfermedad, deficiencia nutricional, daño abiótico, etc.)
+
+## 🌱 Cultivo Afectado
+Indicá el cultivo o especie si podés identificarlo.
+
+## ⚠️ Nivel de Severidad
+Clasificá como: Leve / Moderado / Severo / Crítico
+Justificá brevemente.
+
+## 🧪 Tratamiento Recomendado
+- Producto/s recomendado/s con principio activo
+- Dosis orientativa
+- Momento de aplicación
+- Condiciones ideales para aplicar (Delta T, viento, etc.)
+
+## 🔄 Medidas Preventivas
+Acciones para evitar recurrencia.
+
+## ⚕️ Urgencia de Intervención
+Indicá si requiere acción inmediata o puede esperar.
+
+Respondé siempre en español. Si la imagen no muestra claramente un problema agronómico, indicalo y pedí una foto más cercana."""
                     response = client.models.generate_content(
                         model="gemini-2.5-flash",
                         contents=[imagen_pil, prompt]
@@ -1869,4 +1959,3 @@ elif menu == "🔍 Diagnóstico IA":
     if st.button("🔄 REINICIAR"):
         st.session_state.resultado_analisis = None
         st.session_state.foto_bytes = None
-        st.rerun()
