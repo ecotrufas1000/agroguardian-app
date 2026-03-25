@@ -1474,8 +1474,18 @@ elif menu == "❄️ Análisis de Heladas":
             f"&end_date={fecha_fin_utah.isoformat()}"
         )
         r_utah = requests.get(url_utah).json()
-        temps_utah = r_utah['hourly']['temperature_2m']
 
+        # Validación robusta
+        if 'hourly' not in r_utah or 'temperature_2m' not in r_utah['hourly']:
+            st.error(f"Error en datos históricos: {r_utah}")
+            st.stop()
+        
+        temps_utah = r_utah['hourly']['temperature_2m']
+        
+        if temps_utah is None or len(temps_utah) == 0:
+            st.warning("No hay datos de temperatura para el período seleccionado")
+            st.stop()
+        
         # MÉTODO UTAH
         horas_frio = sum(1 for t in temps_utah if t is not None and 0 <= t <= 7)
         horas_negativas = sum(1 for t in temps_utah if t is not None and t < 0)
