@@ -1665,6 +1665,7 @@ except Exception as e:
 
 st.divider()
 # ==========================================================
+# ==========================================================
 # MENÚ: BITÁCORA
 # ==========================================================
 elif menu == "📝 Bitácora":
@@ -1673,28 +1674,44 @@ elif menu == "📝 Bitácora":
     with st.form("nueva_nota", clear_on_submit=False):
         st.subheader("Registrar Evento o Tarea")
         c1, c2 = st.columns(2)
+        
         with c1:
             tarea = st.selectbox("Evento/Tarea", ["Fumigación", "Siembra", "Cosecha", "Fertilización", "Monitoreo", "❄️ Helada", "☄️ Granizo", "Otro"])
             lote = st.text_input("Lote", placeholder="Ej: Lote Norte")
+        
         with c2:
             if tarea == "❄️ Helada":
                 detalle_extra = st.selectbox("Intensidad de Helada", ["Leve (0° a -2°)", "Moderada (-2° a -4°)", "Fuerte (<-4°)"])
             elif tarea == "☄️ Granizo":
-                detalle_extra = st.selectbox("Tamaño del Granizo", ["Pequeno (Arroz)", "Mediano (Uva)", "Grande (Huevo)"])
+                detalle_extra = st.selectbox("Tamaño del Granizo", ["Pequeño (Arroz)", "Mediano (Uva)", "Grande (Huevo)"])
             else:
                 detalle_extra = ""
+            
             nota_adicional = st.text_area("Observaciones del evento", placeholder="Describa daños visibles o detalles...")
+        
         btn_guardar = st.form_submit_button("💾 GUARDAR Y GENERAR REPORTE")
 
         if btn_guardar:
             if lote and tarea:
                 try:
-                    t_act = clima['temp'] if clima else 0
-                    v_act = clima['v_vel'] if clima else 0
+                    # Obtenemos clima actual si está disponible
+                    t_act = clima['temp'] if 'clima' in locals() and clima else 0
+                    v_act = clima['v_vel'] if 'clima' in locals() and clima else 0
+                    
                     nota_final = f"[{detalle_extra}] {nota_adicional}" if detalle_extra else nota_adicional
-                    datos = {"tarea": tarea, "lote": lote, "nota": nota_final, "clima_temp": t_act, "clima_viento": v_act}
+                    
+                    datos = {
+                        "tarea": tarea, 
+                        "lote": lote, 
+                        "nota": nota_final, 
+                        "clima_temp": t_act, 
+                        "clima_viento": v_act
+                    }
+                    
                     supabase.table("bitacora").insert(datos).execute()
                     st.success(f"✅ ¡{tarea} registrada con éxito!")
+                    
+                    # Generar link de WhatsApp (asegurate de tener esta función definida arriba)
                     link_wa = generar_link_whatsapp(tarea, lote, t_act, v_act, nota_final)
                     st.markdown(f"""
                         <a href="{link_wa}" target="_blank" style="text-decoration: none;">
@@ -1704,7 +1721,7 @@ elif menu == "📝 Bitácora":
                         </a>
                     """, unsafe_allow_html=True)
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"Error al guardar en base de datos: {e}")
             else:
                 st.warning("⚠️ Completá Lote y Evento.")
 
@@ -1715,14 +1732,22 @@ elif menu == "📝 Bitácora":
             res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
             if res.data:
                 df_bit = pd.DataFrame(res.data)
-                df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
-                st.dataframe(df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']], use_container_width=True,
-                    column_config={"clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"), "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")})
+                # Formateo de fecha para que el productor lo lea fácil
+                if 'fecha' in df_bit.columns:
+                    df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+                
+                st.dataframe(
+                    df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']], 
+                    use_container_width=True,
+                    column_config={
+                        "clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"),
+                        "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")
+                    }
+                )
             else:
-                st.info("No hay registros cargados.")
+                st.info("No hay registros cargados aún.")
         except Exception as e:
-            st.error(f"Error al cargar: {e}")
-
+            st.error(f"Error al cargar historial: {e}")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
