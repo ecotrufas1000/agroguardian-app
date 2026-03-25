@@ -48,54 +48,16 @@ div.stButton > button {
     border: none;
     font-weight: bold;
 }
-
 div.stButton > button:hover {
     background-color: #0052cc;
     color: #ff9900;
 }
 
-/* App general */
-.stApp {
-    background-color: #0d1117 !important;
+[data-testid="stExpander"] details[open] summary {
+    background-color: #161b22 !important;
     color: #00ffc3 !important;
 }
 
-[data-testid="stSidebar"] {
-    background-color: #010409 !important;
-    border-right: 1px solid #30363d;
-}
-
-h1, h2, h3, p, label {
-    color: #00ffc3 !important;
-    font-family: 'Courier New', monospace !important;
-}
-
-[data-testid="stMetric"] {
-    background-color: #161b22;
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid #30363d;
-}
-
-iframe[title="streamlit_js_eval.streamlit_js_eval"] {
-    display: none;
-}
-
-.block-container {
-    padding: 0rem !important;
-}
-
-iframe {
-    width: 100% !important;
-    height: 85vh !important;
-    border: none !important;
-}
-
-.leaflet-control-attribution {
-    display: none !important;
-}
-
-/* Expanders */
 [data-testid="stExpander"] summary {
     background-color: #161b22 !important;
     color: #00ffc3 !important;
@@ -103,10 +65,7 @@ iframe {
 
 [data-testid="stExpander"] summary:hover {
     background-color: #1f2d25 !important;
-}
-
-[data-testid="stExpander"] details[open] summary {
-    background-color: #161b22 !important;
+    color: #00ffc3 !important;
 }
 
 </style>
