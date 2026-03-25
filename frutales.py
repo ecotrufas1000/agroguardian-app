@@ -1459,25 +1459,42 @@ elif menu == "❄️ Análisis de Heladas":
     st.divider()
 
     # ==========================================================
-    # HORAS DE FRÍO — MODELO UTAH
     # ==========================================================
-    st.markdown("### 🧊 Horas de Frío Acumuladas — Modelo Utah")
-    st.caption("Conteo de horas con temperatura entre 0°C y 7°C. Determina la dormancia y calidad de floración.")
+# HORAS DE FRÍO — MODELO UTAH (ACTUALIZADO)
+# ==========================================================
+st.markdown("### 🧊 Horas de Frío Acumuladas — Modelo Utah")
+st.caption("Conteo de horas con temperatura entre 0°C y 7°C. Determina la dormancia y calidad de floración.")
 
-    try:
-        from datetime import date
-        fecha_inicio_utah = st.date_input("Desde (inicio de otoño):", value=date(date.today().year, 4, 1), key="utah_inicio")
-        fecha_fin_utah = date.today()
-        url_utah = (
-            f"https://archive-api.open-meteo.com/v1/archive?"
-            f"latitude={lat_h}&longitude={lon_h}"
-            f"&hourly=temperature_2m"
-            f"&timezone=America/Argentina/Buenos_Aires"
-            f"&start_date={fecha_inicio_utah.isoformat()}"
-            f"&end_date={fecha_fin_utah.isoformat()}"
-        )
-        r_utah = requests.get(url_utah).json()
+try:
+    from datetime import date
+    
+    # 1. CAMBIO: El valor por defecto ahora es la fecha de hoy
+    fecha_hoy = date.today()
+    fecha_inicio_utah = st.date_input(
+        "Seleccione fecha de inicio del cálculo:", 
+        value=fecha_hoy, 
+        key="utah_inicio",
+        max_value=fecha_hoy # Evita que elijan una fecha futura
+    )
+    
+    fecha_fin_utah = fecha_hoy
 
+    # Mensaje informativo para el productor
+    st.info(f"📊 Calculando acumulación desde el **{fecha_inicio_utah.strftime('%d/%m/%Y')}** hasta hoy.")
+
+    # 2. URL Dinámica basada en la elección del usuario
+    url_utah = (
+        f"https://archive-api.open-meteo.com/v1/archive?"
+        f"latitude={lat_h}&longitude={lon_h}"
+        f"&hourly=temperature_2m"
+        f"&timezone=America/Argentina/Buenos_Aires"
+        f"&start_date={fecha_inicio_utah.isoformat()}"
+        f"&end_date={fecha_fin_utah.isoformat()}"
+    )
+    
+    r_utah = requests.get(url_utah).json()
+
+    # (El resto de tu lógica de procesamiento, REQUERIMIENTOS y métricas sigue igual...)
         # Validación robusta
         if 'hourly' not in r_utah or 'temperature_2m' not in r_utah['hourly']:
             st.error(f"Error en datos históricos: {r_utah}")
