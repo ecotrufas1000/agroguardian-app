@@ -1467,9 +1467,8 @@ elif menu == "❄️ Análisis de Heladas":
         from datetime import date
         fecha_inicio_utah = st.date_input("Desde (inicio de otoño):", value=date(date.today().year, 4, 1), key="utah_inicio")
         fecha_fin_utah = date.today()
-
         url_utah = (
-            f"https://api.open-meteo.com/v1/forecast?"
+            f"https://archive-api.open-meteo.com/v1/archive?"
             f"latitude={lat_h}&longitude={lon_h}"
             f"&hourly=temperature_2m"
             f"&timezone=America/Argentina/Buenos_Aires"
@@ -1479,10 +1478,25 @@ elif menu == "❄️ Análisis de Heladas":
         r_utah = requests.get(url_utah).json()
         temps_utah = r_utah['hourly']['temperature_2m']
 
+        # MÉTODO UTAH
         horas_frio = sum(1 for t in temps_utah if t is not None and 0 <= t <= 7)
         horas_negativas = sum(1 for t in temps_utah if t is not None and t < 0)
 
-        # Requerimientos por cultivo
+        # MÉTODO PASCALE-DAMARIO
+        def unidades_pd(t):
+            if t is None: return 0
+            if t < 1.4: return 0
+            elif t <= 2.4: return 0.5
+            elif t <= 9.1: return 1
+            elif t <= 12.4: return 0.5
+            elif t <= 15.9: return 0
+            elif t <= 18.0: return -0.5
+            else: return -1
+
+        unidades_pascale = sum(unidades_pd(t) for t in temps_utah)
+        unidades_pascale = max(0, round(unidades_pascale))
+
+        # REQUERIMIENTOS
         REQUERIMIENTOS_FRIO = {
             "🍎 Manzano":   1200,
             "🍑 Duraznero":  800,
@@ -1491,28 +1505,71 @@ elif menu == "❄️ Análisis de Heladas":
             "🫐 Ciruelo":    700,
             "🌰 Almendro":  1000,
         }
-        req = REQUERIMIENTOS_FRIO.get(cultivo_sel, 1000)
-        porcentaje = min(100, round((horas_frio / req) * 100))
+        REQUERIMIENTOS_PD = {
+            "🍎 Manzano":   1000,
+            "🍑 Duraznero":  600,
+            "🍒 Cerezo":     900,
+            "🍐 Peral":      900,
+            "🫐 Ciruelo":    500,
+            "🌰 Almendro":   700,
+        }
 
+        req_utah = REQUERIMIENTOS_FRIO.get(cultivo_sel, 1000)
+        req_pd = REQUERIMIENTOS_PD.get(cultivo_sel, 800)
+        porc_utah = min(100, round((horas_frio / req_utah) * 100))
+        porc_pd = min(100, round((unidades_pascale / req_pd) * 100))
+
+        # MÉTRICAS UTAH
+        st.markdown("#### Método Utah")
         c1, c2, c3 = st.columns(3)
         c1.metric("🧊 Horas de Frío (0-7°C)", f"{horas_frio} hs")
         c2.metric("❄️ Horas bajo 0°C", f"{horas_negativas} hs")
-        c3.metric("🎯 Requerimiento", f"{req} hs")
+        c3.metric("🎯 Requerimiento", f"{req_utah} hs")
+        st.progress(porc_utah / 100, text=f"Completado: {porc_utah}% del requerimiento")
 
-        st.progress(porcentaje / 100, text=f"Completado: {porcentaje}% del requerimiento de {cultivo_sel}")
-
-        if porcentaje >= 100:
-            st.success(f"✅ Requerimiento de frío COMPLETO para {cultivo_sel}. Floración uniforme esperada.")
-        elif porcentaje >= 70:
-            st.warning(f"🟡 Requerimiento de frío al {porcentaje}%. Floración puede ser irregular.")
+        if porc_utah >= 100:
+            st.success(f"✅ Requerimiento COMPLETO — Floración uniforme esperada.")
+        elif porc_utah >= 70:
+            st.warning(f"🟡 Requerimiento al {porc_utah}% — Floración puede ser irregular.")
         else:
-            st.error(f"🔴 Déficit de frío ({porcentaje}%). Riesgo de brotación irregular y baja producción.")
+            st.error(f"🔴 Déficit de frío ({porc_utah}%) — Riesgo de brotación irregular.")
+
+        st.divider()
+
+        # MÉTRICAS PASCALE-DAMARIO
+        st.markdown("#### Método Pascale-Damario")
+        st.caption("Desarrollado en Argentina. Pondera temperaturas con efecto positivo y negativo sobre la dormancia.")
+        c4, c5 = st.columns(2)
+        c4.metric("🌡️ Unidades de Frío (P-D)", f"{unidades_pascale} UF")
+        c5.metric("🎯 Requerimiento", f"{req_pd} UF")
+        st.progress(porc_pd / 100, text=f"Completado: {porc_pd}% del requerimiento")
+
+        if porc_pd >= 100:
+            st.success(f"✅ Requerimiento COMPLETO según Pascale-Damario.")
+        elif porc_pd >= 70:
+            st.warning(f"🟡 Requerimiento al {porc_pd}% según Pascale-Damario.")
+        else:
+            st.error(f"🔴 Déficit de frío ({porc_pd}%) según Pascale-Damario.")
+
+        st.divider()
+
+        # TABLA COMPARATIVA
+        st.markdown("#### 📊 Comparación de Métodos")
+        df_comp = pd.DataFrame({
+            "Método": ["Utah", "Pascale-Damario"],
+            "Unidades acumuladas": [f"{horas_frio} hs", f"{unidades_pascale} UF"],
+            "Requerimiento": [f"{req_utah} hs", f"{req_pd} UF"],
+            "Completado": [f"{porc_utah}%", f"{porc_pd}%"],
+            "Estado": [
+                "✅ Completo" if porc_utah >= 100 else "🟡 Parcial" if porc_utah >= 70 else "🔴 Déficit",
+                "✅ Completo" if porc_pd >= 100 else "🟡 Parcial" if porc_pd >= 70 else "🔴 Déficit"
+            ]
+        })
+        st.dataframe(df_comp, use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"Error al calcular horas de frío: {e}")
-
     st.divider()
-
     # ==========================================================
     # REGISTRO HISTÓRICO DE HELADAS
     # ==========================================================
