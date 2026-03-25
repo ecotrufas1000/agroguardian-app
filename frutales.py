@@ -1753,37 +1753,38 @@ if menu == "🛰️ Satélite (ECOSTRESS)":
         lon = st.number_input("Longitud", value=-58.51)
 
     try:
-        punto = ee.Geometry.Point([lon, lat])
-
-        coleccion = (ee.ImageCollection('CAS/ECOSTRESS/L2_LST')
-                     .filterBounds(punto)
-                     .sort('system:time_start', False))
-
-        if coleccion.size().getInfo() > 0:
-
-            imagen = coleccion.first()
-            lst = imagen.select('LST').multiply(0.02).subtract(273.15)
-
-            vis = {
-                'min': -5,
-                'max': 35,
-                'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
-            }
-
-            map_id = ee.Image(lst).getMapId(vis)
-
-            m = folium.Map(location=[lat, lon], zoom_start=15)
-
-            folium.TileLayer(
-                tiles=map_id['tile_fetcher'].url_format,
-                attr='Google Earth Engine',
-                overlay=True,
-                name='Temperatura'
-            ).add_to(m)
-
-            folium.LayerControl().add_to(m)
-
-            datos = st_folium(m, width=700, height=500)
+        with st.spinner("🛰️ Consultando datos ECOSTRESS..."):
+            punto = ee.Geometry.Point([lon, lat])
+    
+            coleccion = (ee.ImageCollection('CAS/ECOSTRESS/L2_LST')
+                         .filterBounds(punto)
+                         .sort('system:time_start', False))
+    
+            if coleccion.size().getInfo() > 0:
+    
+                imagen = coleccion.first()
+                lst = imagen.select('LST').multiply(0.02).subtract(273.15)
+    
+                vis = {
+                    'min': -5,
+                    'max': 35,
+                    'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
+                }
+    
+                map_id = ee.Image(lst).getMapId(vis)
+    
+                m = folium.Map(location=[lat, lon], zoom_start=15)
+    
+                folium.TileLayer(
+                    tiles=map_id['tile_fetcher'].url_format,
+                    attr='Google Earth Engine',
+                    overlay=True,
+                    name='Temperatura'
+                ).add_to(m)
+    
+                folium.LayerControl().add_to(m)
+    
+                datos = st_folium(m, width=700, height=500)
 
             # Click en mapa
             if datos and datos.get("last_clicked"):
