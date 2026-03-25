@@ -1754,16 +1754,18 @@ if menu == "🛰️ Satélite (ECOSTRESS)":
 
     try:
         with st.spinner("🛰️ Consultando datos ECOSTRESS..."):
-    
+
             punto = ee.Geometry.Point([lon, lat])
-    
+        
             coleccion = (ee.ImageCollection('CAS/ECOSTRESS/L2_LST')
                          .filterBounds(punto)
+                         .filterDate('2024-01-01', '2025-12-31')
                          .sort('system:time_start', False))
-    
-            if coleccion.size().getInfo() > 0:
-    
-                imagen = coleccion.first()
+        
+            imagen = coleccion.first()
+        
+            if imagen is not None:
+        
                 lst = imagen.select('LST').multiply(0.02).subtract(273.15)
     
                 vis = {
