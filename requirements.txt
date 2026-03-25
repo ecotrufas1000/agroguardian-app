@@ -13,6 +13,6 @@ xlsxwriter
 streamlit-js-eval
 earthengine-api==0.1.390
 
-geemap==0.29.6
-python-box==6.0.2
-xyzservices==2023.10.1
+
+
+
