@@ -1512,17 +1512,134 @@ elif menu == "❄️ Análisis de Heladas":
     except Exception as e:
         st.error(f"Error al calcular horas de frío: {e}")
     st.divider()
-    # ========================================================== 
-    # REGISTRO HISTÓRICO DE HELADAS 
-    # ========================================================== 
-    try: 
-        # (Aquí va el bloque de Supabase que ya tenías para el historial)
-        st.markdown("### 📋 Historial de Heladas Registradas")
+    # ==========================================================
+    # REGISTRO HISTÓRICO DE HELADAS
+    # ==========================================================
+    try:
         res_h = supabase.table("registros_heladas").select("*").execute()
+        df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
+
         if res_h.data:
-            st.dataframe(pd.DataFrame(res_h.data), use_container_width=True)
+            df_temp = pd.DataFrame(res_h.data)
+            if 'Fecha' in df_temp.columns:
+                df_temp['Fecha'] = pd.to_datetime(df_temp['Fecha'], errors='coerce')
+                df_temp = df_temp.dropna(subset=['Fecha'])
+                if not df_temp.empty:
+                    df_h = df_temp
+
+        from datetime import datetime, timezone
+        hoy = datetime.now(timezone.utc)
+
+        if not df_h.empty and pd.api.types.is_datetime64_any_dtype(df_h['Fecha']):
+            df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
+            if not df_h_anio.empty:
+                df_h_anio = df_h_anio.sort_values('Fecha')
+                primera = df_h_anio.iloc[0]['Fecha']
+                ultima = df_h_anio.iloc[-1]['Fecha']
+                m1, m2, m3 = st.columns(3)
+                m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
+                m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
+                m3.metric("📅 Días entre heladas", (ultima - primera).days)
+                fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
+                st.info(f"❄️ **Más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')}) | ⏳ **Total Horas Frío:** {df_h_anio['Duracion'].sum():.1f} hs")
+            else:
+                st.warning(f"No hay registros para el año {hoy.year}")
+        else:
+            st.info("A la espera de los primeros registros de heladas...")
+
+        st.divider()
+        with st.expander("➕ Registrar Nueva Helada", expanded=False):
+            with st.form("form_helada", clear_on_submit=True):
+                f_col1, f_col2, f_col3 = st.columns(3)
+                with f_col1: nueva_fecha = st.date_input("Fecha", value=datetime.now())
+                with f_col2: nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
+                with f_col3: nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
+                submitted = st.form_submit_button("Añadir a Bitácora")
+
+        if submitted:
+            try:
+                val_int = float(nueva_int.replace(',', '.'))
+                supabase.table("registros_heladas").insert({"Fecha": nueva_fecha.isoformat(), "Intensidad": val_int, "Duracion": nueva_dur}).execute()
+                st.success("✅ ¡Registrada!")
+                st.rerun()
+            except ValueError:
+                st.error("❌ Escribí la temperatura con números (ej: -3.5)")
+
+        with st.expander("📋 Ver Historial de Registros", expanded=False):
+            st.info("Para borrar: Seleccioná la fila y tocá la papelera 🗑️ arriba de la tabla.")
+            df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
+            edited_h = st.data_editor(df_display, key="visor_heladas", num_rows="dynamic", use_container_width=True,
+                column_config={"Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
+                               "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
+                               "Duracion": None, "id": None})
+            if len(edited_h) < len(df_display):
+                ids_originales = set(df_display['id'].dropna().tolist())
+                ids_actuales = set(edited_h['id'].dropna().tolist())
+                for id_b in ids_originales - ids_actuales:
+                    supabase.table("registros_heladas").delete().eq("id", id_b).execute()
+                st.rerun()
+
     except Exception as e:
-        st.error(f"Error en registros: {e}")
+        st.error(f"Error en el módulo: {e}")
+
+# ==========================================================
+# MENÚ: BITÁCORA
+# ==========================================================
+elif menu == "📝 Bitácora":
+    st.header("📝 Cuaderno de Campo Digital")
+
+    with st.form("nueva_nota", clear_on_submit=False):
+        st.subheader("Registrar Evento o Tarea")
+        c1, c2 = st.columns(2)
+        with c1:
+            tarea = st.selectbox("Evento/Tarea", ["Fumigación", "Siembra", "Cosecha", "Fertilización", "Monitoreo", "❄️ Helada", "☄️ Granizo", "Otro"])
+            lote = st.text_input("Lote", placeholder="Ej: Lote Norte")
+        with c2:
+            if tarea == "❄️ Helada":
+                detalle_extra = st.selectbox("Intensidad de Helada", ["Leve (0° a -2°)", "Moderada (-2° a -4°)", "Fuerte (<-4°)"])
+            elif tarea == "☄️ Granizo":
+                detalle_extra = st.selectbox("Tamaño del Granizo", ["Pequeno (Arroz)", "Mediano (Uva)", "Grande (Huevo)"])
+            else:
+                detalle_extra = ""
+            nota_adicional = st.text_area("Observaciones del evento", placeholder="Describa daños visibles o detalles...")
+        btn_guardar = st.form_submit_button("💾 GUARDAR Y GENERAR REPORTE")
+
+        if btn_guardar:
+            if lote and tarea:
+                try:
+                    t_act = clima['temp'] if clima else 0
+                    v_act = clima['v_vel'] if clima else 0
+                    nota_final = f"[{detalle_extra}] {nota_adicional}" if detalle_extra else nota_adicional
+                    datos = {"tarea": tarea, "lote": lote, "nota": nota_final, "clima_temp": t_act, "clima_viento": v_act}
+                    supabase.table("bitacora").insert(datos).execute()
+                    st.success(f"✅ ¡{tarea} registrada con éxito!")
+                    link_wa = generar_link_whatsapp(tarea, lote, t_act, v_act, nota_final)
+                    st.markdown(f"""
+                        <a href="{link_wa}" target="_blank" style="text-decoration: none;">
+                            <div style="background-color: #25D366; color: white; padding: 15px; text-align: center; border-radius: 10px; font-weight: bold; font-size: 18px; margin-top: 20px;">
+                                📲 INFORMAR SINIESTRO/EVENTO POR WA
+                            </div>
+                        </a>
+                    """, unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"Error: {e}")
+            else:
+                st.warning("⚠️ Completá Lote y Evento.")
+
+    st.divider()
+
+    with st.expander("📂 VER HISTORIAL COMPLETO DE ACTIVIDADES"):
+        try:
+            res = supabase.table("bitacora").select("*").order("fecha", desc=True).execute()
+            if res.data:
+                df_bit = pd.DataFrame(res.data)
+                df_bit['fecha'] = pd.to_datetime(df_bit['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+                st.dataframe(df_bit[['fecha', 'tarea', 'lote', 'clima_temp', 'clima_viento', 'nota']], use_container_width=True,
+                    column_config={"clima_temp": st.column_config.NumberColumn("Temp (°C)", format="%.1f"), "clima_viento": st.column_config.NumberColumn("Viento (km/h)", format="%.1f")})
+            else:
+                st.info("No hay registros cargados.")
+        except Exception as e:
+            st.error(f"Error al cargar: {e}")
 
 # ========================================================== 
 # CONTINUACIÓN DEL CÓDIGO (Ej: Bitácora)
