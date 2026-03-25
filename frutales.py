@@ -29,16 +29,19 @@ def generar_password_temporal():
     caracteres = string.ascii_letters + string.digits
     
     return ''.join(secrets.choice(caracteres) for _ in range(10))
-st.markdown("""
 
 
 # ==========================================================
-# 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
+# ==========================================================
+# 1. CONFIGURACIÓN DE PÁGINA (Debe ser lo primero después de los imports)
 # ==========================================================
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
+
+# ==========================================================
+# 2. ESTILOS CSS
+# ==========================================================
 st.markdown("""
 <style>
-
 /* Botón cerrar sesión */
 div.stButton > button {
     background-color: #0066ff;
@@ -52,9 +55,8 @@ div.stButton > button:hover {
     background-color: #0052cc;
     color: #ff9900;
 }
-
 </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True) # <--- AQUÍ ES DONDE SE CIERRA CORRECTAMENTE
 # ==========================================================
 # 2. SUPABASE
 # ==========================================================
