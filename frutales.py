@@ -1753,69 +1753,68 @@ if menu == "🛰️ Satélite (ECOSTRESS)":
         lon = st.number_input("Longitud", value=-58.51)
 
     try:
-        with st.spinner("🛰️ Consultando datos ECOSTRESS..."):
+    with st.spinner("🛰️ Consultando datos satelitales..."):
 
-            punto = ee.Geometry.Point([lon, lat])
-        
-            coleccion = (ee.ImageCollection("MODIS/061/MOD11A1")
-                         .filterBounds(punto)
-                         .filterDate('2024-01-01', '2025-12-31')
-                         .sort('system:time_start', False)
-                         .limit(1))
-            
-            imagen = ee.Image(coleccion.first())
-            
-            lst = imagen.select('LST_Day_1km').multiply(0.02).subtract(273.15)
-    
-                vis = {
-                    'min': -5,
-                    'max': 35,
-                    'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
-                }
-                if imagen is None:
-                    st.warning("No hay imágenes ECOSTRESS disponibles")
-                    st.stop()
-                map_id = lst.getMapId(vis)
-    
-                m = folium.Map(location=[lat, lon], zoom_start=15)
-    
-                folium.TileLayer(
-                    tiles=map_id['tile_fetcher'].url_format,
-                    attr='Google Earth Engine',
-                    overlay=True,
-                    name='Temperatura'
-                ).add_to(m)
-    
-                folium.LayerControl().add_to(m)
-    
-                datos = st_folium(m, width=700, height=500)
-    
-                if datos and datos.get("last_clicked"):
-                    c_lat = datos["last_clicked"]["lat"]
-                    c_lon = datos["last_clicked"]["lng"]
-    
-                    punto_click = ee.Geometry.Point([c_lon, c_lat])
-    
-                    muestra = lst.sample(punto_click, 70).first()
-    
-                    if muestra is not None:
-                        valor = muestra.getInfo()
-    
-                        if valor and "properties" in valor:
-                            temp = valor["properties"]["LST"]
-    
-                            st.metric("Temperatura", f"{temp:.1f} °C")
-    
-                            if temp > 30:
-                                st.error("🔥 Estrés térmico")
-                            elif temp < 5:
-                                st.warning("❄️ Riesgo de helada")
-    
-            else:
-                st.warning("No hay datos ECOSTRESS en esta zona")
-    
-    except Exception as e:
-        st.error(f"Error: {e}")
+        punto = ee.Geometry.Point([lon, lat])
+
+        coleccion = (ee.ImageCollection("MODIS/061/MOD11A1")
+                     .filterBounds(punto)
+                     .filterDate('2024-01-01', '2025-12-31')
+                     .sort('system:time_start', False)
+                     .limit(1))
+
+        imagen = ee.Image(coleccion.first())
+
+        if imagen is None:
+            st.warning("No hay imágenes disponibles para esta zona")
+            st.stop()
+
+        lst = imagen.select('LST_Day_1km').multiply(0.02).subtract(273.15)
+
+        vis = {
+            'min': -5,
+            'max': 35,
+            'palette': ['blue', 'cyan', 'green', 'yellow', 'red']
+        }
+
+        map_id = lst.getMapId(vis)
+
+        m = folium.Map(location=[lat, lon], zoom_start=15)
+
+        folium.TileLayer(
+            tiles=map_id['tile_fetcher'].url_format,
+            attr='Google Earth Engine',
+            overlay=True,
+            name='Temperatura'
+        ).add_to(m)
+
+        folium.LayerControl().add_to(m)
+
+        datos = st_folium(m, width=700, height=500)
+
+        if datos and datos.get("last_clicked"):
+            c_lat = datos["last_clicked"]["lat"]
+            c_lon = datos["last_clicked"]["lng"]
+
+            punto_click = ee.Geometry.Point([c_lon, c_lat])
+
+            muestra = lst.sample(punto_click, 1000).first()
+
+            if muestra is not None:
+                valor = muestra.getInfo()
+
+                if valor and "properties" in valor:
+                    temp = valor["properties"]["LST"]
+
+                    st.metric("Temperatura", f"{temp:.1f} °C")
+
+                    if temp > 30:
+                        st.error("🔥 Estrés térmico")
+                    elif temp < 5:
+                        st.warning("❄️ Riesgo de helada")
+
+except Exception as e:
+    st.error(f"Error: {e}")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
