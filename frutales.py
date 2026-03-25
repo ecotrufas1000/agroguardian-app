@@ -1,6 +1,6 @@
 from streamlit_folium import st_folium
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 import requests
 import json
 import os
