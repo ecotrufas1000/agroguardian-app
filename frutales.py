@@ -1732,7 +1732,6 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 # MENÚ: SATÉLITE (ECOSTRESS)
 # ==========================================================
-
 elif menu == "🛰️ Satélite (ECOSTRESS)":
     st.header("🛰️ Monitoreo Térmico de Precisión")
     st.subheader("Análisis de temperatura de suelo (Resolución 70m)")
@@ -1752,12 +1751,12 @@ elif menu == "🛰️ Satélite (ECOSTRESS)":
                      .filterBounds(punto)
                      .sort('system:time_start', False))
 
-        # ✅ FIX: verificar si la colección tiene imágenes antes de usar .first()
         cantidad = coleccion.size().getInfo()
 
         if cantidad > 0:
             imagen = coleccion.first()
 
+            # 🌡️ Conversión a °C
             lst_celsius = imagen.select('LST').multiply(0.02).subtract(273.15)
 
             vis_params = {
@@ -1768,8 +1767,12 @@ elif menu == "🛰️ Satélite (ECOSTRESS)":
             m.addLayer(lst_celsius, vis_params, 'Temperatura Suelo (°C)')
             m.add_colorbar(vis_params, label="Temperatura de Superficie (°C)")
 
-            fecha_toma = ee.Date(imagen.get('system:time_start')).format('dd/MM/yyyy HH:mm').getInfo()
-            st.info(f"📸 Última pasada de la ISS sobre el lote: **{fecha_toma}**")
+            # 📅 Fecha segura
+            try:
+                fecha_toma = ee.Date(imagen.get('system:time_start')).format('dd/MM/yyyy HH:mm').getInfo()
+                st.info(f"📸 Última pasada de la ISS: **{fecha_toma}**")
+            except:
+                st.info("📸 Fecha no disponible")
 
             datos_clic = st_folium(m, width=700, height=500)
 
@@ -1779,27 +1782,40 @@ elif menu == "🛰️ Satélite (ECOSTRESS)":
 
                 punto_clic = ee.Geometry.Point([c_lon, c_lat])
 
-                # ✅ FIX: verificar que el sample devuelva datos antes de .get()
-                muestra = lst_celsius.sample(punto_clic, 70).first()
-                valor = muestra.getInfo()
+                try:
+                    muestra = lst_celsius.sample(punto_clic, 70).first()
 
-                if valor and 'properties' in valor and 'LST' in valor['properties']:
-                    temp = valor['properties']['LST']
-                    st.metric(
-                        label=f"Temp. en punto seleccionado ({c_lat:.4f}, {c_lon:.4f})",
-                        value=f"{temp:.1f} °C"
-                    )
-                    if temp < 0:
-                        st.snow()
-                        st.warning("⚠️ Zona con temperatura bajo cero detectada.")
-                else:
-                    st.write("Hacé clic dentro de la zona coloreada para ver la temperatura.")
+                    if muestra is not None:
+                        valor = muestra.getInfo()
+
+                        if valor and 'properties' in valor and 'LST' in valor['properties']:
+                            temp = valor['properties']['LST']
+
+                            st.metric(
+                                label=f"Temp. en punto ({c_lat:.4f}, {c_lon:.4f})",
+                                value=f"{temp:.1f} °C"
+                            )
+
+                            # 🚨 Alertas inteligentes
+                            if temp > 30:
+                                st.error("🔥 Estrés térmico severo")
+                            elif temp > 25:
+                                st.warning("⚠️ Posible estrés hídrico")
+                            elif temp < 5:
+                                st.warning("❄️ Riesgo de helada")
+                        else:
+                            st.info("Punto sin datos válidos.")
+                    else:
+                        st.info("No hay datos en ese punto.")
+
+                except Exception as e:
+                    st.error(f"Error al muestrear: {e}")
+
         else:
-            st.warning("No se encontraron imágenes recientes de ECOSTRESS para esta zona.")
+            st.warning("No hay imágenes recientes de ECOSTRESS para esta zona.")
 
     except Exception as e:
-        st.error(f"Error al conectar con Earth Engine: {e}")
-        st.info("Asegurate de tener configuradas las credenciales de EE en el servidor.")            
+        st.error(f"Error con Earth Engine: {e}")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
