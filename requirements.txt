@@ -12,6 +12,7 @@ reportlab
 xlsxwriter
 streamlit-js-eval
 earthengine-api==0.1.390
+google-generativeai
 
 
 
