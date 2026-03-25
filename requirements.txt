@@ -26,4 +26,7 @@ pyogrio
 
 # Motor de Google Earth Engine y Mapas interactivos
 earthengine-api
-geemap
+geemap==0.34.3
+python-box==6.1.0
+streamlit-folium
+folium
