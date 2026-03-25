@@ -29,7 +29,36 @@ def generar_password_temporal():
     caracteres = string.ascii_letters + string.digits
     
     return ''.join(secrets.choice(caracteres) for _ in range(10))
+st.markdown("""
+<style>
 
+/* Expander cerrado */
+details {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+/* Título del expander */
+summary {
+    color: #00ffc3 !important;
+    font-weight: bold;
+}
+
+/* Expander abierto */
+details[open] {
+    background-color: #0e1117 !important;  /* 👈 color cuando se abre */
+    border: 1px solid #00ffc3;
+}
+
+/* Evita el blanco interno */
+details[open] summary {
+    color: #00ffc3 !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 # ==========================================================
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
