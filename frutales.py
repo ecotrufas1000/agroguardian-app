@@ -1533,6 +1533,7 @@ elif menu == "❄️ Análisis de Heladas":
             st.error(f"🔴 Déficit de frío ({porc_utah}%) — Riesgo de brotación irregular.")
 
         st.divider()
+        st.write(f"DEBUG — unidades_pascale: {unidades_pascale}, porc_pd: {porc_pd}")
 
         # MÉTRICAS PASCALE-DAMARIO
         st.markdown("#### Método Pascale-Damario")
