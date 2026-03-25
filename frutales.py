@@ -1576,77 +1576,94 @@ except Exception as e:
     st.error(f"Error al calcular horas de frío: {e}")
 
 st.divider()
-    # ==========================================================
-    # REGISTRO HISTÓRICO DE HELADAS
-    # ==========================================================
-    try:
-        res_h = supabase.table("registros_heladas").select("*").execute()
-        df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
+# ==========================================================
+# REGISTRO HISTÓRICO DE HELADAS
+# ==========================================================
+try:
+    res_h = supabase.table("registros_heladas").select("*").execute()
+    df_h = pd.DataFrame(columns=['id', 'Fecha', 'Intensidad', 'Duracion'])
 
-        if res_h.data:
-            df_temp = pd.DataFrame(res_h.data)
-            if 'Fecha' in df_temp.columns:
-                df_temp['Fecha'] = pd.to_datetime(df_temp['Fecha'], errors='coerce')
-                df_temp = df_temp.dropna(subset=['Fecha'])
-                if not df_temp.empty:
-                    df_h = df_temp
+    if res_h.data:
+        df_temp = pd.DataFrame(res_h.data)
+        if 'Fecha' in df_temp.columns:
+            df_temp['Fecha'] = pd.to_datetime(df_temp['Fecha'], errors='coerce')
+            df_temp = df_temp.dropna(subset=['Fecha'])
+            if not df_temp.empty:
+                df_h = df_temp
 
-        from datetime import datetime, timezone
-        hoy = datetime.now(timezone.utc)
+    from datetime import datetime, timezone
+    hoy = datetime.now(timezone.utc)
 
-        if not df_h.empty and pd.api.types.is_datetime64_any_dtype(df_h['Fecha']):
-            df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
-            if not df_h_anio.empty:
-                df_h_anio = df_h_anio.sort_values('Fecha')
-                primera = df_h_anio.iloc[0]['Fecha']
-                ultima = df_h_anio.iloc[-1]['Fecha']
-                m1, m2, m3 = st.columns(3)
-                m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
-                m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
-                m3.metric("📅 Días entre heladas", (ultima - primera).days)
-                fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
-                st.info(f"❄️ **Más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')}) | ⏳ **Total Horas Frío:** {df_h_anio['Duracion'].sum():.1f} hs")
-            else:
-                st.warning(f"No hay registros para el año {hoy.year}")
+    if not df_h.empty and pd.api.types.is_datetime64_any_dtype(df_h['Fecha']):
+        df_h_anio = df_h[df_h['Fecha'].dt.year == hoy.year].copy()
+        if not df_h_anio.empty:
+            df_h_anio = df_h_anio.sort_values('Fecha')
+            primera = df_h_anio.iloc[0]['Fecha']
+            ultima = df_h_anio.iloc[-1]['Fecha']
+            
+            m1, m2, m3 = st.columns(3)
+            m1.metric("🧊 1° Helada", primera.strftime('%d/%m'))
+            m2.metric("🔥 Últ. Helada", ultima.strftime('%d/%m'))
+            m3.metric("📅 Días entre heladas", (ultima - primera).days)
+            
+            fuerte = df_h_anio.sort_values('Intensidad').iloc[0]
+            st.info(f"❄️ **Más intensa:** {fuerte['Intensidad']}°C ({fuerte['Fecha'].strftime('%d/%m')}) | ⏳ **Total Horas Frío:** {df_h_anio['Duracion'].sum():.1f} hs")
         else:
-            st.info("A la espera de los primeros registros de heladas...")
+            st.warning(f"No hay registros para el año {hoy.year}")
+    else:
+        st.info("A la espera de los primeros registros de heladas...")
 
-        st.divider()
-        with st.expander("➕ Registrar Nueva Helada", expanded=False):
-            with st.form("form_helada", clear_on_submit=True):
-                f_col1, f_col2, f_col3 = st.columns(3)
-                with f_col1: nueva_fecha = st.date_input("Fecha", value=datetime.now())
-                with f_col2: nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
-                with f_col3: nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
-                submitted = st.form_submit_button("Añadir a Bitácora")
+    st.divider()
 
-        if submitted:
-            try:
-                val_int = float(nueva_int.replace(',', '.'))
-                supabase.table("registros_heladas").insert({"Fecha": nueva_fecha.isoformat(), "Intensidad": val_int, "Duracion": nueva_dur}).execute()
-                st.success("✅ ¡Registrada!")
-                st.rerun()
-            except ValueError:
-                st.error("❌ Escribí la temperatura con números (ej: -3.5)")
+    with st.expander("➕ Registrar Nueva Helada", expanded=False):
+        with st.form("form_helada", clear_on_submit=True):
+            f_col1, f_col2, f_col3 = st.columns(3)
+            with f_col1: nueva_fecha = st.date_input("Fecha", value=datetime.now())
+            with f_col2: nueva_int = st.text_input("Temp. (°C)", placeholder="-2.5")
+            with f_col3: nueva_dur = st.number_input("Horas", min_value=0.0, step=0.5)
+            submitted = st.form_submit_button("Añadir a Bitácora")
 
-        with st.expander("📋 Ver Historial de Registros", expanded=False):
-            st.info("Para borrar: Seleccioná la fila y tocá la papelera 🗑️ arriba de la tabla.")
-            df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
-            edited_h = st.data_editor(df_display, key="visor_heladas", num_rows="dynamic", use_container_width=True,
-                column_config={"Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
-                               "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
-                               "Duracion": None, "id": None})
-            if len(edited_h) < len(df_display):
-                ids_originales = set(df_display['id'].dropna().tolist())
-                ids_actuales = set(edited_h['id'].dropna().tolist())
-                for id_b in ids_originales - ids_actuales:
-                    supabase.table("registros_heladas").delete().eq("id", id_b).execute()
-                st.rerun()
+            if submitted:
+                try:
+                    val_int = float(nueva_int.replace(',', '.'))
+                    supabase.table("registros_heladas").insert({
+                        "Fecha": nueva_fecha.isoformat(), 
+                        "Intensidad": val_int, 
+                        "Duracion": nueva_dur
+                    }).execute()
+                    st.success("✅ ¡Registrada!")
+                    st.rerun()
+                except ValueError:
+                    st.error("❌ Escribí la temperatura con números (ej: -3.5)")
 
-    except Exception as e:
-        st.error(f"Error en el módulo: {e}")
+    with st.expander("📋 Ver Historial de Registros", expanded=False):
+        st.info("Para borrar: Seleccioná la fila y tocá la papelera 🗑️ arriba de la tabla.")
+        df_display = df_h[['id', 'Fecha', 'Intensidad', 'Duracion']].sort_values('Fecha', ascending=False)
+        edited_h = st.data_editor(
+            df_display, 
+            key="visor_heladas", 
+            num_rows="dynamic", 
+            use_container_width=True,
+            column_config={
+                "Fecha": st.column_config.DatetimeColumn("Fecha", format="DD/MM/YYYY"),
+                "Intensidad": st.column_config.NumberColumn("Temp °C", format="%.1f"),
+                "Duracion": st.column_config.NumberColumn("Horas"),
+                "id": None # Ocultamos el ID
+            }
+        )
+        
+        # Lógica para borrar si se eliminan filas en el editor
+        if len(edited_h) < len(df_display):
+            ids_originales = set(df_display['id'].dropna().tolist())
+            ids_actuales = set(edited_h['id'].dropna().tolist())
+            for id_b in ids_originales - ids_actuales:
+                supabase.table("registros_heladas").delete().eq("id", id_b).execute()
+            st.rerun()
 
+except Exception as e:
+    st.error(f"Error en el módulo de heladas: {e}")
 
+st.divider()
 # ==========================================================
 # MENÚ: BITÁCORA
 # ==========================================================
