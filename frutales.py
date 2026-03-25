@@ -1737,13 +1737,14 @@ elif menu == "🛰️ Rend. Inteligente":
 
     st.header("🌱 Mapa Inteligente de Rendimiento")
 
-    # Inicializar EE
+    # DEBUG: ver qué pasa con EE
     try:
         ee.Initialize(project='project-698b9140-92e3-434d-812')
+        st.success("✅ Earth Engine conectado")
     except Exception as e:
-        st.error(f"Error inicializando Earth Engine: {e}")
-        st.stop()
-
+        st.error(f"❌ Error EE: {e}")
+        st.warning("Continuando sin EE para debug...")
+        st.stop()  # ← sacá este stop para ver hasta dónde llega
     col1, col2 = st.columns(2)
     with col1:
         lat = st.number_input("Latitud", value=-34.6)
