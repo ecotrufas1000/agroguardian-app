@@ -1340,7 +1340,7 @@ elif menu == "❄️ Análisis de Heladas":
             f"&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,cloudcover,dewpoint_2m"
             f"&timezone=America/Argentina/Buenos_Aires"
             f"&forecast_days=2"
-        )
+        ))
         r_fc = requests.get(url_forecast).json()
 
         horas = r_fc['hourly']['time'][:24]
