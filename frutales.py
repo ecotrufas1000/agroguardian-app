@@ -1334,7 +1334,8 @@ elif menu == "❄️ Análisis de Heladas":
         lon_h = LON if LON else -58.50
 
         url_forecast = (
-            f"https://api.open-meteo.com/v1/forecast?"
+            url_utah = (
+                f"https://archive-api.open-meteo.com/v1/archive?"
             f"latitude={lat_h}&longitude={lon_h}"
             f"&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,cloudcover,dewpoint_2m"
             f"&timezone=America/Argentina/Buenos_Aires"
