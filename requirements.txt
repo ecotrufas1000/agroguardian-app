@@ -1,3 +1,6 @@
+# Parche para el error de pkg_resources
+setuptools
+
 # Core de Streamlit
 streamlit
 streamlit-folium
