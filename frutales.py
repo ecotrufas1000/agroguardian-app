@@ -1799,77 +1799,68 @@ ee_conectado = conectar_geoprocesamiento()
 
 # --- 4. SECCIÓN DEL MENÚ RENDIMIENTO ---
 if menu == "🛰️ Rend. Inteligente":
-    st.header("🛰️ Simulación de Rendimiento AgroGuardian")
+    st.header("🛰️ Simulación de Rendimiento y Topografía")
 
     if not ee_conectado:
-        st.error("⚠️ Error de conexión con Earth Engine. Verificá los Secrets.")
+        st.error("⚠️ Error de conexión con Earth Engine.")
         st.stop()
     
-    # Entradas de usuario con keys ÚNICAS para evitar el DuplicateElementId
     col1, col2 = st.columns(2)
     with col1:
-        lat = st.number_input("Latitud", value=-34.6000, format="%.4f", key="lat_input_map")
+        lat = st.number_input("Latitud", value=-37.9300, format="%.4f", key="lat_final")
     with col2:
-        lon = st.number_input("Longitud", value=-58.5100, format="%.4f", key="lon_input_map")
+        lon = st.number_input("Longitud", value=-58.2100, format="%.4f", key="lon_final")
 
-    # Obtención de datos
     ndvi_map = obtener_mapa_ndvi(lat, lon)
     topo_map = obtener_relieve_srtm(lat, lon)
     
     if ndvi_map and topo_map:
         try:
-            try:
-                # 1. VISUALIZACIÓN NDVI (Mejoramos la paleta y el rango)
-                # Rojo (pobre) -> Amarillo (medio) -> Verde (vigoroso)
-                paleta_agro = ['#d73027', '#fee08b', '#1a9850']
-                
-                # Forzamos la visualización a RGB
-                ndvi_rgb = ndvi_map.visualize(min=0.15, max=0.75, palette=paleta_agro)
-                map_id_ndvi = ee.data.getMapId({'image': ndvi_rgb})
-                
-                # 2. VISUALIZACIÓN TOPO (La "Mejora")
-                # En lugar de toInt(), usamos un algoritmo de contornos que suaviza las líneas
-                lineas_curvas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
-                
-                # Las engrosamos un poquito para que se vean bien
-                curvas_final = lineas_curvas.focal_max(1).mask(lineas_curvas)
-                
-                map_id_topo = ee.data.getMapId({
-                    'image': curvas_final.visualize(palette=['#333333']) # Gris oscuro (menos invasivo)
-                })
-                
-                # 3. CONSTRUCCIÓN DEL MAPA (Folium)
-                # Ponemos zoom_start=14 para ver los cerros completos
-                m = folium.Map(location=[lat, lon], zoom_start=14, control_scale=True)
-                
-                # Capa NDVI con Opacidad (Transparencia) para ver el relieve abajo
-                folium.TileLayer(
-                    tiles=map_id_ndvi['tile_fetcher'].url_format,
-                    attr='GEE NDVI', 
-                    name='Vigor Vegetativo (Color)',
-                    overlay=True, 
-                    opacity=0.6 # Bajamos un poco la opacidad para ver el relieve
-                ).add_to(m)
-    
-                # Capa Curvas de Nivel
-                folium.TileLayer(
-                    tiles=map_id_topo['tile_fetcher'].url_format,
-                    attr='GEE Topo', 
-                    name='Relieve (Curvas)',
-                    overlay=True, 
-                    opacity=1.0
-                ).add_to(m)
-    
-                folium.LayerControl().add_to(m)
-                
-                # 4. Renderizado
-                st_folium(m, width=700, height=500, key="mapa_agroguardian_v3")
-                st.success("🛰️ Visualización Agro-Topográfica lista")
-    
-            except Exception as e:
-                st.error(f"Error técnico en la visualización: {e}")
+            # 1. VISUALIZACIÓN NDVI (Color Técnico)
+            paleta_agro = ['#d73027', '#f46d43', '#fdae61', '#fee08b', '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850']
+            ndvi_rgb = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro)
+            map_id_ndvi = ee.data.getMapId({'image': ndvi_rgb})
+            
+            # 2. VISUALIZACIÓN TOPO (Curvas Nítidas)
+            lineas_curvas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
+            curvas_final = lineas_curvas.focal_max(1).mask(lineas_curvas)
+            map_id_topo = ee.data.getMapId({'image': curvas_final.visualize(palette=['#333333'])})
+            
+            # 3. CONSTRUCCIÓN DEL MAPA
+            m = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
+            
+            folium.TileLayer(
+                tiles=map_id_ndvi['tile_fetcher'].url_format,
+                attr='GEE NDVI', name='Vigor Vegetativo',
+                overlay=True, opacity=0.7
+            ).add_to(m)
+
+            folium.TileLayer(
+                tiles=map_id_topo['tile_fetcher'].url_format,
+                attr='GEE Topo', name='Curvas de Nivel',
+                overlay=True, opacity=1.0
+            ).add_to(m)
+
+            folium.LayerControl().add_to(m)
+            
+            # 4. RENDERIZADO Y BOTÓN DE DESCARGA
+            st_folium(m, width=700, height=500, key="mapa_agro_final_ok")
+            
+            # Lógica del Botón de Descarga
+            mapa_html = m._repr_html_()
+            st.download_button(
+                label="📥 Descargar Mapa para Informe",
+                data=mapa_html,
+                file_name=f"Mapa_AgroGuardian_{lat}_{lon}.html",
+                mime="text/html"
+            )
+            
+            st.success("✅ Análisis satelital completo.")
+
+        except Exception as e:
+            st.error(f"Error visual: {e}")
     else:
-        st.error("❌ No se encontraron datos satelitales en esta ubicación.")
+        st.error("❌ No se pudieron cargar los datos de esta zona.")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
