@@ -10,6 +10,27 @@ import io
 import plotly.express as px
 import urllib.parse
 import base64
+# --- AL PRINCIPIO DE FRUTALES.PY ---
+import streamlit as st
+import ee
+import json
+
+# Función de inicialización única
+@st.cache_resource # Esto es CLAVE: evita que se conecte mil veces
+def conectar_geoprocesamiento():
+    try:
+        if "GCP_SERVICE_ACCOUNT" in st.secrets:
+            creds = json.loads(st.secrets["GCP_SERVICE_ACCOUNT"])
+            ee_creds = ee.ServiceAccountCredentials(creds['client_email'], key_data=st.secrets["GCP_SERVICE_ACCOUNT"])
+            ee.Initialize(ee_creds, project='agroguardian-ee')
+        else:
+            ee.Initialize(project='agroguardian-ee')
+        return True
+    except Exception as e:
+        return False
+
+# Ejecutar una sola vez
+ee_conectado = conectar_geoprocesamiento()
 from io import BytesIO
 from supabase import create_client
 from streamlit_folium import folium_static
@@ -1729,20 +1750,6 @@ elif menu == "📝 Bitácora":
         except Exception as e:
             st.error(f"Error al cargar: {e}")
 # ==========================================================
-import streamlit as st
-import ee
-import folium
-import numpy as np
-from streamlit_folium import st_folium
-
-# --- INICIALIZACIÓN ---
-# Es mejor inicializar fuera del menú si es posible
-try:
-    if not ee.data._credentials:
-        ee.Initialize(project='agroguardian-ee')
-except Exception as e:
-    st.error(f"Error de conexión: {e}")
-
 if menu == "🛰️ Rend. Inteligente":
     st.header("🌱 Mapa Inteligente de Rendimiento")
 
