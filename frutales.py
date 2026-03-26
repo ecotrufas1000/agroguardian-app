@@ -1756,49 +1756,95 @@ def conectar_geoprocesamiento():
     return False
 
 ee_conectado = conectar_geoprocesamiento()
-# --- 3. NUEVA FUNCIÓN: OBTENER RELIEVE (SRTM) ---
+# --- 3. FUNCIONES DE PROCESAMIENTO SATELITAL ---
+
+@st.cache_data
+def obtener_relieve_srtm(lat, lon):
+    try:
+        dem = ee.Image("USGS/SRTMGL1_003")
+        punto = ee.Geometry.Point([lon, lat])
+        recorte = dem.clip(punto.buffer(5000))
+        # Curvas cada 5 metros para mayor detalle en frutales
+        curvas = recorte.divide(5).round().multiply(5).toFloat()
+        return curvas
+    except Exception as e:
+        return None
+
 @st.cache_data
 def obtener_mapa_ndvi(lat, lon):
     try:
         punto = ee.Geometry.Point([lon, lat])
-        # Intentamos con una colección más estable y un buffer más grande
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                     .filterBounds(punto.buffer(10000)) # 10km para asegurar que encuentre algo
-                     .filterDate('2025-01-01', '2026-03-26')
+                     .filterBounds(punto.buffer(5000)) 
+                     .filterDate('2025-09-01', '2026-03-26')
                      .sort('CLOUDY_PIXEL_PERCENTAGE'))
         
-        # VERIFICACIÓN: ¿Hay imágenes en esa zona?
-        conteo = coleccion.size().getInfo()
-        if conteo == 0:
-            st.sidebar.warning(f"Cero imágenes encontradas en {lat}, {lon}")
+        if coleccion.size().getInfo() == 0:
             return None
             
         imagen = coleccion.first()
         ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
         return ndvi
     except Exception as e:
-        # ESTO NOS VA A DECIR EL ERROR REAL (Ej: "Access Denied" o "Quota Exceeded")
-        st.sidebar.error(f"Falla NDVI: {e}")
         return None
 
-@st.cache_data
-def obtener_relieve_srtm(lat, lon):
-    try:
-        # El SRTM a veces falla si el punto está muy cerca de la costa o fuera de datos
-        dem = ee.Image("USGS/SRTMGL1_003")
-        punto = ee.Geometry.Point([lon, lat])
-        
-        # Simplificamos la visualización para ver si así carga
-        recorte = dem.clip(punto.buffer(5000))
-        # En lugar de procesar curvas, devolvemos el relieve puro para testear
-        return recorte 
-    except Exception as e:
-        st.sidebar.error(f"Falla Relieve: {e}")
-        return None
+# --- 4. EJECUCIÓN DE CONEXIÓN ---
+ee_conectado = conectar_geoprocesamiento()
+
 # --- 5. SECCIÓN DEL MENÚ RENDIMIENTO ---
 if menu == "🛰️ Rend. Inteligente":
-    st.header("🌱 Mapa de Vigor y Topografía")
+    st.header("🛰️ Simulación de Rendimiento AgroGuardian")
 
+    if not ee_conectado:
+        st.error("⚠️ Error de conexión con Google Earth Engine.")
+        st.stop()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        lat = st.number_input("Latitud", value=-34.6000, format="%.4f")
+    with col2:
+        lon = st.number_input("Longitud", value=-58.5100, format="%.4f")
+
+    ndvi_map = obtener_mapa_ndvi(lat, lon)
+    topo_map = obtener_relieve_srtm(lat, lon)
+    
+    if ndvi_map and topo_map:
+        try:
+            # Configuración de visualización profesional
+            vis_params_ndvi = {'min': 0.2, 'max': 0.8, 'palette': ['red', 'yellow', 'green']}
+            map_id_ndvi = ee.data.getMapId({'image': ndvi_map, 'visParams': vis_params_ndvi})
+            
+            # Curvas de nivel (las hacemos negras)
+            vis_params_topo = {'palette': ['000000']} 
+            map_id_topo = ee.data.getMapId({'image': topo_map.mask(topo_map.not()), 'visParams': vis_params_topo})
+            
+            # Crear mapa de Folium
+            m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=True)
+            
+            folium.TileLayer(
+                tiles=map_id_ndvi['tile_fetcher'].url_format,
+                attr='Google Earth Engine NDVI',
+                name='Vigor Vegetativo (NDVI)',
+                overlay=True, opacity=0.6
+            ).add_to(m)
+
+            folium.TileLayer(
+                tiles=map_id_topo['tile_fetcher'].url_format,
+                attr='Google Earth Engine Topo',
+                name='Curvas de Nivel',
+                overlay=True, opacity=1.0
+            ).add_to(m)
+
+            folium.LayerControl().add_to(m)
+            
+            # El componente que renderiza el mapa
+            st_folium(m, width=700, height=500, key="mapa_agroguardian")
+            st.success("✅ Capas satelitales y topográficas listas.")
+
+        except Exception as e:
+            st.error(f"Error visualizando capas: {e}")
+    else:
+        st.error("❌ No hay datos satelitales disponibles para estas coordenadas.")
     if not ee_conectado:
         st.error("⚠️ No se pudo conectar con Google Earth Engine.")
         st.stop()
