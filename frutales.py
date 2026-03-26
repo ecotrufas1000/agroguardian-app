@@ -1741,6 +1741,7 @@ import numpy as np
 def conectar_geoprocesamiento():
     # Buscamos el nombre exacto que pusimos en los Secrets
     if "JSON_LLAVE" in st.secrets:
+        info_llave = json.loads(st.secrets["JSON_LLAVE"])
         try:
             # Cargamos el texto como JSON
             info_llave = json.loads(st.secrets["JSON_LLAVE"])
