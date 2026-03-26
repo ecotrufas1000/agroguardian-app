@@ -1729,6 +1729,8 @@ elif menu == "📝 Bitácora":
         except Exception as e:
             st.error(f"Error al cargar: {e}")
 # ==========================================================
+#Simulacion rendimientos
+#===========================================================
 import streamlit as st
 import ee
 import json
@@ -1737,41 +1739,39 @@ import folium
 from streamlit_folium import st_folium
 import numpy as np
 
-# --- 1. CONFIGURACIÓN DE IA (Gemini 1.5 Flash) ---
-if "GOOGLE_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash') 
-else:
-    st.warning("Falta GOOGLE_API_KEY en los Secrets")
+# ... (Mantené la sección 1 y 2 de configuración de IA y conexión GEE igual que antes) ...
 
-# --- 2. CONEXIÓN A EARTH ENGINE ---
-@st.cache_resource
-def conectar_geoprocesamiento():
-    if "JSON_LLAVE" in st.secrets:
-        try:
-            info_llave = json.loads(st.secrets["JSON_LLAVE"])
-            credentials = ee.ServiceAccountCredentials(
-                info_llave['client_email'], 
-                key_data=st.secrets["JSON_LLAVE"]
-            )
-            ee.Initialize(credentials, project='agroguardian-ee')
-            return True
-        except Exception as e:
-            st.sidebar.error(f"Error de conexión GEE: {e}")
-            return False
-    return False
-
+# Intentamos la conexión
 ee_conectado = conectar_geoprocesamiento()
 
-# --- 3. FUNCIÓN DEL MAPA (Definida arriba para evitar NameError) ---
+# --- 3. NUEVA FUNCIÓN: OBTENER RELIEVE (SRTM) ---
+@st.cache_data
+def obtener_relieve_srtm(lat, lon):
+    try:
+        punto = ee.Geometry.Point([lon, lat])
+        # Cargamos el DEM global de la NASA
+        dem = ee.Image("USGS/SRTMGL1_003")
+        
+        # Recortamos a una zona de 5km alrededor del punto
+        recorte = dem.clip(punto.buffer(5000))
+        
+        # Generamos las curvas de nivel. Usamos un intervalo de 10 metros para frutales.
+        # Esto genera una imagen donde cada píxel tiene el valor de la altitud redondeado a la decena.
+        curvas = recorte.divide(10).round().multiply(10).toFloat()
+        
+        return curvas
+    except Exception as e:
+        return None
+
+# --- 4. FUNCIÓN DEL MAPA NDVI (Mantenela como está) ---
 @st.cache_data
 def obtener_mapa_ndvi(lat, lon):
     try:
         punto = ee.Geometry.Point([lon, lat])
-        # Filtramos por las fechas más recientes de esta temporada
+        # Usamos S2_SR_HARMONIZED para 2025-2026
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
                      .filterBounds(punto.buffer(5000)) 
-                     .filterDate('2025-01-01', '2026-03-26') 
+                     .filterDate('2025-01-01', '2026-03-26')
                      .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
                      .median())
         
@@ -1780,13 +1780,12 @@ def obtener_mapa_ndvi(lat, lon):
     except Exception as e:
         return None
 
-# --- 4. SECCIÓN DEL MENÚ RENDIMIENTO ---
+# --- 5. SECCIÓN DEL MENÚ RENDIMIENTO ---
 if menu == "🛰️ Rend. Inteligente":
-    st.header("🌱 Mapa Inteligente de Rendimiento")
+    st.header("🌱 Mapa de Vigor y Topografía")
 
     if not ee_conectado:
         st.error("⚠️ No se pudo conectar con Google Earth Engine.")
-        st.info("Revisá que la API esté habilitada en Google Cloud para 'agroguardian-ee'.")
         st.stop()
     
     # Entradas de usuario
@@ -1798,71 +1797,49 @@ if menu == "🛰️ Rend. Inteligente":
 
     # Obtención de datos satelitales
     ndvi_map = obtener_mapa_ndvi(lat, lon)
+    topo_map = obtener_relieve_srtm(lat, lon)
     
-    if ndvi_map:
-        # Crear el mapa
+    if ndvi_map and topo_map:
+        # Crear el mapa base
         m = folium.Map(location=[lat, lon], zoom_start=15)
+        
+        # 1. Capa NDVI (Pega la visualización que ya tenías)
         vis_ndvi = {'min': 0, 'max': 1, 'palette': ['red', 'yellow', 'green']}
-        map_id = ndvi_map.getMapId(vis_ndvi)
+        map_id_ndvi = ndvi_map.getMapId(vis_ndvi)
         
         folium.TileLayer(
-            tiles=map_id['tile_fetcher'].url_format,
+            tiles=map_id_ndvi['tile_fetcher'].url_format,
             attr='Google Earth Engine',
-            name='NDVI Actual',
+            name='Vigor (NDVI)',
             overlay=True,
-            control=True
+            control=True,
+            opacity=0.7 # Un poco de transparencia para ver las curvas abajo
         ).add_to(m)
 
+        # 2. CAPA DE CURVAS DE NIVEL (NUEVA)
+        # Usamos una paleta simple de negro para las líneas
+        vis_topo = {'palette': ['black']} 
+        map_id_topo = topo_map.getMapId(vis_topo)
+        
+        folium.TileLayer(
+            tiles=map_id_topo['tile_fetcher'].url_format,
+            attr='Google Earth Engine Topography',
+            name='Curvas de Nivel (10m)',
+            overlay=True,
+            control=True,
+            opacity=0.5
+        ).add_to(m)
+
+        # Agregamos control de capas para que el usuario pueda prender y apagar
+        folium.LayerControl().add_to(m)
+
+        # Mostrar mapa y capturar clics
         datos_mapa = st_folium(m, width=700, height=500, key="mapa_rinde")
 
-        # --- GESTIÓN DE PUNTOS ---
-        if "puntos_guardados" not in st.session_state:
-            st.session_state.puntos_guardados = []
-
-        if datos_mapa and datos_mapa.get("last_clicked"):
-            clic = datos_mapa["last_clicked"]
-            st.write(f"📍 Coordenada: {clic['lat']:.5f}, {clic['lng']:.5f}")
-            
-            with st.form("form_rinde"):
-                rinde_input = st.number_input("Rendimiento real (kg/ha)", min_value=0.0)
-                btn_guardar = st.form_submit_button("Registrar Punto")
-                
-                if btn_guardar:
-                    try:
-                        p_ee = ee.Geometry.Point([clic['lng'], clic['lat']])
-                        info_punto = ndvi_map.sample(p_ee, 10).first().getInfo()
-                        val_ndvi = info_punto['properties']['NDVI'] if info_punto else 0
-                        
-                        st.session_state.puntos_guardados.append({
-                            "lat": clic['lat'], 
-                            "lon": clic['lng'], 
-                            "ndvi": val_ndvi,
-                            "rinde": rinde_input
-                        })
-                        st.success("Punto registrado en el modelo")
-                    except Exception as e:
-                        st.error(f"Error al leer índice: {e}")
-
-        # --- MODELO DE PREDICCIÓN ---
-        if st.session_state.puntos_guardados:
-            st.subheader("📊 Calibración del Modelo")
-            df_puntos = st.session_state.puntos_guardados
-            st.table(df_puntos)
-
-            if len(df_puntos) >= 3:
-                x = [p['ndvi'] for p in df_puntos]
-                y = [p['rinde'] for p in df_puntos]
-                
-                a, b = np.polyfit(x, y, 1)
-                
-                st.metric("Vigor vs Rendimiento (Pendiente)", f"{a:.2f}")
-                st.info(f"Fórmula: Rendimiento = ({a:.2f} * NDVI) + {b:.2f}")
-
-                # Generar capa de predicción
-                mapa_rendimiento = ndvi_map.multiply(a).add(b)
-                st.write("🔥 Modelo de predicción generado sobre la parcela.")
+        # ... (Mantené el resto de la lógica de puntos, modelo y predicción igual que antes) ...
+        # ...
     else:
-        st.error("No hay imágenes satelitales despejadas para esta zona actualmente.")
+        st.error("No se pudieron cargar las capas satelitales.")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
