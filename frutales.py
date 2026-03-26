@@ -1732,9 +1732,14 @@ elif menu == "📝 Bitácora":
 import streamlit as st
 import ee
 import json
+import folium
+from streamlit_folium import st_folium
+import numpy as np
+
+# --- 1. CONEXIÓN (Al principio del archivo) ---
 @st.cache_resource
 def conectar_geoprocesamiento():
-    # Usamos el nombre que pusimos en los Secrets
+    # Buscamos el nombre exacto que pusimos en los Secrets
     if "JSON_LLAVE" in st.secrets:
         try:
             # Cargamos el texto como JSON
@@ -1748,103 +1753,121 @@ def conectar_geoprocesamiento():
             ee.Initialize(credentials, project='agroguardian-ee')
             return True
         except Exception as e:
-            st.error(f"Error al leer JSON_LLAVE: {e}")
+            st.error(f"Error de autenticación con Google Cloud: {e}")
             return False
     return False
-# Ejecutar al cargar la app
+
+# Ejecutar la conexión una sola vez al cargar la app
 ee_conectado = conectar_geoprocesamiento()
-if menu == "🛰️ Rend. Inteligente":
-    st.header("🌱 Mapa Inteligente de Rendimiento")
 
-    # Layout de entradas
-    col1, col2 = st.columns(2)
-    with col1:
-        lat = st.number_input("Latitud", value=-34.6000, format="%.4f")
-    with col2:
-        lon = st.number_input("Longitud", value=-58.5100, format="%.4f")
-
-    # Función cacheada para no saturar GEE
-    @st.cache_data
-    def obtener_mapa_ndvi(lat, lon):
+# --- 2. FUNCIONES DE PROCESAMIENTO (Fuera del menú para mejor caché) ---
+@st.cache_data
+def obtener_mapa_ndvi(lat, lon):
+    try:
         punto = ee.Geometry.Point([lon, lat])
         # Usamos S2_SR_HARMONIZED que es más estable
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                     .filterBounds(punto.buffer(5000)) # Buffer para asegurar área
+                     .filterBounds(punto.buffer(5000)) 
                      .filterDate('2024-01-01', '2024-12-31')
                      .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
                      .median())
         
         ndvi = coleccion.normalizedDifference(['B8', 'B4']).rename('NDVI')
         return ndvi
+    except Exception as e:
+        return None
 
+# --- 3. SECCIÓN DEL MENÚ ---
+if menu == "🛰️ Rend. Inteligente":
+    st.header("🌱 Mapa Inteligente de Rendimiento")
+
+    # 🛑 FRENO DE MANO: Si no conectó, detenemos la ejecución aquí
+    if not ee_conectado:
+        st.error("⚠️ No se pudo establecer conexión con Google Earth Engine.")
+        st.info("Por favor, verifica que el secreto 'JSON_LLAVE' esté bien configurado en Streamlit Cloud.")
+        st.stop() # Detiene la app para evitar el error técnico largo
+
+    # Si llegamos aquí, la conexión es exitosa
+    col1, col2 = st.columns(2)
+    with col1:
+        lat = st.number_input("Latitud", value=-34.6000, format="%.4f")
+    with col2:
+        lon = st.number_input("Longitud", value=-58.5100, format="%.4f")
+
+    # Obtener el mapa NDVI
     ndvi_map = obtener_mapa_ndvi(lat, lon)
     
-    # Crear el mapa base
-    m = folium.Map(location=[lat, lon], zoom_start=15)
-    
-    vis_ndvi = {'min': 0, 'max': 1, 'palette': ['red', 'yellow', 'green']}
-    map_id = ndvi_map.getMapId(vis_ndvi)
-    
-    folium.TileLayer(
-        tiles=map_id['tile_fetcher'].url_format,
-        attr='Google Earth Engine',
-        name='NDVI Actual',
-        overlay=True,
-        control=True
-    ).add_to(m)
-
-    # Mostrar mapa y capturar clics
-    # "key" es vital para que no se resetee el mapa
-    datos_mapa = st_folium(m, width=700, height=500, key="mapa_rinde")
-
-    # --- LÓGICA DE DATOS ---
-    if "puntos_guardados" not in st.session_state:
-        st.session_state.puntos_guardados = []
-
-    if datos_mapa and datos_mapa.get("last_clicked"):
-        clic = datos_mapa["last_clicked"]
-        st.write(f"📍 Seleccionado: {clic['lat']:.5f}, {clic['lng']:.5f}")
+    if ndvi_map:
+        # Crear el mapa base
+        m = folium.Map(location=[lat, lon], zoom_start=15)
         
-        with st.form("form_rinde"):
-            rinde_input = st.number_input("Rendimiento real (kg/ha)", min_value=0.0)
-            btn_guardar = st.form_submit_button("Registrar Punto")
+        vis_ndvi = {'min': 0, 'max': 1, 'palette': ['red', 'yellow', 'green']}
+        map_id = ndvi_map.getMapId(vis_ndvi)
+        
+        folium.TileLayer(
+            tiles=map_id['tile_fetcher'].url_format,
+            attr='Google Earth Engine',
+            name='NDVI Actual',
+            overlay=True,
+            control=True
+        ).add_to(m)
+
+        # Mostrar mapa y capturar clics
+        datos_mapa = st_folium(m, width=700, height=500, key="mapa_rinde")
+
+        # --- LÓGICA DE DATOS ---
+        if "puntos_guardados" not in st.session_state:
+            st.session_state.puntos_guardados = []
+
+        if datos_mapa and datos_mapa.get("last_clicked"):
+            clic = datos_mapa["last_clicked"]
+            st.write(f"📍 Seleccionado: {clic['lat']:.5f}, {clic['lng']:.5f}")
             
-            if btn_guardar:
-                # Sacamos el valor de NDVI una sola vez al guardar
-                p_ee = ee.Geometry.Point([clic['lng'], clic['lat']])
-                val_ndvi = ndvi_map.sample(p_ee, 10).first().get('NDVI').getInfo()
+            with st.form("form_rinde"):
+                rinde_input = st.number_input("Rendimiento real (kg/ha)", min_value=0.0)
+                btn_guardar = st.form_submit_button("Registrar Punto")
                 
-                st.session_state.puntos_guardados.append({
-                    "lat": clic['lat'], 
-                    "lon": clic['lng'], 
-                    "ndvi": val_ndvi,
-                    "rinde": rinde_input
-                })
-                st.success("Punto registrado correctamente")
+                if btn_guardar:
+                    try:
+                        # Sacamos el valor de NDVI una sola vez al guardar
+                        p_ee = ee.Geometry.Point([clic['lng'], clic['lat']])
+                        info_punto = ndvi_map.sample(p_ee, 10).first().getInfo()
+                        val_ndvi = info_punto['properties']['NDVI'] if info_punto else 0
+                        
+                        st.session_state.puntos_guardados.append({
+                            "lat": clic['lat'], 
+                            "lon": clic['lng'], 
+                            "ndvi": val_ndvi,
+                            "rinde": rinde_input
+                        })
+                        st.success("Punto registrado correctamente")
+                    except Exception as e:
+                        st.error(f"Error al obtener valor NDVI: {e}")
 
-    # --- MODELO DE PREDICCIÓN ---
-    if st.session_state.puntos_guardados:
-        st.subheader("📊 Datos del Modelo")
-        df_puntos = st.session_state.puntos_guardados
-        st.table(df_puntos)
+        # --- MODELO DE PREDICCIÓN ---
+        if st.session_state.puntos_guardados:
+            st.subheader("📊 Datos del Modelo")
+            df_puntos = st.session_state.puntos_guardados
+            st.table(df_puntos)
 
-        if len(df_puntos) >= 3:
-            x = [p['ndvi'] for p in df_puntos]
-            y = [p['rinde'] for p in df_puntos]
-            
-            coef = np.polyfit(x, y, 1)
-            a, b = coef
-            
-            st.metric("Precisión del Modelo (Pendiente)", f"{a:.2f}")
-            st.info(f"Fórmula: Rendimiento = ({a:.2f} * NDVI) + {b:.2f}")
+            if len(df_puntos) >= 3:
+                x = [p['ndvi'] for p in df_puntos]
+                y = [p['rinde'] for p in df_puntos]
+                
+                coef = np.polyfit(x, y, 1)
+                a, b = coef
+                
+                st.metric("Precisión del Modelo (Pendiente)", f"{a:.2f}")
+                st.info(f"Fórmula: Rendimiento = ({a:.2f} * NDVI) + {b:.2f}")
 
-            # Generar capa de predicción
-            mapa_rendimiento = ndvi_map.multiply(a).add(b)
-            vis_rinde = {'min': min(y), 'max': max(y), 'palette': ['white', 'blue']}
-            map_id_rinde = mapa_rendimiento.getMapId(vis_rinde)
-            
-            # Nota: Para ver el mapa de rinde tendrías que refrescar o usar un control
-            st.write("🔥 El mapa de rendimiento estimado está listo para superponer.")
+                # Generar capa de predicción
+                mapa_rendimiento = ndvi_map.multiply(a).add(b)
+                vis_rinde = {'min': min(y), 'max': max(y), 'palette': ['white', 'blue']}
+                map_id_rinde = mapa_rendimiento.getMapId(vis_rinde)
+                
+                st.write("🔥 El mapa de rendimiento estimado está listo para superponer.")
+    else:
+        st.error("No se pudo cargar la capa satelital.")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
