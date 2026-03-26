@@ -1818,43 +1818,44 @@ if menu == "🛰️ Rend. Inteligente":
     
     if ndvi_map and topo_map:
         try:
-            # 1. Configuración Visual NDVI
-            vis_params_ndvi = {
-                'min': 0.2, 
-                'max': 0.8, 
-                'palette': ['#d73027', '#fee08b', '#1a9850']
-            }
-            map_id_ndvi = ee.data.getMapId({
-                'image': ndvi_map, 
-                'visParams': vis_params_ndvi
-            })
+            try:
+            # 1. VISUALIZACIÓN NDVI (Mejoramos la paleta y el rango)
+            # Rojo (pobre) -> Amarillo (medio) -> Verde (vigoroso)
+            paleta_agro = ['#d73027', '#fee08b', '#1a9850']
             
-            # 2. Configuración Topografía (Líneas finas)
-            lineas_curvas = ee.Algorithms.CannyEdgeDetector(topo_map, 1, 1).multiply(255)
-            vis_params_topo = {'palette': ['000000']} 
+            # Forzamos la visualización a RGB
+            ndvi_rgb = ndvi_map.visualize(min=0.15, max=0.75, palette=paleta_agro)
+            map_id_ndvi = ee.data.getMapId({'image': ndvi_rgb})
+            
+            # 2. VISUALIZACIÓN TOPO (La "Mejora")
+            # En lugar de toInt(), usamos un algoritmo de contornos que suaviza las líneas
+            lineas_curvas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
+            
+            # Las engrosamos un poquito para que se vean bien
+            curvas_final = lineas_curvas.focal_max(1).mask(lineas_curvas)
             
             map_id_topo = ee.data.getMapId({
-                'image': lineas_curvas.updateMask(lineas_curvas), 
-                'visParams': vis_params_topo
+                'image': curvas_final.visualize(palette=['#333333']) # Gris oscuro (menos invasivo)
             })
             
-            # 3. Construcción del Mapa Folium
-            m = folium.Map(location=[lat, lon], zoom_start=17, control_scale=True)
+            # 3. CONSTRUCCIÓN DEL MAPA (Folium)
+            # Ponemos zoom_start=14 para ver los cerros completos
+            m = folium.Map(location=[lat, lon], zoom_start=14, control_scale=True)
             
-            # Capa NDVI
+            # Capa NDVI con Opacidad (Transparencia) para ver el relieve abajo
             folium.TileLayer(
                 tiles=map_id_ndvi['tile_fetcher'].url_format,
                 attr='GEE NDVI', 
-                name='Vigor (NDVI)',
+                name='Vigor Vegetativo (Color)',
                 overlay=True, 
-                opacity=0.6
+                opacity=0.6 # Bajamos un poco la opacidad para ver el relieve
             ).add_to(m)
 
-            # Capa Curvas
+            # Capa Curvas de Nivel
             folium.TileLayer(
                 tiles=map_id_topo['tile_fetcher'].url_format,
                 attr='GEE Topo', 
-                name='Curvas de Nivel (5m)',
+                name='Relieve (Curvas)',
                 overlay=True, 
                 opacity=1.0
             ).add_to(m)
@@ -1862,11 +1863,11 @@ if menu == "🛰️ Rend. Inteligente":
             folium.LayerControl().add_to(m)
             
             # 4. Renderizado
-            st_folium(m, width=700, height=500, key="mapa_final_agro_v2")
-            st.success("✅ Capas cargadas: Vigor y Topografía")
+            st_folium(m, width=700, height=500, key="mapa_agroguardian_v3")
+            st.success("🛰️ Visualización Agro-Topográfica lista")
 
         except Exception as e:
-            st.error(f"Error al generar visualización: {e}")
+            st.error(f"Error técnico en la visualización: {e}")
     else:
         st.error("❌ No se encontraron datos satelitales en esta ubicación.")
 # ==========================================================
