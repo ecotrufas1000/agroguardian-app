@@ -1731,6 +1731,13 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 #Simulacion rendimientos
 #===========================================================
+import streamlit as st
+import ee
+import json
+import google.generativeai as genai
+import folium
+from streamlit_folium import st_folium
+
 # --- 1. CONFIGURACIÓN DE IA (Gemini 1.5 Flash) ---
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -1738,7 +1745,8 @@ if "GOOGLE_API_KEY" in st.secrets:
 else:
     st.warning("Falta GOOGLE_API_KEY en los Secrets")
 
-# --- 2. CONEXIÓN A EARTH ENGINE ---
+# --- 2. FUNCIONES DE PROCESAMIENTO SATELITAL ---
+
 @st.cache_resource
 def conectar_geoprocesamiento():
     if "JSON_LLAVE" in st.secrets:
@@ -1755,52 +1763,13 @@ def conectar_geoprocesamiento():
             return False
     return False
 
-ee_conectado = conectar_geoprocesamiento()
-# --- 3. FUNCIONES DE PROCESAMIENTO SATELITAL ---
-
 @st.cache_data
 def obtener_relieve_srtm(lat, lon):
     try:
         dem = ee.Image("USGS/SRTMGL1_003")
         punto = ee.Geometry.Point([lon, lat])
         recorte = dem.clip(punto.buffer(5000))
-        # Curvas cada 5 metros para mayor detalle en frutales
-        curvas = recorte.divide(5).round().multiply(5).toFloat()
-        return curvas
-    except Exception as e:
-        return None
-
-@st.cache_data
-def obtener_mapa_ndvi(lat, lon):
-    try:
-        punto = ee.Geometry.Point([lon, lat])
-        coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                     .filterBounds(punto.buffer(5000)) 
-                     .filterDate('2025-09-01', '2026-03-26')
-                     .sort('CLOUDY_PIXEL_PERCENTAGE'))
-        
-        if coleccion.size().getInfo() == 0:
-            return None
-            
-        imagen = coleccion.first()
-        ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
-        return ndvi
-    except Exception as e:
-        return None
-
-# --- 4. EJECUCIÓN DE CONEXIÓN ---
-ee_conectado = conectar_geoprocesamiento()
-
-# --- 5. SECCIÓN DEL MENÚ RENDIMIENTO ---
-# --- 3. FUNCIONES DE PROCESAMIENTO (Copiá desde acá) ---
-
-@st.cache_data
-def obtener_relieve_srtm(lat, lon):
-    try:
-        dem = ee.Image("USGS/SRTMGL1_003")
-        punto = ee.Geometry.Point([lon, lat])
-        recorte = dem.clip(punto.buffer(5000))
-        # Curvas cada 5 metros
+        # Curvas cada 5 metros para detalle profesional
         curvas = recorte.divide(5).round().multiply(5).toInt()
         return curvas
     except Exception as e:
@@ -1814,37 +1783,42 @@ def obtener_mapa_ndvi(lat, lon):
                      .filterBounds(punto.buffer(5000)) 
                      .filterDate('2025-09-01', '2026-03-26')
                      .sort('CLOUDY_PIXEL_PERCENTAGE'))
+        
         if coleccion.size().getInfo() == 0:
             return None
+            
         imagen = coleccion.first()
         ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
         return ndvi
     except Exception as e:
         return None
 
-# --- 4. CONEXIÓN (Mantenela como estaba) ---
+# --- 3. EJECUCIÓN DE CONEXIÓN ---
+# Se ejecuta una sola vez al inicio
 ee_conectado = conectar_geoprocesamiento()
 
-# --- 5. SECCIÓN DEL MENÚ (Reemplazá todo este bloque) ---
+# --- 4. SECCIÓN DEL MENÚ RENDIMIENTO ---
 if menu == "🛰️ Rend. Inteligente":
     st.header("🛰️ Simulación de Rendimiento AgroGuardian")
 
     if not ee_conectado:
-        st.error("⚠️ Error de conexión con Earth Engine.")
+        st.error("⚠️ Error de conexión con Earth Engine. Verificá los Secrets.")
         st.stop()
     
+    # Entradas de usuario con keys ÚNICAS para evitar el DuplicateElementId
     col1, col2 = st.columns(2)
     with col1:
-        lat = st.number_input("Latitud", value=-34.6000, format="%.4f")
+        lat = st.number_input("Latitud", value=-34.6000, format="%.4f", key="lat_input_map")
     with col2:
-        lon = st.number_input("Longitud", value=-58.5100, format="%.4f")
+        lon = st.number_input("Longitud", value=-58.5100, format="%.4f", key="lon_input_map")
 
+    # Obtención de datos
     ndvi_map = obtener_mapa_ndvi(lat, lon)
     topo_map = obtener_relieve_srtm(lat, lon)
     
     if ndvi_map and topo_map:
         try:
-            # 1. Configuración NDVI
+            # 1. Configuración Visual NDVI
             vis_params_ndvi = {
                 'min': 0.2, 
                 'max': 0.8, 
@@ -1855,8 +1829,7 @@ if menu == "🛰️ Rend. Inteligente":
                 'visParams': vis_params_ndvi
             })
             
-            # 2. Configuración Topografía (Líneas negras)
-            # Detección de bordes para que las curvas sean finas
+            # 2. Configuración Topografía (Líneas finas)
             lineas_curvas = ee.Algorithms.CannyEdgeDetector(topo_map, 1, 1).multiply(255)
             vis_params_topo = {'palette': ['000000']} 
             
@@ -1865,83 +1838,37 @@ if menu == "🛰️ Rend. Inteligente":
                 'visParams': vis_params_topo
             })
             
-            # 3. Crear el Mapa
+            # 3. Construcción del Mapa Folium
             m = folium.Map(location=[lat, lon], zoom_start=17, control_scale=True)
             
+            # Capa NDVI
             folium.TileLayer(
                 tiles=map_id_ndvi['tile_fetcher'].url_format,
-                attr='GEE NDVI', name='Vigor (NDVI)',
-                overlay=True, opacity=0.6
+                attr='GEE NDVI', 
+                name='Vigor (NDVI)',
+                overlay=True, 
+                opacity=0.6
             ).add_to(m)
 
+            # Capa Curvas
             folium.TileLayer(
                 tiles=map_id_topo['tile_fetcher'].url_format,
-                attr='GEE Topo', name='Curvas de Nivel',
-                overlay=True, opacity=1.0
+                attr='GEE Topo', 
+                name='Curvas de Nivel (5m)',
+                overlay=True, 
+                opacity=1.0
             ).add_to(m)
 
             folium.LayerControl().add_to(m)
             
-            # 4. Mostrar Mapa
-            st_folium(m, width=700, height=500, key="mapa_agro_v2")
-            st.success("✅ Capas listas.")
+            # 4. Renderizado
+            st_folium(m, width=700, height=500, key="mapa_final_agro_v2")
+            st.success("✅ Capas cargadas: Vigor y Topografía")
 
         except Exception as e:
-            st.error(f"Error visual: {e}")
+            st.error(f"Error al generar visualización: {e}")
     else:
-        st.error("❌ No hay datos para estas coordenadas.")    
-    # Entradas de usuario
-    col1, col2 = st.columns(2)
-    with col1:
-        lat = st.number_input("Latitud", value=-34.6000, format="%.4f")
-    with col2:
-        lon = st.number_input("Longitud", value=-58.5100, format="%.4f")
-
-    # Obtención de datos satelitales
-    ndvi_map = obtener_mapa_ndvi(lat, lon)
-    topo_map = obtener_relieve_srtm(lat, lon)
-    
-    if ndvi_map and topo_map:
-        # Crear el mapa base
-        m = folium.Map(location=[lat, lon], zoom_start=15)
-        
-        # 1. Capa NDVI (Pega la visualización que ya tenías)
-        vis_ndvi = {'min': 0, 'max': 1, 'palette': ['red', 'yellow', 'green']}
-        map_id_ndvi = ndvi_map.getMapId(vis_ndvi)
-        
-        folium.TileLayer(
-            tiles=map_id_ndvi['tile_fetcher'].url_format,
-            attr='Google Earth Engine',
-            name='Vigor (NDVI)',
-            overlay=True,
-            control=True,
-            opacity=0.7 # Un poco de transparencia para ver las curvas abajo
-        ).add_to(m)
-
-        # 2. CAPA DE CURVAS DE NIVEL (NUEVA)
-        # Usamos una paleta simple de negro para las líneas
-        vis_topo = {'palette': ['black']} 
-        map_id_topo = topo_map.getMapId(vis_topo)
-        
-        folium.TileLayer(
-            tiles=map_id_topo['tile_fetcher'].url_format,
-            attr='Google Earth Engine Topography',
-            name='Curvas de Nivel (10m)',
-            overlay=True,
-            control=True,
-            opacity=0.5
-        ).add_to(m)
-
-        # Agregamos control de capas para que el usuario pueda prender y apagar
-        folium.LayerControl().add_to(m)
-
-        # Mostrar mapa y capturar clics
-        datos_mapa = st_folium(m, width=700, height=500, key="mapa_rinde")
-
-        # ... (Mantené el resto de la lógica de puntos, modelo y predicción igual que antes) ...
-        # ...
-    else:
-        st.error("No se pudieron cargar las capas satelitales.")
+        st.error("❌ No se encontraron datos satelitales en esta ubicación.")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
