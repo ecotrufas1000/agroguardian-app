@@ -1758,40 +1758,43 @@ def conectar_geoprocesamiento():
 ee_conectado = conectar_geoprocesamiento()
 # --- 3. NUEVA FUNCIÓN: OBTENER RELIEVE (SRTM) ---
 @st.cache_data
-def obtener_relieve_srtm(lat, lon):
-    try:
-        punto = ee.Geometry.Point([lon, lat])
-        # Cargamos el DEM global de la NASA
-        dem = ee.Image("USGS/SRTMGL1_003")
-        
-        # Recortamos a una zona de 5km alrededor del punto
-        recorte = dem.clip(punto.buffer(5000))
-        
-        # Generamos las curvas de nivel. Usamos un intervalo de 10 metros para frutales.
-        # Esto genera una imagen donde cada píxel tiene el valor de la altitud redondeado a la decena.
-        curvas = recorte.divide(10).round().multiply(10).toFloat()
-        
-        return curvas
-    except Exception as e:
-        return None
-
-# --- 4. FUNCIÓN DEL MAPA NDVI (Mantenela como está) ---
-@st.cache_data
 def obtener_mapa_ndvi(lat, lon):
     try:
         punto = ee.Geometry.Point([lon, lat])
-        # Usamos S2_SR_HARMONIZED para 2025-2026
+        # Intentamos con una colección más estable y un buffer más grande
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                     .filterBounds(punto.buffer(5000)) 
+                     .filterBounds(punto.buffer(10000)) # 10km para asegurar que encuentre algo
                      .filterDate('2025-01-01', '2026-03-26')
-                     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                     .median())
+                     .sort('CLOUDY_PIXEL_PERCENTAGE'))
         
-        ndvi = coleccion.normalizedDifference(['B8', 'B4']).rename('NDVI')
+        # VERIFICACIÓN: ¿Hay imágenes en esa zona?
+        conteo = coleccion.size().getInfo()
+        if conteo == 0:
+            st.sidebar.warning(f"Cero imágenes encontradas en {lat}, {lon}")
+            return None
+            
+        imagen = coleccion.first()
+        ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
         return ndvi
     except Exception as e:
+        # ESTO NOS VA A DECIR EL ERROR REAL (Ej: "Access Denied" o "Quota Exceeded")
+        st.sidebar.error(f"Falla NDVI: {e}")
         return None
 
+@st.cache_data
+def obtener_relieve_srtm(lat, lon):
+    try:
+        # El SRTM a veces falla si el punto está muy cerca de la costa o fuera de datos
+        dem = ee.Image("USGS/SRTMGL1_003")
+        punto = ee.Geometry.Point([lon, lat])
+        
+        # Simplificamos la visualización para ver si así carga
+        recorte = dem.clip(punto.buffer(5000))
+        # En lugar de procesar curvas, devolvemos el relieve puro para testear
+        return recorte 
+    except Exception as e:
+        st.sidebar.error(f"Falla Relieve: {e}")
+        return None
 # --- 5. SECCIÓN DEL MENÚ RENDIMIENTO ---
 if menu == "🛰️ Rend. Inteligente":
     st.header("🌱 Mapa de Vigor y Topografía")
