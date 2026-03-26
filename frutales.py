@@ -1732,21 +1732,25 @@ elif menu == "📝 Bitácora":
 import streamlit as st
 import ee
 import json
-import folium
-from streamlit_folium import st_folium
-import numpy as np
+import google.generativeai as genai  # Cambio clave aquí
 
-# --- 1. CONEXIÓN (Al principio del archivo) ---
+# --- 1. CONFIGURACIÓN DE IA (Arreglo del error 'Client') ---
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    # En las versiones nuevas no se usa genai.Client(), se usa directamente:
+    model = genai.GenerativeModel('gemini-1.5-flash') 
+else:
+    st.warning("Falta GOOGLE_API_KEY en los Secrets")
+
+# --- 2. CONEXIÓN A EARTH ENGINE (Uso de 'JSON_LLAVE') ---
 @st.cache_resource
 def conectar_geoprocesamiento():
-    # Buscamos el nombre exacto que pusimos en los Secrets
+    # CAMBIO IMPORTANTE: Buscamos 'JSON_LLAVE' que es el nombre que tenés en el panel
     if "JSON_LLAVE" in st.secrets:
-        info_llave = json.loads(st.secrets["JSON_LLAVE"])
         try:
-            # Cargamos el texto como JSON
             info_llave = json.loads(st.secrets["JSON_LLAVE"])
             
-            # Autenticamos
+            # Autenticamos con la cuenta de servicio
             credentials = ee.ServiceAccountCredentials(
                 info_llave['client_email'], 
                 key_data=st.secrets["JSON_LLAVE"]
@@ -1754,40 +1758,25 @@ def conectar_geoprocesamiento():
             ee.Initialize(credentials, project='agroguardian-ee')
             return True
         except Exception as e:
-            st.error(f"Error de autenticación con Google Cloud: {e}")
+            # Si sale error acá, lo imprimimos para saber qué pasa
+            st.sidebar.error(f"Error de llave: {e}")
             return False
     return False
 
-# Ejecutar la conexión una sola vez al cargar la app
+# Intentamos la conexión
 ee_conectado = conectar_geoprocesamiento()
 
-# --- 2. FUNCIONES DE PROCESAMIENTO (Fuera del menú para mejor caché) ---
-@st.cache_data
-def obtener_mapa_ndvi(lat, lon):
-    try:
-        punto = ee.Geometry.Point([lon, lat])
-        # Usamos S2_SR_HARMONIZED que es más estable
-        coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                     .filterBounds(punto.buffer(5000)) 
-                     .filterDate('2024-01-01', '2024-12-31')
-                     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                     .median())
-        
-        ndvi = coleccion.normalizedDifference(['B8', 'B4']).rename('NDVI')
-        return ndvi
-    except Exception as e:
-        return None
-
-# --- 3. SECCIÓN DEL MENÚ ---
+# --- 3. DENTRO DEL MENÚ RENDIMIENTO ---
 if menu == "🛰️ Rend. Inteligente":
     st.header("🌱 Mapa Inteligente de Rendimiento")
 
-    # 🛑 FRENO DE MANO: Si no conectó, detenemos la ejecución aquí
     if not ee_conectado:
-        st.error("⚠️ No se pudo establecer conexión con Google Earth Engine.")
-        st.info("Por favor, verifica que el secreto 'JSON_LLAVE' esté bien configurado en Streamlit Cloud.")
-        st.stop() # Detiene la app para evitar el error técnico largo
-
+        st.error("⚠️ No se encontró 'JSON_LLAVE' o la conexión falló.")
+        # Debug para ver qué nombres detecta Streamlit
+        st.write("Claves detectadas en Secrets:", list(st.secrets.keys()))
+        st.stop()
+    
+    # ... resto de tu código de latitud/longitud ...
     # Si llegamos aquí, la conexión es exitosa
     col1, col2 = st.columns(2)
     with col1:
