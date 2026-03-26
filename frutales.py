@@ -1732,33 +1732,25 @@ elif menu == "📝 Bitácora":
 import streamlit as st
 import ee
 import json
-
 @st.cache_resource
 def conectar_geoprocesamiento():
-    st.write("🔍 Intentando conectar con Google Cloud...")
-    try:
-        if "GCP_SERVICE_ACCOUNT" in st.secrets:
-            # 1. Cargar el JSON desde los secretos
-            info_llave = json.loads(st.secrets["GCP_SERVICE_ACCOUNT"])
+    # Usamos el nombre que pusimos en los Secrets
+    if "JSON_LLAVE" in st.secrets:
+        try:
+            # Cargamos el texto como JSON
+            info_llave = json.loads(st.secrets["JSON_LLAVE"])
             
-            # 2. Crear las credenciales explícitas
-            # Esto evita que ee.Initialize() busque archivos locales
-            credenciales = ee.ServiceAccountCredentials(
+            # Autenticamos
+            credentials = ee.ServiceAccountCredentials(
                 info_llave['client_email'], 
-                key_data=st.secrets["GCP_SERVICE_ACCOUNT"]
+                key_data=st.secrets["JSON_LLAVE"]
             )
-            
-            # 3. Inicializar especificando el proyecto
-            ee.Initialize(credenciales, project='agroguardian-ee')
-            st.write("✅ Conexión exitosa con la Cuenta de Servicio")
+            ee.Initialize(credentials, project='agroguardian-ee')
             return True
-        else:
-            st.error("❌ No se encontraron los Secrets 'GCP_SERVICE_ACCOUNT'")
+        except Exception as e:
+            st.error(f"Error al leer JSON_LLAVE: {e}")
             return False
-    except Exception as e:
-        st.error(f"❌ Error crítico en la conexión: {e}")
-        return False
-
+    return False
 # Ejecutar al cargar la app
 ee_conectado = conectar_geoprocesamiento()
 if menu == "🛰️ Rend. Inteligente":
