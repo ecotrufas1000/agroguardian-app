@@ -1792,11 +1792,45 @@ def obtener_mapa_ndvi(lat, lon):
 ee_conectado = conectar_geoprocesamiento()
 
 # --- 5. SECCIÓN DEL MENÚ RENDIMIENTO ---
+# --- 3. FUNCIONES DE PROCESAMIENTO (Copiá desde acá) ---
+
+@st.cache_data
+def obtener_relieve_srtm(lat, lon):
+    try:
+        dem = ee.Image("USGS/SRTMGL1_003")
+        punto = ee.Geometry.Point([lon, lat])
+        recorte = dem.clip(punto.buffer(5000))
+        # Curvas cada 5 metros
+        curvas = recorte.divide(5).round().multiply(5).toInt()
+        return curvas
+    except Exception as e:
+        return None
+
+@st.cache_data
+def obtener_mapa_ndvi(lat, lon):
+    try:
+        punto = ee.Geometry.Point([lon, lat])
+        coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+                     .filterBounds(punto.buffer(5000)) 
+                     .filterDate('2025-09-01', '2026-03-26')
+                     .sort('CLOUDY_PIXEL_PERCENTAGE'))
+        if coleccion.size().getInfo() == 0:
+            return None
+        imagen = coleccion.first()
+        ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
+        return ndvi
+    except Exception as e:
+        return None
+
+# --- 4. CONEXIÓN (Mantenela como estaba) ---
+ee_conectado = conectar_geoprocesamiento()
+
+# --- 5. SECCIÓN DEL MENÚ (Reemplazá todo este bloque) ---
 if menu == "🛰️ Rend. Inteligente":
     st.header("🛰️ Simulación de Rendimiento AgroGuardian")
 
     if not ee_conectado:
-        st.error("⚠️ Error de conexión con Google Earth Engine.")
+        st.error("⚠️ Error de conexión con Earth Engine.")
         st.stop()
     
     col1, col2 = st.columns(2)
@@ -1810,45 +1844,52 @@ if menu == "🛰️ Rend. Inteligente":
     
     if ndvi_map and topo_map:
         try:
-            # Configuración de visualización profesional
-            vis_params_ndvi = {'min': 0.2, 'max': 0.8, 'palette': ['red', 'yellow', 'green']}
-            map_id_ndvi = ee.data.getMapId({'image': ndvi_map, 'visParams': vis_params_ndvi})
+            # 1. Configuración NDVI
+            vis_params_ndvi = {
+                'min': 0.2, 
+                'max': 0.8, 
+                'palette': ['#d73027', '#fee08b', '#1a9850']
+            }
+            map_id_ndvi = ee.data.getMapId({
+                'image': ndvi_map, 
+                'visParams': vis_params_ndvi
+            })
             
-            # Curvas de nivel (las hacemos negras)
+            # 2. Configuración Topografía (Líneas negras)
+            # Detección de bordes para que las curvas sean finas
+            lineas_curvas = ee.Algorithms.CannyEdgeDetector(topo_map, 1, 1).multiply(255)
             vis_params_topo = {'palette': ['000000']} 
-            map_id_topo = ee.data.getMapId({'image': topo_map.mask(topo_map.not()), 'visParams': vis_params_topo})
             
-            # Crear mapa de Folium
-            m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=True)
+            map_id_topo = ee.data.getMapId({
+                'image': lineas_curvas.updateMask(lineas_curvas), 
+                'visParams': vis_params_topo
+            })
+            
+            # 3. Crear el Mapa
+            m = folium.Map(location=[lat, lon], zoom_start=17, control_scale=True)
             
             folium.TileLayer(
                 tiles=map_id_ndvi['tile_fetcher'].url_format,
-                attr='Google Earth Engine NDVI',
-                name='Vigor Vegetativo (NDVI)',
+                attr='GEE NDVI', name='Vigor (NDVI)',
                 overlay=True, opacity=0.6
             ).add_to(m)
 
             folium.TileLayer(
                 tiles=map_id_topo['tile_fetcher'].url_format,
-                attr='Google Earth Engine Topo',
-                name='Curvas de Nivel',
+                attr='GEE Topo', name='Curvas de Nivel',
                 overlay=True, opacity=1.0
             ).add_to(m)
 
             folium.LayerControl().add_to(m)
             
-            # El componente que renderiza el mapa
-            st_folium(m, width=700, height=500, key="mapa_agroguardian")
-            st.success("✅ Capas satelitales y topográficas listas.")
+            # 4. Mostrar Mapa
+            st_folium(m, width=700, height=500, key="mapa_agro_v2")
+            st.success("✅ Capas listas.")
 
         except Exception as e:
-            st.error(f"Error visualizando capas: {e}")
+            st.error(f"Error visual: {e}")
     else:
-        st.error("❌ No hay datos satelitales disponibles para estas coordenadas.")
-    if not ee_conectado:
-        st.error("⚠️ No se pudo conectar con Google Earth Engine.")
-        st.stop()
-    
+        st.error("❌ No hay datos para estas coordenadas.")    
     # Entradas de usuario
     col1, col2 = st.columns(2)
     with col1:
