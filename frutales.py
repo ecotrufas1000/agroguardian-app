@@ -1,35 +1,3 @@
-import streamlit as st
-import ee
-import json
-
-@st.cache_resource
-def conectar_geoprocesamiento():
-    st.write("🔍 Intentando conectar con Google Cloud...")
-    try:
-        if "GCP_SERVICE_ACCOUNT" in st.secrets:
-            # 1. Cargar el JSON desde los secretos
-            info_llave = json.loads(st.secrets["GCP_SERVICE_ACCOUNT"])
-            
-            # 2. Crear las credenciales explícitas
-            # Esto evita que ee.Initialize() busque archivos locales
-            credenciales = ee.ServiceAccountCredentials(
-                info_llave['client_email'], 
-                key_data=st.secrets["GCP_SERVICE_ACCOUNT"]
-            )
-            
-            # 3. Inicializar especificando el proyecto
-            ee.Initialize(credenciales, project='agroguardian-ee')
-            st.write("✅ Conexión exitosa con la Cuenta de Servicio")
-            return True
-        else:
-            st.error("❌ No se encontraron los Secrets 'GCP_SERVICE_ACCOUNT'")
-            return False
-    except Exception as e:
-        st.error(f"❌ Error crítico en la conexión: {e}")
-        return False
-
-# Ejecutar al cargar la app
-ee_conectado = conectar_geoprocesamiento()
 from streamlit_folium import st_folium
 import streamlit as st
 import google.generativeai as genai
@@ -1761,6 +1729,38 @@ elif menu == "📝 Bitácora":
         except Exception as e:
             st.error(f"Error al cargar: {e}")
 # ==========================================================
+import streamlit as st
+import ee
+import json
+
+@st.cache_resource
+def conectar_geoprocesamiento():
+    st.write("🔍 Intentando conectar con Google Cloud...")
+    try:
+        if "GCP_SERVICE_ACCOUNT" in st.secrets:
+            # 1. Cargar el JSON desde los secretos
+            info_llave = json.loads(st.secrets["GCP_SERVICE_ACCOUNT"])
+            
+            # 2. Crear las credenciales explícitas
+            # Esto evita que ee.Initialize() busque archivos locales
+            credenciales = ee.ServiceAccountCredentials(
+                info_llave['client_email'], 
+                key_data=st.secrets["GCP_SERVICE_ACCOUNT"]
+            )
+            
+            # 3. Inicializar especificando el proyecto
+            ee.Initialize(credenciales, project='agroguardian-ee')
+            st.write("✅ Conexión exitosa con la Cuenta de Servicio")
+            return True
+        else:
+            st.error("❌ No se encontraron los Secrets 'GCP_SERVICE_ACCOUNT'")
+            return False
+    except Exception as e:
+        st.error(f"❌ Error crítico en la conexión: {e}")
+        return False
+
+# Ejecutar al cargar la app
+ee_conectado = conectar_geoprocesamiento()
 if menu == "🛰️ Rend. Inteligente":
     st.header("🌱 Mapa Inteligente de Rendimiento")
 
