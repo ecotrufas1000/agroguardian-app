@@ -1731,19 +1731,31 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 #Simulacion rendimientos
 #===========================================================
-import streamlit as st
-import ee
-import json
-import google.generativeai as genai
-import folium
-from streamlit_folium import st_folium
-import numpy as np
+# --- 1. CONFIGURACIÓN DE IA (Gemini 1.5 Flash) ---
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash') 
+else:
+    st.warning("Falta GOOGLE_API_KEY en los Secrets")
 
-# ... (Mantené la sección 1 y 2 de configuración de IA y conexión GEE igual que antes) ...
+# --- 2. CONEXIÓN A EARTH ENGINE ---
+@st.cache_resource
+def conectar_geoprocesamiento():
+    if "JSON_LLAVE" in st.secrets:
+        try:
+            info_llave = json.loads(st.secrets["JSON_LLAVE"])
+            credentials = ee.ServiceAccountCredentials(
+                info_llave['client_email'], 
+                key_data=st.secrets["JSON_LLAVE"]
+            )
+            ee.Initialize(credentials, project='agroguardian-ee')
+            return True
+        except Exception as e:
+            st.sidebar.error(f"Error de conexión GEE: {e}")
+            return False
+    return False
 
-# Intentamos la conexión
 ee_conectado = conectar_geoprocesamiento()
-
 # --- 3. NUEVA FUNCIÓN: OBTENER RELIEVE (SRTM) ---
 @st.cache_data
 def obtener_relieve_srtm(lat, lon):
