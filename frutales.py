@@ -1,3 +1,35 @@
+import streamlit as st
+import ee
+import json
+
+@st.cache_resource
+def conectar_geoprocesamiento():
+    st.write("🔍 Intentando conectar con Google Cloud...")
+    try:
+        if "GCP_SERVICE_ACCOUNT" in st.secrets:
+            # 1. Cargar el JSON desde los secretos
+            info_llave = json.loads(st.secrets["GCP_SERVICE_ACCOUNT"])
+            
+            # 2. Crear las credenciales explícitas
+            # Esto evita que ee.Initialize() busque archivos locales
+            credenciales = ee.ServiceAccountCredentials(
+                info_llave['client_email'], 
+                key_data=st.secrets["GCP_SERVICE_ACCOUNT"]
+            )
+            
+            # 3. Inicializar especificando el proyecto
+            ee.Initialize(credenciales, project='agroguardian-ee')
+            st.write("✅ Conexión exitosa con la Cuenta de Servicio")
+            return True
+        else:
+            st.error("❌ No se encontraron los Secrets 'GCP_SERVICE_ACCOUNT'")
+            return False
+    except Exception as e:
+        st.error(f"❌ Error crítico en la conexión: {e}")
+        return False
+
+# Ejecutar al cargar la app
+ee_conectado = conectar_geoprocesamiento()
 from streamlit_folium import st_folium
 import streamlit as st
 import google.generativeai as genai
@@ -10,27 +42,6 @@ import io
 import plotly.express as px
 import urllib.parse
 import base64
-# --- AL PRINCIPIO DE FRUTALES.PY ---
-import streamlit as st
-import ee
-import json
-
-# Función de inicialización única
-@st.cache_resource # Esto es CLAVE: evita que se conecte mil veces
-def conectar_geoprocesamiento():
-    try:
-        if "GCP_SERVICE_ACCOUNT" in st.secrets:
-            creds = json.loads(st.secrets["GCP_SERVICE_ACCOUNT"])
-            ee_creds = ee.ServiceAccountCredentials(creds['client_email'], key_data=st.secrets["GCP_SERVICE_ACCOUNT"])
-            ee.Initialize(ee_creds, project='agroguardian-ee')
-        else:
-            ee.Initialize(project='agroguardian-ee')
-        return True
-    except Exception as e:
-        return False
-
-# Ejecutar una sola vez
-ee_conectado = conectar_geoprocesamiento()
 from io import BytesIO
 from supabase import create_client
 from streamlit_folium import folium_static
