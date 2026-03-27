@@ -1939,30 +1939,51 @@ folium.LayerControl().add_to(m2)
 st.subheader("🌱 NDVI + Topografía")
 mapa2 = st_folium(m2, width=700, height=500, key="mapa_final")
     # ================================
-    # 4️⃣ CARGA DE PUNTOS
     # ================================
-    if mapa2 and mapa2.get("last_clicked"):
-        c_lat = mapa2["last_clicked"]["lat"]
-        c_lon = mapa2["last_clicked"]["lng"]
+# 4️⃣ CARGA DE PUNTOS
+# ================================
+if mapa2 and mapa2.get("last_clicked"):
+    c_lat = mapa2["last_clicked"]["lat"]
+    c_lon = mapa2["last_clicked"]["lng"]
 
-        st.info(f"📍 Punto: {c_lat:.5f}, {c_lon:.5f}")
+    # Guardar el último punto clickeado en session_state
+    st.session_state["ultimo_punto"] = {"lat": c_lat, "lon": c_lon}
 
-        rend = st.number_input("Rendimiento (kg/ha)", 0.0, key="input_rinde")
+if st.session_state.get("ultimo_punto"):
+    c_lat = st.session_state["ultimo_punto"]["lat"]
+    c_lon = st.session_state["ultimo_punto"]["lon"]
 
-        if st.button("💾 Guardar punto", key=f"guardar_{c_lat}_{c_lon}"):
+    st.info(f"📍 Punto: {c_lat:.5f}, {c_lon:.5f}")
+
+    rend = st.number_input("Rendimiento (kg/ha)", min_value=0.0, key="input_rinde")
+
+    if st.button("💾 Guardar punto", key="btn_guardar_punto"):  # ← key fijo
+        # Evitar duplicados
+        ya_existe = any(
+            abs(d["lat"] - c_lat) < 0.00001 and abs(d["lon"] - c_lon) < 0.00001
+            for d in st.session_state.datos_rinde
+        )
+        if not ya_existe:
             st.session_state.datos_rinde.append({
                 "lat": c_lat,
                 "lon": c_lon,
                 "rend": rend
             })
-            st.success("Punto guardado")
-            st.rerun()
+            st.success(f"✅ Punto guardado: {rend} kg/ha")
+        else:
+            st.warning("⚠️ Ese punto ya fue cargado")
+        st.rerun()
 
-    # Mostrar puntos
-    if st.session_state.datos_rinde:
-        st.subheader("📊 Puntos cargados")
-        st.write(st.session_state.datos_rinde)
+# Mostrar puntos cargados
+if st.session_state.datos_rinde:
+    st.subheader("📊 Puntos cargados")
+    import pandas as pd
+    df = pd.DataFrame(st.session_state.datos_rinde)
+    st.dataframe(df, use_container_width=True)
 
+    if st.button("🗑️ Limpiar puntos", key="btn_limpiar"):
+        st.session_state.datos_rinde = []
+        st.rerun()
     # ================================
     # 5️⃣ MODELO
     # ================================
