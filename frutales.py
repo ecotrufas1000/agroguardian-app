@@ -1827,40 +1827,111 @@ if menu == "🛰️ Rend. Inteligente":
             map_id_topo = ee.data.getMapId({'image': curvas_final.visualize(palette=['#333333'])})
             
             # 3. CONSTRUCCIÓN DEL MAPA
-            m = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
-            
-            folium.TileLayer(
-                tiles=map_id_ndvi['tile_fetcher'].url_format,
-                attr='GEE NDVI', name='Vigor Vegetativo',
-                overlay=True, opacity=0.7
-            ).add_to(m)
+m = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
 
-            folium.TileLayer(
-                tiles=map_id_topo['tile_fetcher'].url_format,
-                attr='GEE Topo', name='Curvas de Nivel',
-                overlay=True, opacity=1.0
-            ).add_to(m)
+folium.TileLayer(
+    tiles=map_id_ndvi['tile_fetcher'].url_format,
+    attr='GEE NDVI', name='Vigor Vegetativo',
+    overlay=True, opacity=0.7
+).add_to(m)
 
-            folium.LayerControl().add_to(m)
-            
-            # 4. RENDERIZADO Y BOTÓN DE DESCARGA
-            st_folium(m, width=700, height=500, key="mapa_agro_final_ok")
-            
-            # Lógica del Botón de Descarga
-            mapa_html = m._repr_html_()
-            st.download_button(
-                label="📥 Descargar Mapa para Informe",
-                data=mapa_html,
-                file_name=f"Mapa_AgroGuardian_{lat}_{lon}.html",
-                mime="text/html"
-            )
-            
-            st.success("✅ Análisis satelital completo.")
+folium.TileLayer(
+    tiles=map_id_topo['tile_fetcher'].url_format,
+    attr='GEE Topo', name='Curvas de Nivel',
+    overlay=True, opacity=1.0
+).add_to(m)
 
-        except Exception as e:
-            st.error(f"Error visual: {e}")
-    else:
-        st.error("❌ No se pudieron cargar los datos de esta zona.")
+folium.LayerControl().add_to(m)
+
+# 🔥 CAPTURAR CLICK EN MAPA
+mapa = st_folium(m, width=700, height=500, key="mapa_agro_final_ok")
+
+# 🔥 INICIALIZAR DATOS
+if "datos_rinde" not in st.session_state:
+    st.session_state.datos_rinde = []
+
+# 🔥 CUANDO HACEN CLICK
+if mapa and mapa.get("last_clicked"):
+
+    c_lat = mapa["last_clicked"]["lat"]
+    c_lon = mapa["last_clicked"]["lng"]
+
+    st.info(f"📍 Punto seleccionado: {c_lat:.5f}, {c_lon:.5f}")
+
+    rend = st.number_input("Rendimiento en este punto (kg/ha)", 0.0, key="input_rinde")
+
+    if st.button("💾 Guardar punto"):
+        st.session_state.datos_rinde.append({
+            "lat": c_lat,
+            "lon": c_lon,
+            "rend": rend
+        })
+        st.success("Punto guardado")
+
+# 🔥 MOSTRAR PUNTOS
+if st.session_state.datos_rinde:
+    st.subheader("📊 Puntos cargados")
+    st.write(st.session_state.datos_rinde)
+
+# 🔥 OBTENER NDVI EN PUNTOS
+ndvi_vals = []
+rend_vals = []
+
+for d in st.session_state.datos_rinde:
+    try:
+        p = ee.Geometry.Point([d["lon"], d["lat"]])
+        sample = ndvi_map.sample(p, 10).first()
+
+        if sample is not None:
+            val = sample.getInfo()
+            if val:
+                ndvi_vals.append(val["properties"]["NDVI"])
+                rend_vals.append(d["rend"])
+    except:
+        pass
+
+# 🔥 MODELO HÍBRIDO
+import numpy as np
+
+if len(ndvi_vals) >= 3:
+
+    coef = np.polyfit(ndvi_vals, rend_vals, 1)
+    a, b = coef
+
+    st.success(f"📈 Modelo calibrado: Rend = {a:.2f} * NDVI + {b:.2f}")
+
+    # 🔥 MAPA DE RENDIMIENTO
+    rend_est = ndvi_map.multiply(a).add(b)
+
+    vis_rend = {
+        'min': 0,
+        'max': 200,
+        'palette': ['blue', 'yellow', 'red']
+    }
+
+    map_id_rend = ee.data.getMapId({'image': rend_est.visualize(**vis_rend)})
+
+    folium.TileLayer(
+        tiles=map_id_rend['tile_fetcher'].url_format,
+        attr='Rendimiento',
+        name='Rendimiento estimado',
+        overlay=True,
+        opacity=0.6
+    ).add_to(m)
+
+    st.success("🔥 Mapa de rendimiento generado")
+
+else:
+    st.info("👉 Cargá al menos 3 puntos para generar el modelo")
+
+# 🔥 DESCARGA
+mapa_html = m._repr_html_()
+st.download_button(
+    label="📥 Descargar Mapa para Informe",
+    data=mapa_html,
+    file_name=f"Mapa_AgroGuardian_{lat}_{lon}.html",
+    mime="text/html"
+)
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
