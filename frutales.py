@@ -1852,7 +1852,7 @@ if menu == "🛰️ Rend. Inteligente":
             ).add_to(m)
             
             # ✅ 3. AGREGAR DRAW (DESPUÉS DEL MAPA)
-                        draw = Draw(
+            draw = Draw(
                 export=True,
                 draw_options={
                     'polyline': False,
