@@ -1776,16 +1776,27 @@ def obtener_relieve_srtm(lat, lon):
         return None
 
 @st.cache_data
-def obtener_mapa_ndvi(lat, lon, poligono_ee):
+def obtener_mapa_ndvi(lat, lon, coords):
     try:
+        poligono_ee = ee.Geometry.Polygon(coords)
+
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
                      .filterBounds(poligono_ee)
                      .filterDate('2025-09-01', '2026-03-26')
                      .sort('CLOUDY_PIXEL_PERCENTAGE'))
-        
+
         if coleccion.size().getInfo() == 0:
             return None
-            
+
+        imagen = coleccion.first()
+
+        ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
+        ndvi = ndvi.clip(poligono_ee)
+
+        return ndvi
+
+    except Exception as e:
+        return None            
         imagen = coleccion.first()
         ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
         ndvi = ndvi.clip(poligono_ee)
@@ -1860,7 +1871,7 @@ if menu == "🛰️ Rend. Inteligente":
     poligono_ee = ee.Geometry.Polygon(coords)
 
     # 🔹 TRAER DATOS SATELITALES
-    ndvi_map = obtener_mapa_ndvi(lat, lon, poligono_ee)
+    ndvi_map = obtener_mapa_ndvi(lat, lon, coords)
     topo_map = obtener_relieve_srtm(lat, lon)
 
     if not ndvi_map or not topo_map:
