@@ -1862,10 +1862,10 @@ if menu == "🛰️ Rend. Inteligente":
                     'circlemarker': False
                 }
             )
-draw.add_to(m)
+            draw.add_to(m)
 
 # ✅ 4. CONTROLES
-folium.LayerControl().add_to(m)
+           folium.LayerControl().add_to(m)
             
 # 🔥 CAPTURAR CLICK EN MAPA
 mapa = st_folium(m, width=700, height=500, key="mapa_agro")
