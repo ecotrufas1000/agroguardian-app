@@ -1931,7 +1931,7 @@ if menu == "🛰️ Rend. Inteligente":
                     "rend": rend
                 })
                 st.success("Punto guardado")
-            if st.button("💾 Guardar punto"):
+            if st.button("💾 Guardar punto", key=f"btn_guardar_{c_lat}_{c_lon}"):
                 st.session_state.datos_rinde.append({
                     "lat": c_lat,
                     "lon": c_lon,
