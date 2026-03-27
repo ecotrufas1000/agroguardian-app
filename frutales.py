@@ -2023,152 +2023,152 @@ if menu == "🛰️ Rend. Inteligente":
             .multiply(densidad / 400)  # ajuste densidad
         )
         # ================================
-# 🌳 GENERAR ÁRBOLES (GRILLA)
-# ================================
-st.subheader("🌳 Generando modelo por árbol...")
-
-import math
-
-# espaciamiento en metros (ej: 5x5)
-espaciamiento = st.number_input("📏 Distancia entre plantas (m)", value=5)
-
-# geometría lote
-geom = ee.Geometry.Polygon(coords)
-
-# bounding box
-bounds = geom.bounds()
-
-# generar grilla de puntos
-grid = ee.FeatureCollection(
-    ee.Image.pixelLonLat()
-    .reproject('EPSG:4326', None, espaciamiento)
-    .sample(
-        region=bounds,
-        scale=espaciamiento,
-        geometries=True
-    )
-)
-
-# filtrar dentro del lote
-grid = grid.filterBounds(geom)
-
-# ================================
-# 📊 CALCULAR RENDIMIENTO POR ÁRBOL
-# ================================
-def calc_arbol(f):
-    p = f.geometry()
-
-    ndvi_val = ndvi_map.reduceRegion(
-        reducer=ee.Reducer.mean(),
-        geometry=p.buffer(2),
-        scale=10
-    ).get("NDVI")
-
-    slope_val = slope.reduceRegion(
-        reducer=ee.Reducer.mean(),
-        geometry=p.buffer(2),
-        scale=30
-    ).get("slope")
-
-    # evitar nulos
-    ndvi_val = ee.Number(ndvi_val)
-    slope_val = ee.Number(slope_val)
-
-    # modelo
-    rinde = (
-        ndvi_val.multiply(a)
-        .add(b)
-        .add(slope_val.multiply(-0.5))
-        .multiply(densidad / 400)
-    )
-
-    return f.set({
-        "NDVI": ndvi_val,
-        "rend": rinde
-    })
-
-arboles = grid.map(calc_arbol)
-
-# ================================
-# 🎨 VISUALIZACIÓN DE ÁRBOLES
-# ================================
-# estilo por rendimiento
-arboles_vis = arboles.map(lambda f: f.set(
-    "style", {
-        "color": "black",
-        "pointSize": 3,
-        "fillColor": ee.Algorithms.If(
-            ee.Number(f.get("rend")).lt(2000), "blue",
-            ee.Algorithms.If(
-                ee.Number(f.get("rend")).lt(4000), "yellow",
-                "red"
+        # 🌳 GENERAR ÁRBOLES (GRILLA)
+        # ================================
+        st.subheader("🌳 Generando modelo por árbol...")
+        
+        import math
+        
+        # espaciamiento en metros (ej: 5x5)
+        espaciamiento = st.number_input("📏 Distancia entre plantas (m)", value=5)
+        
+        # geometría lote
+        geom = ee.Geometry.Polygon(coords)
+        
+        # bounding box
+        bounds = geom.bounds()
+        
+        # generar grilla de puntos
+        grid = ee.FeatureCollection(
+            ee.Image.pixelLonLat()
+            .reproject('EPSG:4326', None, espaciamiento)
+            .sample(
+                region=bounds,
+                scale=espaciamiento,
+                geometries=True
             )
         )
-    }
-))
-
-url_arboles = arboles_vis.style(**{"styleProperty": "style"}) \
-    .getMapId()['tile_fetcher'].url_format
-
-# ================================
-# 🗺️ MAPA FINAL CON TODO
-# ================================
-m4 = folium.Map(location=[lat, lon], zoom_start=15)
-
-# capa rendimiento base
-url_rend = rend_est.visualize(
-    min=min(rend_vals),
-    max=max(rend_vals),
-    palette=['blue', 'yellow', 'red']
-).getMapId()['tile_fetcher'].url_format
-
-folium.TileLayer(tiles=url_rend, attr='GEE', name='Rendimiento', overlay=True).add_to(m4)
-
-# capa árboles
-folium.TileLayer(tiles=url_arboles, attr='GEE', name='Árboles', overlay=True).add_to(m4)
-
-# polígono
-folium.GeoJson(st.session_state.poligono).add_to(m4)
-
-folium.LayerControl().add_to(m4)
-
-st.subheader("🌳🔥 Mapa de Árboles + Rendimiento")
-st_folium(m4, width=700, height=500)
-        # ================================
-        # MAPA FINAL (RENDER NUEVO)
-        # ================================
-        m3 = folium.Map(location=[lat, lon], zoom_start=15)
-
-        # calcular rangos
-        min_val = min(rend_vals)
-        max_val = max(rend_vals)
         
-        # evitar que sean iguales (muy importante)
-        if min_val == max_val:
-            max_val = min_val + 1
+        # filtrar dentro del lote
+        grid = grid.filterBounds(geom)
         
-        # generar tile
+        # ================================
+        # 📊 CALCULAR RENDIMIENTO POR ÁRBOL
+        # ================================
+        def calc_arbol(f):
+            p = f.geometry()
+        
+            ndvi_val = ndvi_map.reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=p.buffer(2),
+                scale=10
+            ).get("NDVI")
+        
+            slope_val = slope.reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=p.buffer(2),
+                scale=30
+            ).get("slope")
+        
+            # evitar nulos
+            ndvi_val = ee.Number(ndvi_val)
+            slope_val = ee.Number(slope_val)
+        
+            # modelo
+            rinde = (
+                ndvi_val.multiply(a)
+                .add(b)
+                .add(slope_val.multiply(-0.5))
+                .multiply(densidad / 400)
+            )
+        
+            return f.set({
+                "NDVI": ndvi_val,
+                "rend": rinde
+            })
+        
+        arboles = grid.map(calc_arbol)
+        
+        # ================================
+        # 🎨 VISUALIZACIÓN DE ÁRBOLES
+        # ================================
+        # estilo por rendimiento
+        arboles_vis = arboles.map(lambda f: f.set(
+            "style", {
+                "color": "black",
+                "pointSize": 3,
+                "fillColor": ee.Algorithms.If(
+                    ee.Number(f.get("rend")).lt(2000), "blue",
+                    ee.Algorithms.If(
+                        ee.Number(f.get("rend")).lt(4000), "yellow",
+                        "red"
+                    )
+                )
+            }
+        ))
+        
+        url_arboles = arboles_vis.style(**{"styleProperty": "style"}) \
+            .getMapId()['tile_fetcher'].url_format
+        
+        # ================================
+        # 🗺️ MAPA FINAL CON TODO
+        # ================================
+        m4 = folium.Map(location=[lat, lon], zoom_start=15)
+        
+        # capa rendimiento base
         url_rend = rend_est.visualize(
-            min=min_val,
-            max=max_val,
+            min=min(rend_vals),
+            max=max(rend_vals),
             palette=['blue', 'yellow', 'red']
         ).getMapId()['tile_fetcher'].url_format
-        folium.TileLayer(
-            tiles=url_rend,
-            attr='GEE',
-            name='Rendimiento',
-            overlay=True
-        ).add_to(m3)
-
-        folium.GeoJson(st.session_state.poligono).add_to(m3)
-
-        folium.LayerControl().add_to(m3)
-
-        st.subheader("🔥 Mapa de Rendimiento Estimado")
-        st_folium(m3, width=700, height=500)
-
-    else:
-        st.info(f"👉 Cargá al menos 3 puntos ({len(ndvi_vals)}/3)")
+        
+        folium.TileLayer(tiles=url_rend, attr='GEE', name='Rendimiento', overlay=True).add_to(m4)
+        
+        # capa árboles
+        folium.TileLayer(tiles=url_arboles, attr='GEE', name='Árboles', overlay=True).add_to(m4)
+        
+        # polígono
+        folium.GeoJson(st.session_state.poligono).add_to(m4)
+        
+        folium.LayerControl().add_to(m4)
+        
+        st.subheader("🌳🔥 Mapa de Árboles + Rendimiento")
+        st_folium(m4, width=700, height=500)
+                # ================================
+                # MAPA FINAL (RENDER NUEVO)
+                # ================================
+                m3 = folium.Map(location=[lat, lon], zoom_start=15)
+        
+                # calcular rangos
+                min_val = min(rend_vals)
+                max_val = max(rend_vals)
+                
+                # evitar que sean iguales (muy importante)
+                if min_val == max_val:
+                    max_val = min_val + 1
+                
+                # generar tile
+                url_rend = rend_est.visualize(
+                    min=min_val,
+                    max=max_val,
+                    palette=['blue', 'yellow', 'red']
+                ).getMapId()['tile_fetcher'].url_format
+                folium.TileLayer(
+                    tiles=url_rend,
+                    attr='GEE',
+                    name='Rendimiento',
+                    overlay=True
+                ).add_to(m3)
+        
+                folium.GeoJson(st.session_state.poligono).add_to(m3)
+        
+                folium.LayerControl().add_to(m3)
+        
+                st.subheader("🔥 Mapa de Rendimiento Estimado")
+                st_folium(m3, width=700, height=500)
+        
+            else:
+                st.info(f"👉 Cargá al menos 3 puntos ({len(ndvi_vals)}/3)")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
