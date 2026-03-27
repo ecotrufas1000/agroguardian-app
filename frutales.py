@@ -1828,8 +1828,30 @@ if menu == "🛰️ Rend. Inteligente":
             map_id_topo = ee.data.getMapId({'image': curvas_final.visualize(palette=['#333333'])})
             
             # 3. CONSTRUCCIÓN DEL MAPA
-            from folium.plugins import Draw
 
+            from folium.plugins import Draw
+            
+            # ✅ 1. CREAR MAPA PRIMERO
+            m = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
+            
+            # ✅ 2. AGREGAR CAPAS
+            folium.TileLayer(
+                tiles=map_id_ndvi['tile_fetcher'].url_format,
+                attr='GEE NDVI',
+                name='Vigor Vegetativo',
+                overlay=True,
+                opacity=0.7
+            ).add_to(m)
+            
+            folium.TileLayer(
+                tiles=map_id_topo['tile_fetcher'].url_format,
+                attr='GEE Topo',
+                name='Curvas de Nivel',
+                overlay=True,
+                opacity=1.0
+            ).add_to(m)
+            
+            # ✅ 3. AGREGAR DRAW (DESPUÉS DEL MAPA)
             draw = Draw(
                 export=True,
                 draw_options={
@@ -1841,21 +1863,9 @@ if menu == "🛰️ Rend. Inteligente":
                 }
             )
             draw.add_to(m)
-            m = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
-            
-            folium.TileLayer(
-                tiles=map_id_ndvi['tile_fetcher'].url_format,
-                attr='GEE NDVI', name='Vigor Vegetativo',
-                overlay=True, opacity=0.7
-            ).add_to(m)
-            
-            folium.TileLayer(
-                tiles=map_id_topo['tile_fetcher'].url_format,
-                attr='GEE Topo', name='Curvas de Nivel',
-                overlay=True, opacity=1.0
-            ).add_to(m)
-            
-            folium.LayerControl().add_to(m)
+
+# ✅ 4. CONTROLES
+folium.LayerControl().add_to(m)
             
             # 🔥 CAPTURAR CLICK EN MAPA
             mapa = st_folium(m, width=700, height=500, key="mapa_agro")
