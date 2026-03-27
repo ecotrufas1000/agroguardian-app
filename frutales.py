@@ -1889,38 +1889,55 @@ if menu == "🛰️ Rend. Inteligente":
     # ================================
     # 3️⃣ MAPA CON NDVI + TOPO
     # ================================
-    paleta_agro = ['#d73027','#f46d43','#fdae61','#fee08b',
-                   '#d9ef8b','#a6d96a','#66bd63','#1a9850']
+    # ================================
+# 3️⃣ MAPA CON NDVI + TOPO
+# ================================
+paleta_agro = ['#d73027','#f46d43','#fdae61','#fee08b',
+               '#d9ef8b','#a6d96a','#66bd63','#1a9850']
 
-    ndvi_rgb = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro)
-    map_id_ndvi = ee.data.getMapId({'image': ndvi_rgb})
+m2 = folium.Map(location=[lat, lon], zoom_start=15)
 
-    lineas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
-    curvas = lineas.focal_max(1).mask(lineas)
-    map_id_topo = ee.data.getMapId({'image': curvas.visualize(palette=['black'])})
-
-    m2 = folium.Map(location=[lat, lon], zoom_start=15)
-
+# --- NDVI ---
+try:
+    ndvi_vis = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro)
+    
+    # Método nuevo compatible con ee moderno
+    url_ndvi = ndvi_vis.getMapId()['tile_fetcher'].url_format
+    
     folium.TileLayer(
-        tiles=map_id_ndvi['tile_fetcher'].url_format,
-        attr='Google Earth Engine',
+        tiles=url_ndvi,
+        attr='GEE - NDVI',
         name='NDVI',
         overlay=True,
         opacity=0.7
     ).add_to(m2)
+    st.success("✅ NDVI cargado")
+except Exception as e:
+    st.error(f"❌ Error cargando NDVI: {e}")  # ← así ves el error real
+
+# --- TOPOGRAFÍA ---
+try:
+    lineas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
+    curvas = lineas.focal_max(1).mask(lineas)
+    url_topo = curvas.visualize(palette=['black']).getMapId()['tile_fetcher'].url_format
 
     folium.TileLayer(
-        tiles=map_id_topo['tile_fetcher'].url_format,
-        attr='Google Earth Engine',
-        name='Curvas',
-        overlay=True
+        tiles=url_topo,
+        attr='GEE - Topo',
+        name='Curvas de nivel',
+        overlay=True,
+        opacity=0.8
     ).add_to(m2)
+    st.success("✅ Topografía cargada")
+except Exception as e:
+    st.error(f"❌ Error cargando topografía: {e}")
 
-    folium.LayerControl().add_to(m2)
+# Polígono del lote
+folium.GeoJson(st.session_state.poligono, name="Lote").add_to(m2)
+folium.LayerControl().add_to(m2)
 
-    st.subheader("🌱 NDVI + Topografía")
-    mapa2 = st_folium(m2, width=700, height=500, key="mapa_final")
-
+st.subheader("🌱 NDVI + Topografía")
+mapa2 = st_folium(m2, width=700, height=500, key="mapa_final")
     # ================================
     # 4️⃣ CARGA DE PUNTOS
     # ================================
