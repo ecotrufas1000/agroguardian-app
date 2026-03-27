@@ -1932,6 +1932,8 @@ if menu == "🛰️ Rend. Inteligente":
                 file_name=f"Mapa_AgroGuardian_{lat}_{lon}.html",
                 mime="text/html"
             )
+        except Exception as e:
+            st.error(f"Error en procesamiento: {e}")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
