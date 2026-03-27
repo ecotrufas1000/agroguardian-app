@@ -1779,7 +1779,6 @@ def obtener_relieve_srtm(lat, lon):
 def obtener_mapa_ndvi(lat, lon, coords):
     try:
         poligono_ee = ee.Geometry.Polygon(coords)
-
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
                      .filterBounds(poligono_ee)
                      .filterDate('2025-09-01', '2026-03-26')
@@ -1788,6 +1787,14 @@ def obtener_mapa_ndvi(lat, lon, coords):
         if coleccion.size().getInfo() == 0:
             return None
 
+        imagen = coleccion.first()
+        ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
+        ndvi = ndvi.clip(poligono_ee)
+        return ndvi
+
+    except Exception as e:
+        st.error(f"Error NDVI: {e}")  # ← visible en vez de silencioso
+        return None
         imagen = coleccion.first()
 
         ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
