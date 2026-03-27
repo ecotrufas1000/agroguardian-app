@@ -1970,6 +1970,7 @@ if menu == "🛰️ Rend. Inteligente":
 
         folium.TileLayer(
             tiles=map_id_rend['tile_fetcher'].url_format,
+            attr='Google Earth Engine',
             name='Rendimiento',
             overlay=True,
             opacity=0.6
