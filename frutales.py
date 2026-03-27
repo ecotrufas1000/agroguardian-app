@@ -2036,9 +2036,7 @@ if menu == "🛰️ Rend. Inteligente":
                 min=min_val,
                 max=max_val,
                 palette=['blue', 'yellow', 'red']
-            )
-            
-        ).getMapId()['tile_fetcher'].url_format
+            ).getMapId()['tile_fetcher'].url_format
 
         folium.TileLayer(
             tiles=url_rend,
