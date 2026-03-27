@@ -1953,23 +1953,23 @@ if menu == "🛰️ Rend. Inteligente":
     rend_vals = []
 
     for d in st.session_state.datos_rinde:
-    try:
-        p = ee.Geometry.Point([d["lon"], d["lat"]])
-        # Usar reduceRegion es más confiable que sample
-        val = ndvi_map.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=p.buffer(20),  # buffer de 20m
-            scale=10
-        ).getInfo()
-
-        if val and "NDVI" in val and val["NDVI"] is not None:
-            ndvi_vals.append(val["NDVI"])
-            rend_vals.append(d["rend"])
-        else:
-            st.warning(f"⚠️ Sin valor NDVI en punto {d['lat']:.4f}, {d['lon']:.4f}")
-
-    except Exception as e:
-        st.warning(f"⚠️ Error en punto: {e}")  # visible, no silencioso
+        try:
+            p = ee.Geometry.Point([d["lon"], d["lat"]])
+            # Usar reduceRegion es más confiable que sample
+            val = ndvi_map.reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=p.buffer(20),  # buffer de 20m
+                scale=10
+            ).getInfo()
+    
+            if val and "NDVI" in val and val["NDVI"] is not None:
+                ndvi_vals.append(val["NDVI"])
+                rend_vals.append(d["rend"])
+            else:
+                st.warning(f"⚠️ Sin valor NDVI en punto {d['lat']:.4f}, {d['lon']:.4f}")
+    
+        except Exception as e:
+            st.warning(f"⚠️ Error en punto: {e}")  # visible, no silencioso
 
     import numpy as np
 
