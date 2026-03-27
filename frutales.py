@@ -2017,8 +2017,8 @@ if menu == "🛰️ Rend. Inteligente":
         st.subheader("🔥 Mapa de Rendimiento Estimado")
         st_folium(m3, width=700, height=500)
 
-    else:
-        st.info(f"👉 Cargá al menos 3 puntos ({len(ndvi_vals)}/3)")
+else:
+    st.info(f"👉 Cargá al menos 3 puntos ({len(ndvi_vals)}/3)")
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
