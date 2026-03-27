@@ -1813,8 +1813,15 @@ if menu == "🛰️ Rend. Inteligente":
     with col2:
         lon = st.number_input("Longitud", value=-58.2100, format="%.4f", key="lon_final")
 
-    ndvi_map = obtener_mapa_ndvi(lat, lon)
-    topo_map = obtener_relieve_srtm(lat, lon)
+    if st.session_state.poligono:
+        coords = st.session_state.poligono["geometry"]["coordinates"]
+        poligono_ee = ee.Geometry.Polygon(coords)
+
+        ndvi_map = obtener_mapa_ndvi(lat, lon, poligono_ee)
+        topo_map = obtener_relieve_srtm(lat, lon)
+    else:
+        st.info("👉 Dibujá un polígono primero")
+        st.stop()
     
     if ndvi_map and topo_map:
         try:
