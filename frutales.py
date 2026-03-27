@@ -1827,6 +1827,19 @@ if menu == "🛰️ Rend. Inteligente":
             map_id_topo = ee.data.getMapId({'image': curvas_final.visualize(palette=['#333333'])})
             
             # 3. CONSTRUCCIÓN DEL MAPA
+            from folium.plugins import Draw
+
+            draw = Draw(
+                export=True,
+                draw_options={
+                    'polyline': False,
+                    'rectangle': True,
+                    'circle': False,
+                    'marker': False,
+                    'circlemarker': False
+                }
+            )
+            draw.add_to(m)
             m = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
             
             folium.TileLayer(
@@ -1844,7 +1857,22 @@ if menu == "🛰️ Rend. Inteligente":
             folium.LayerControl().add_to(m)
             
             # 🔥 CAPTURAR CLICK EN MAPA
-            mapa = st_folium(m, width=700, height=500, key="mapa_agro_final_ok")
+            mapa = st_folium(m, width=700, height=500, key="mapa_agro")
+
+            if "poligono" not in st.session_state:
+                st.session_state.poligono = None
+            
+            if mapa and mapa.get("all_drawings"):
+                dibujos = mapa["all_drawings"]
+            
+                if len(dibujos) > 0:
+                    geojson = dibujos[-1]  # último dibujado
+                    st.session_state.poligono = geojson
+                    st.success("✅ Polígono guardado")
+            if st.session_state.poligono:
+                coords = st.session_state.poligono["geometry"]["coordinates"]
+                
+                poligono_ee = ee.Geometry.Polygon(coords)
             
             # 🔥 INICIALIZAR DATOS
             if "datos_rinde" not in st.session_state:
