@@ -1778,9 +1778,8 @@ def obtener_relieve_srtm(lat, lon):
 @st.cache_data
 def obtener_mapa_ndvi(lat, lon, poligono_ee):
     try:
-        punto = ee.Geometry.Point([lon, lat])
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                     .filterBounds(poligono_ee) 
+                     .filterBounds(poligono_ee)
                      .filterDate('2025-09-01', '2026-03-26')
                      .sort('CLOUDY_PIXEL_PERCENTAGE'))
         
@@ -1790,10 +1789,12 @@ def obtener_mapa_ndvi(lat, lon, poligono_ee):
         imagen = coleccion.first()
         ndvi = imagen.normalizedDifference(['B8', 'B4']).rename('NDVI')
         ndvi = ndvi.clip(poligono_ee)
-        return ndvi
-    except Exception as e:
-        return None
 
+        return ndvi
+
+    except Exception as e:
+        print(e)
+        return None
 # --- 3. EJECUCIÓN DE CONEXIÓN ---
 # Se ejecuta una sola vez al inicio
 ee_conectado = conectar_geoprocesamiento()
