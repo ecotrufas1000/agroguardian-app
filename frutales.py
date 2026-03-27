@@ -1811,7 +1811,6 @@ def obtener_mapa_ndvi(lat, lon, coords):
 ee_conectado = conectar_geoprocesamiento()
 
 # --- 4. SECCIÓN DEL MENÚ RENDIMIENTO ---
-
 if menu == "🛰️ Rend. Inteligente":
     st.header("🛰️ Simulación de Rendimiento y Topografía")
 
@@ -1819,189 +1818,177 @@ if menu == "🛰️ Rend. Inteligente":
         st.error("⚠️ Error de conexión con Earth Engine.")
         st.stop()
 
-    # 🔹 Estado inicial
+    # 🔹 ESTADO
     if "poligono" not in st.session_state:
         st.session_state.poligono = None
+
     if "datos_rinde" not in st.session_state:
         st.session_state.datos_rinde = []
 
-    # 🔹 Inputs
+    # 🔹 INPUTS
     col1, col2 = st.columns(2)
     with col1:
         lat = st.number_input("Latitud", value=-37.9300, format="%.4f")
     with col2:
         lon = st.number_input("Longitud", value=-58.2100, format="%.4f")
 
-    # 🔹 MAPA BASE (SIEMPRE SE CREA)
+    # ================================
+    # 1️⃣ MAPA PARA DIBUJAR POLÍGONO
+    # ================================
     from folium.plugins import Draw
 
-    m = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
+    m = folium.Map(location=[lat, lon], zoom_start=15)
 
     draw = Draw(
         export=True,
         draw_options={
             'polyline': False,
             'rectangle': True,
+            'polygon': True,
             'circle': False,
-            'marker': False,
-            'circlemarker': False
+            'marker': False
         }
     )
     draw.add_to(m)
 
-    folium.LayerControl().add_to(m)
+    st.subheader("🗺️ Dibujá el lote")
+    mapa = st_folium(m, width=700, height=500, key="mapa_dibujo")
 
-    # 🔥 MOSTRAR MAPA
-    mapa = st_folium(m, width=700, height=500, key="mapa_agro")
-
-    # 🔹 GUARDAR POLÍGONO
+    # Guardar polígono
     if mapa and mapa.get("all_drawings"):
         dibujos = mapa["all_drawings"]
         if len(dibujos) > 0:
             st.session_state.poligono = dibujos[-1]
             st.success("✅ Polígono guardado")
 
-    # 🔹 SI NO HAY POLÍGONO → STOP ACÁ (pero el mapa ya se ve)
+    # Si no hay polígono → parar acá
     if not st.session_state.poligono:
-        st.info("👉 Dibujá un polígono para continuar")
+        st.info("👉 Dibujá el polígono para continuar")
         st.stop()
 
-    # 🔹 CREAR POLÍGONO EE
+    # ================================
+    # 2️⃣ DATOS SATELITALES
+    # ================================
     coords = st.session_state.poligono["geometry"]["coordinates"]
     poligono_ee = ee.Geometry.Polygon(coords)
 
-    # 🔹 TRAER DATOS SATELITALES
     ndvi_map = obtener_mapa_ndvi(lat, lon, coords)
     topo_map = obtener_relieve_srtm(lat, lon)
 
     if not ndvi_map or not topo_map:
-        st.error("❌ No se pudieron cargar datos satelitales")
+        st.error("❌ No se pudieron cargar datos")
         st.stop()
 
-    try:
-        # 🌱 NDVI
-        paleta_agro = ['#d73027', '#f46d43', '#fdae61', '#fee08b',
-                       '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850']
+    # ================================
+    # 3️⃣ MAPA CON NDVI + TOPO
+    # ================================
+    paleta_agro = ['#d73027','#f46d43','#fdae61','#fee08b',
+                   '#d9ef8b','#a6d96a','#66bd63','#1a9850']
 
-        ndvi_rgb = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro)
-        map_id_ndvi = ee.data.getMapId({'image': ndvi_rgb})
+    ndvi_rgb = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro)
+    map_id_ndvi = ee.data.getMapId({'image': ndvi_rgb})
 
-        # ⛰️ TOPO
-        lineas_curvas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
-        curvas_final = lineas_curvas.focal_max(1).mask(lineas_curvas)
-        map_id_topo = ee.data.getMapId({'image': curvas_final.visualize(palette=['#333333'])})
+    lineas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
+    curvas = lineas.focal_max(1).mask(lineas)
+    map_id_topo = ee.data.getMapId({'image': curvas.visualize(palette=['black'])})
 
-        # 🔹 NUEVO MAPA CON CAPAS
-        m2 = folium.Map(location=[lat, lon], zoom_start=15, control_scale=True)
+    m2 = folium.Map(location=[lat, lon], zoom_start=15)
+
+    folium.TileLayer(
+        tiles=map_id_ndvi['tile_fetcher'].url_format,
+        name='NDVI',
+        overlay=True,
+        opacity=0.7
+    ).add_to(m2)
+
+    folium.TileLayer(
+        tiles=map_id_topo['tile_fetcher'].url_format,
+        name='Curvas',
+        overlay=True
+    ).add_to(m2)
+
+    folium.LayerControl().add_to(m2)
+
+    st.subheader("🌱 NDVI + Topografía")
+    mapa2 = st_folium(m2, width=700, height=500, key="mapa_final")
+
+    # ================================
+    # 4️⃣ CARGA DE PUNTOS
+    # ================================
+    if mapa2 and mapa2.get("last_clicked"):
+        c_lat = mapa2["last_clicked"]["lat"]
+        c_lon = mapa2["last_clicked"]["lng"]
+
+        st.info(f"📍 Punto: {c_lat:.5f}, {c_lon:.5f}")
+
+        rend = st.number_input("Rendimiento (kg/ha)", 0.0, key="input_rinde")
+
+        if st.button("💾 Guardar punto", key=f"guardar_{c_lat}_{c_lon}"):
+            st.session_state.datos_rinde.append({
+                "lat": c_lat,
+                "lon": c_lon,
+                "rend": rend
+            })
+            st.success("Punto guardado")
+            st.rerun()
+
+    # Mostrar puntos
+    if st.session_state.datos_rinde:
+        st.subheader("📊 Puntos cargados")
+        st.write(st.session_state.datos_rinde)
+
+    # ================================
+    # 5️⃣ MODELO
+    # ================================
+    ndvi_vals = []
+    rend_vals = []
+
+    for d in st.session_state.datos_rinde:
+        try:
+            p = ee.Geometry.Point([d["lon"], d["lat"]])
+            sample = ndvi_map.sample(p, 10).first()
+
+            if sample:
+                val = sample.getInfo()
+                if val:
+                    ndvi_vals.append(val["properties"]["NDVI"])
+                    rend_vals.append(d["rend"])
+        except:
+            pass
+
+    import numpy as np
+
+    if len(ndvi_vals) >= 3:
+        a, b = np.polyfit(ndvi_vals, rend_vals, 1)
+
+        st.success(f"📈 Modelo: Rend = {a:.2f} * NDVI + {b:.2f}")
+
+        rend_est = ndvi_map.multiply(a).add(b)
+
+        vis = {'min':0, 'max':200, 'palette':['blue','yellow','red']}
+        map_id_rend = ee.data.getMapId({'image': rend_est.visualize(**vis)})
 
         folium.TileLayer(
-            tiles=map_id_ndvi['tile_fetcher'].url_format,
-            attr='NDVI',
-            name='Vigor Vegetativo',
+            tiles=map_id_rend['tile_fetcher'].url_format,
+            name='Rendimiento',
             overlay=True,
-            opacity=0.7
+            opacity=0.6
         ).add_to(m2)
 
-        folium.TileLayer(
-            tiles=map_id_topo['tile_fetcher'].url_format,
-            attr='Topo',
-            name='Curvas de Nivel',
-            overlay=True,
-            opacity=1.0
-        ).add_to(m2)
+        st.success("🔥 Mapa de rendimiento generado")
 
-        folium.LayerControl().add_to(m2)
+    else:
+        st.info("👉 Cargá al menos 3 puntos")
 
-        # 🔥 MAPA FINAL
-        mapa2 = st_folium(m2, width=700, height=500, key="mapa_final")
-
-        # 🔹 CLICK PARA CARGAR RINDE
-        if mapa2 and mapa2.get("last_clicked"):
-            c_lat = mapa2["last_clicked"]["lat"]
-            c_lon = mapa2["last_clicked"]["lng"]
-
-            st.info(f"📍 Punto: {c_lat:.5f}, {c_lon:.5f}")
-
-            rend = st.number_input("Rendimiento (kg/ha)", 0.0, key="input_rinde")
-
-            if st.button("💾 Guardar punto"):
-                st.session_state.datos_rinde.append({
-                    "lat": c_lat,
-                    "lon": c_lon,
-                    "rend": rend
-                })
-                st.success("Punto guardado")
-            if st.button("💾 Guardar punto", key=f"btn_guardar_{c_lat}_{c_lon}"):
-                st.session_state.datos_rinde.append({
-                    "lat": c_lat,
-                    "lon": c_lon,
-                    "rend": rend
-                })
-                st.success("Punto guardado")
-                st.rerun() 
-
-        # 🔹 MOSTRAR PUNTOS
-        if st.session_state.datos_rinde:
-            st.subheader("📊 Puntos cargados")
-            st.write(st.session_state.datos_rinde)
-
-        # 🔹 MODELO
-        ndvi_vals = []
-        rend_vals = []
-
-        for d in st.session_state.datos_rinde:
-            try:
-                p = ee.Geometry.Point([d["lon"], d["lat"]])
-                sample = ndvi_map.sample(p, 10).first()
-
-                if sample:
-                    val = sample.getInfo()
-                    if val:
-                        ndvi_vals.append(val["properties"]["NDVI"])
-                        rend_vals.append(d["rend"])
-            except:
-                pass
-
-        import numpy as np
-
-        if len(ndvi_vals) >= 3:
-            a, b = np.polyfit(ndvi_vals, rend_vals, 1)
-
-            st.success(f"📈 Modelo: Rend = {a:.2f} * NDVI + {b:.2f}")
-
-            rend_est = ndvi_map.multiply(a).add(b)
-
-            vis_rend = {
-                'min': 0,
-                'max': 200,
-                'palette': ['blue', 'yellow', 'red']
-            }
-
-            map_id_rend = ee.data.getMapId({'image': rend_est.visualize(**vis_rend)})
-
-            folium.TileLayer(
-                tiles=map_id_rend['tile_fetcher'].url_format,
-                attr='Rendimiento',
-                name='Mapa de Rendimiento',
-                overlay=True,
-                opacity=0.6
-            ).add_to(m2)
-
-            st.success("🔥 Mapa de rendimiento generado")
-
-        else:
-            st.info("👉 Cargá al menos 3 puntos")
-
-        # 🔹 DESCARGA
-        st.download_button(
-            "📥 Descargar mapa",
-            data=m2._repr_html_(),
-            file_name="mapa_agro.html",
-            mime="text/html"
-        )
-
-    except Exception as e:
-        st.error(f"Error: {e}")
+    # ================================
+    # 6️⃣ DESCARGA
+    # ================================
+    st.download_button(
+        "📥 Descargar mapa",
+        data=m2._repr_html_(),
+        file_name="mapa_agro.html",
+        mime="text/html"
+    )
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
