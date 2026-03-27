@@ -1780,7 +1780,8 @@ def obtener_mapa_ndvi(lat, lon):
     try:
         punto = ee.Geometry.Point([lon, lat])
         coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                     .filterBounds(punto.buffer(5000)) 
+                     .filterBounds(poligono_ee) 
+                     ndvi = ndvi.clip(poligono_ee)
                      .filterDate('2025-09-01', '2026-03-26')
                      .sort('CLOUDY_PIXEL_PERCENTAGE'))
         
