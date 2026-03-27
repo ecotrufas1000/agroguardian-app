@@ -1825,14 +1825,15 @@ if menu == "🛰️ Rend. Inteligente":
         st.error("⚠️ Error de conexión con Earth Engine.")
         st.stop()
 
-    # 🔹 ESTADO
+    # ESTADO
     if "poligono" not in st.session_state:
         st.session_state.poligono = None
-
     if "datos_rinde" not in st.session_state:
         st.session_state.datos_rinde = []
+    if "ndvi_listo" not in st.session_state:
+        st.session_state.ndvi_listo = False
 
-    # 🔹 INPUTS
+    # INPUTS
     col1, col2 = st.columns(2)
     with col1:
         lat = st.number_input("Latitud", value=-37.9300, format="%.4f")
@@ -1840,203 +1841,182 @@ if menu == "🛰️ Rend. Inteligente":
         lon = st.number_input("Longitud", value=-58.2100, format="%.4f")
 
     # ================================
-    # 1️⃣ MAPA PARA DIBUJAR POLÍGONO
+    # FASE 1: sin polígono → mapa para dibujar
     # ================================
-    from folium.plugins import Draw
-
-    m = folium.Map(location=[lat, lon], zoom_start=15)
-
-    draw = Draw(
-        export=True,
-        draw_options={
-            'polyline': False,
-            'rectangle': True,
-            'polygon': True,
-            'circle': False,
-            'marker': False
-        }
-    )
-    draw.add_to(m)
-
-    st.subheader("🗺️ Dibujá el lote")
-    mapa = st_folium(m, width=700, height=500, key="mapa_dibujo")
-
-    # Guardar polígono
-    if mapa and mapa.get("all_drawings"):
-        dibujos = mapa["all_drawings"]
-        if len(dibujos) > 0:
-            st.session_state.poligono = dibujos[-1]
-            st.success("✅ Polígono guardado")
-
-    # Si no hay polígono → parar acá
     if not st.session_state.poligono:
+        from folium.plugins import Draw
+        st.subheader("🗺️ Paso 1: Dibujá el lote")
+
+        m = folium.Map(location=[lat, lon], zoom_start=15)
+        Draw(
+            export=False,
+            draw_options={
+                'polyline': False, 'rectangle': True, 'polygon': True,
+                'circle': False, 'marker': False, 'circlemarker': False
+            }
+        ).add_to(m)
+
+        mapa = st_folium(m, width=700, height=500, key="mapa_dibujo",
+                         returned_objects=["all_drawings"])
+
+        if mapa and mapa.get("all_drawings"):
+            dibujos = mapa["all_drawings"]
+            if len(dibujos) > 0:
+                st.session_state.poligono = dibujos[-1]
+                st.session_state.ndvi_listo = False  # resetear si redibujan
+                st.rerun()  # ← fuerza cambio de fase
+
         st.info("👉 Dibujá el polígono para continuar")
         st.stop()
 
     # ================================
-    # 2️⃣ DATOS SATELITALES
+    # FASE 2: con polígono → mapa NDVI + clicks
     # ================================
     coords = st.session_state.poligono["geometry"]["coordinates"]
-    poligono_ee = ee.Geometry.Polygon(coords)
 
+    # Botón para redibujar
+    if st.button("🔄 Redibujar lote", key="btn_redibujar"):
+        st.session_state.poligono = None
+        st.session_state.datos_rinde = []
+        st.session_state.ndvi_listo = False
+        st.session_state.pop("ultimo_punto", None)
+        st.rerun()
+
+    # Cargar datos satelitales
     ndvi_map = obtener_mapa_ndvi(lat, lon, coords)
     topo_map = obtener_relieve_srtm(lat, lon)
 
     if not ndvi_map or not topo_map:
-        st.error("❌ No se pudieron cargar datos")
+        st.error("❌ No se pudieron cargar datos satelitales")
         st.stop()
 
-    # ================================
+    # Construir mapa único
+    paleta_agro = ['#d73027','#f46d43','#fdae61','#fee08b',
+                   '#d9ef8b','#a6d96a','#66bd63','#1a9850']
 
-# ================================
-# 3️⃣ MAPA CON NDVI + TOPO
-# ================================
-# ================================
-# 3️⃣ MAPA CON NDVI + TOPO + CLICKS
-# ================================
-paleta_agro = ['#d73027','#f46d43','#fdae61','#fee08b',
-               '#d9ef8b','#a6d96a','#66bd63','#1a9850']
+    m2 = folium.Map(location=[lat, lon], zoom_start=15)
 
-m2 = folium.Map(location=[lat, lon], zoom_start=15)
+    try:
+        url_ndvi = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro).getMapId()['tile_fetcher'].url_format
+        folium.TileLayer(tiles=url_ndvi, attr='GEE', name='NDVI', overlay=True, opacity=0.7).add_to(m2)
+    except Exception as e:
+        st.error(f"❌ Error NDVI: {e}")
 
-# NDVI
-try:
-    url_ndvi = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro).getMapId()['tile_fetcher'].url_format
-    folium.TileLayer(tiles=url_ndvi, attr='GEE', name='NDVI', overlay=True, opacity=0.7).add_to(m2)
-    st.success("✅ NDVI cargado")
-except Exception as e:
-    st.error(f"❌ Error NDVI: {e}")
+    try:
+        lineas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
+        curvas = lineas.focal_max(1).mask(lineas)
+        url_topo = curvas.visualize(palette=['black']).getMapId()['tile_fetcher'].url_format
+        folium.TileLayer(tiles=url_topo, attr='GEE', name='Curvas', overlay=True, opacity=0.8).add_to(m2)
+    except Exception as e:
+        st.error(f"❌ Error Topo: {e}")
 
-# Topografía
-try:
-    lineas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
-    curvas = lineas.focal_max(1).mask(lineas)
-    url_topo = curvas.visualize(palette=['black']).getMapId()['tile_fetcher'].url_format
-    folium.TileLayer(tiles=url_topo, attr='GEE', name='Curvas', overlay=True, opacity=0.8).add_to(m2)
-except Exception as e:
-    st.error(f"❌ Error Topo: {e}")
-
-# Polígono del lote
-folium.GeoJson(
-    st.session_state.poligono,
-    name="Lote",
-    style_function=lambda x: {"color": "yellow", "weight": 2, "fillOpacity": 0}
-).add_to(m2)
-
-# Marcadores de puntos ya guardados
-for i, d in enumerate(st.session_state.datos_rinde):
-    folium.Marker(
-        location=[d["lat"], d["lon"]],
-        popup=f"Punto {i+1}: {d['rend']} kg/ha",
-        icon=folium.Icon(color="blue", icon="info-sign")
+    # Polígono
+    folium.GeoJson(
+        st.session_state.poligono,
+        name="Lote",
+        style_function=lambda x: {"color": "yellow", "weight": 2, "fillOpacity": 0}
     ).add_to(m2)
 
-folium.LayerControl().add_to(m2)
+    # Marcadores guardados
+    for i, d in enumerate(st.session_state.datos_rinde):
+        folium.Marker(
+            location=[d["lat"], d["lon"]],
+            popup=f"Punto {i+1}: {d['rend']} kg/ha",
+            icon=folium.Icon(color="blue", icon="info-sign")
+        ).add_to(m2)
 
-st.subheader("🌱 NDVI + Topografía — hacé click para marcar puntos")
-mapa2 = st_folium(
-    m2,
-    width=700,
-    height=500,
-    key="mapa_final",
-    returned_objects=["last_clicked"]  # ← captura clicks explícitamente
-)
+    folium.LayerControl().add_to(m2)
 
-# ================================
-# 4️⃣ CARGA DE PUNTOS
-# ================================
-if mapa2 and mapa2.get("last_clicked"):
-    c_lat = mapa2["last_clicked"]["lat"]
-    c_lon = mapa2["last_clicked"]["lng"]
-    st.session_state["ultimo_punto"] = {"lat": c_lat, "lon": c_lon}
+    st.subheader("🌱 Paso 2: Hacé click en el lote para marcar puntos de rendimiento")
+    mapa2 = st_folium(
+        m2,
+        width=700,
+        height=500,
+        key="mapa_final",
+        returned_objects=["last_clicked"]
+    )
 
-if st.session_state.get("ultimo_punto"):
-    c_lat = st.session_state["ultimo_punto"]["lat"]
-    c_lon = st.session_state["ultimo_punto"]["lon"]
+    # Captura de click
+    if mapa2 and mapa2.get("last_clicked"):
+        c_lat = mapa2["last_clicked"]["lat"]
+        c_lon = mapa2["last_clicked"]["lng"]
+        st.session_state["ultimo_punto"] = {"lat": c_lat, "lon": c_lon}
 
-    st.info(f"📍 Punto seleccionado: {c_lat:.5f}, {c_lon:.5f}")
-    rend = st.number_input("Rendimiento (kg/ha)", min_value=0.0, key="input_rinde")
+    # Formulario de rendimiento
+    if st.session_state.get("ultimo_punto"):
+        c_lat = st.session_state["ultimo_punto"]["lat"]
+        c_lon = st.session_state["ultimo_punto"]["lon"]
+        st.info(f"📍 Punto: {c_lat:.5f}, {c_lon:.5f}")
 
-    if st.button("💾 Guardar punto", key="btn_guardar_punto"):
-        ya_existe = any(
-            abs(d["lat"] - c_lat) < 0.00001 and abs(d["lon"] - c_lon) < 0.00001
-            for d in st.session_state.datos_rinde
-        )
-        if not ya_existe:
-            st.session_state.datos_rinde.append({
-                "lat": c_lat,
-                "lon": c_lon,
-                "rend": rend
-            })
-            st.success(f"✅ Guardado: {rend} kg/ha")
-        else:
-            st.warning("⚠️ Punto ya cargado")
-        st.rerun()
+        rend = st.number_input("Rendimiento (kg/ha)", min_value=0.0, key="input_rinde")
 
-# Tabla de puntos
-if st.session_state.datos_rinde:
-    import pandas as pd
-    st.subheader("📊 Puntos cargados")
-    df = pd.DataFrame(st.session_state.datos_rinde)
-    st.dataframe(df, use_container_width=True)
+        if st.button("💾 Guardar punto", key="btn_guardar_punto"):
+            ya_existe = any(
+                abs(d["lat"] - c_lat) < 0.00001 and abs(d["lon"] - c_lon) < 0.00001
+                for d in st.session_state.datos_rinde
+            )
+            if not ya_existe:
+                st.session_state.datos_rinde.append({
+                    "lat": c_lat, "lon": c_lon, "rend": rend
+                })
+                st.success(f"✅ Guardado: {rend} kg/ha")
+            else:
+                st.warning("⚠️ Punto ya cargado")
+            st.rerun()
 
-    if st.button("🗑️ Limpiar puntos", key="btn_limpiar"):
-        st.session_state.datos_rinde = []
-        st.session_state.pop("ultimo_punto", None)
-        st.rerun()
+    # Tabla
+    if st.session_state.datos_rinde:
+        import pandas as pd
+        st.subheader("📊 Puntos cargados")
+        df = pd.DataFrame(st.session_state.datos_rinde)
+        st.dataframe(df, use_container_width=True)
+
+        if st.button("🗑️ Limpiar puntos", key="btn_limpiar"):
+            st.session_state.datos_rinde = []
+            st.session_state.pop("ultimo_punto", None)
+            st.rerun()
+
     # ================================
-    # 5️⃣ MODELO
+    # MODELO
     # ================================
+    import numpy as np
+
     ndvi_vals = []
     rend_vals = []
 
     for d in st.session_state.datos_rinde:
         try:
             p = ee.Geometry.Point([d["lon"], d["lat"]])
-            # Usar reduceRegion es más confiable que sample
             val = ndvi_map.reduceRegion(
                 reducer=ee.Reducer.mean(),
-                geometry=p.buffer(20),  # buffer de 20m
+                geometry=p.buffer(20),
                 scale=10
             ).getInfo()
-    
+
             if val and "NDVI" in val and val["NDVI"] is not None:
                 ndvi_vals.append(val["NDVI"])
                 rend_vals.append(d["rend"])
             else:
-                st.warning(f"⚠️ Sin valor NDVI en punto {d['lat']:.4f}, {d['lon']:.4f}")
-    
+                st.warning(f"⚠️ Sin NDVI en {d['lat']:.4f}, {d['lon']:.4f}")
         except Exception as e:
-            st.warning(f"⚠️ Error en punto: {e}")  # visible, no silencioso
+            st.warning(f"⚠️ Error: {e}")
 
-    import numpy as np
+    st.write(f"🔍 Debug: {len(ndvi_vals)} valores NDVI de {len(st.session_state.datos_rinde)} puntos")
 
     if len(ndvi_vals) >= 3:
         a, b = np.polyfit(ndvi_vals, rend_vals, 1)
-
-        st.success(f"📈 Modelo: Rend = {a:.2f} * NDVI + {b:.2f}")
+        st.success(f"📈 Modelo: Rend = {a:.2f} × NDVI + {b:.2f}")
 
         rend_est = ndvi_map.multiply(a).add(b)
+        vis = {'min': 0, 'max': 8000, 'palette': ['blue', 'yellow', 'red']}
+        url_rend = rend_est.visualize(**vis).getMapId()['tile_fetcher'].url_format
 
-        vis = {'min':0, 'max':200, 'palette':['blue','yellow','red']}
-        map_id_rend = ee.data.getMapId({'image': rend_est.visualize(**vis)})
-
-        folium.TileLayer(
-            tiles=map_id_rend['tile_fetcher'].url_format,
-            attr='Google Earth Engine',
-            name='Rendimiento',
-            overlay=True,
-            opacity=0.6
-        ).add_to(m2)
-
+        folium.TileLayer(tiles=url_rend, attr='GEE', name='Rendimiento', overlay=True, opacity=0.6).add_to(m2)
         st.success("🔥 Mapa de rendimiento generado")
-
     else:
-        st.info("👉 Cargá al menos 3 puntos")
+        st.info(f"👉 Cargá al menos 3 puntos ({len(ndvi_vals)}/3 listos)")
 
-    # ================================
-    # 6️⃣ DESCARGA
-    # ================================
+    # DESCARGA
     st.download_button(
         "📥 Descargar mapa",
         data=m2._repr_html_(),
