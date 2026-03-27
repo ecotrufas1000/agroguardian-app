@@ -2134,41 +2134,40 @@ if menu == "🛰️ Rend. Inteligente":
         
         st.subheader("🌳🔥 Mapa de Árboles + Rendimiento")
         st_folium(m4, width=700, height=500)
-                # ================================
-                # MAPA FINAL (RENDER NUEVO)
-                # ================================
-                m3 = folium.Map(location=[lat, lon], zoom_start=15)
-        
-                # calcular rangos
-                min_val = min(rend_vals)
-                max_val = max(rend_vals)
-                
-                # evitar que sean iguales (muy importante)
-                if min_val == max_val:
-                    max_val = min_val + 1
-                
-                # generar tile
-                url_rend = rend_est.visualize(
-                    min=min_val,
-                    max=max_val,
-                    palette=['blue', 'yellow', 'red']
-                ).getMapId()['tile_fetcher'].url_format
-                folium.TileLayer(
-                    tiles=url_rend,
-                    attr='GEE',
-                    name='Rendimiento',
-                    overlay=True
-                ).add_to(m3)
-        
-                folium.GeoJson(st.session_state.poligono).add_to(m3)
-        
-                folium.LayerControl().add_to(m3)
-        
-                st.subheader("🔥 Mapa de Rendimiento Estimado")
-                st_folium(m3, width=700, height=500)
-        
-            else:
-                st.info(f"👉 Cargá al menos 3 puntos ({len(ndvi_vals)}/3)")
+# ================================
+# ================================
+# MAPA FINAL (RENDER NUEVO)
+# ================================
+m3 = folium.Map(location=[lat, lon], zoom_start=15)
+
+# calcular rangos
+min_val = min(rend_vals)
+max_val = max(rend_vals)
+
+# evitar que sean iguales (muy importante)
+if min_val == max_val:
+    max_val = min_val + 1
+
+# generar tile
+url_rend = rend_est.visualize(
+    min=min_val,
+    max=max_val,
+    palette=['blue', 'yellow', 'red']
+).getMapId()['tile_fetcher'].url_format
+
+folium.TileLayer(
+    tiles=url_rend,
+    attr='GEE',
+    name='Rendimiento',
+    overlay=True
+).add_to(m3)
+
+folium.GeoJson(st.session_state.poligono).add_to(m3)
+
+folium.LayerControl().add_to(m3)
+
+st.subheader("🔥 Mapa de Rendimiento Estimado")
+st_folium(m3, width=700, height=500)             
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
