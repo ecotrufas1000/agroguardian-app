@@ -2029,9 +2029,15 @@ if menu == "🛰️ Rend. Inteligente":
         m3 = folium.Map(location=[lat, lon], zoom_start=15)
 
         url_rend = rend_est.visualize(
-            min=0,
-            max=8000,
-            palette=['blue', 'yellow', 'red']
+            min_val = min(rend_vals)
+            max_val = max(rend_vals)
+            
+            url_rend = rend_est.visualize(
+                min=min_val,
+                max=max_val,
+                palette=['blue', 'yellow', 'red']
+            )
+            
         ).getMapId()['tile_fetcher'].url_format
 
         folium.TileLayer(
