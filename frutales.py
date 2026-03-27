@@ -1800,6 +1800,8 @@ def obtener_mapa_ndvi(lat, lon, poligono_ee):
 ee_conectado = conectar_geoprocesamiento()
 
 # --- 4. SECCIÓN DEL MENÚ RENDIMIENTO ---
+if "poligono" not in st.session_state:
+    st.session_state.poligono = None
 if menu == "🛰️ Rend. Inteligente":
     st.header("🛰️ Simulación de Rendimiento y Topografía")
 
