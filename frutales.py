@@ -1852,7 +1852,7 @@ if menu == "🛰️ Rend. Inteligente":
             ).add_to(m)
             
             # ✅ 3. AGREGAR DRAW (DESPUÉS DEL MAPA)
-            draw = Draw(
+                        draw = Draw(
                 export=True,
                 draw_options={
                     'polyline': False,
@@ -1864,11 +1864,11 @@ if menu == "🛰️ Rend. Inteligente":
             )
             draw.add_to(m)
 
-# ✅ 4. CONTROLES
-           folium.LayerControl().add_to(m)
-            
-# 🔥 CAPTURAR CLICK EN MAPA
-mapa = st_folium(m, width=700, height=500, key="mapa_agro")
+            # ✅ 4. CONTROLES
+            folium.LayerControl().add_to(m)
+
+            # 🔥 CAPTURAR CLICK EN MAPA
+            mapa = st_folium(m, width=700, height=500, key="mapa_agro")
 
             if "poligono" not in st.session_state:
                 st.session_state.poligono = None
