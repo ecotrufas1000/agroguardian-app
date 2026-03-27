@@ -1896,6 +1896,7 @@ if menu == "🛰️ Rend. Inteligente":
 
     folium.TileLayer(
         tiles=map_id_ndvi['tile_fetcher'].url_format,
+        attr='Google Earth Engine',
         name='NDVI',
         overlay=True,
         opacity=0.7
@@ -1903,6 +1904,7 @@ if menu == "🛰️ Rend. Inteligente":
 
     folium.TileLayer(
         tiles=map_id_topo['tile_fetcher'].url_format,
+        attr='Google Earth Engine',
         name='Curvas',
         overlay=True
     ).add_to(m2)
