@@ -1887,78 +1887,77 @@ if menu == "🛰️ Rend. Inteligente":
         st.stop()
 
     # ================================
-    # 3️⃣ MAPA CON NDVI + TOPO
-    # ================================
-    # ================================
+
+# ================================
 # 3️⃣ MAPA CON NDVI + TOPO
+# ================================
+# ================================
+# 3️⃣ MAPA CON NDVI + TOPO + CLICKS
 # ================================
 paleta_agro = ['#d73027','#f46d43','#fdae61','#fee08b',
                '#d9ef8b','#a6d96a','#66bd63','#1a9850']
 
 m2 = folium.Map(location=[lat, lon], zoom_start=15)
 
-# --- NDVI ---
+# NDVI
 try:
-    ndvi_vis = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro)
-    
-    # Método nuevo compatible con ee moderno
-    url_ndvi = ndvi_vis.getMapId()['tile_fetcher'].url_format
-    
-    folium.TileLayer(
-        tiles=url_ndvi,
-        attr='GEE - NDVI',
-        name='NDVI',
-        overlay=True,
-        opacity=0.7
-    ).add_to(m2)
+    url_ndvi = ndvi_map.visualize(min=0.2, max=0.8, palette=paleta_agro).getMapId()['tile_fetcher'].url_format
+    folium.TileLayer(tiles=url_ndvi, attr='GEE', name='NDVI', overlay=True, opacity=0.7).add_to(m2)
     st.success("✅ NDVI cargado")
 except Exception as e:
-    st.error(f"❌ Error cargando NDVI: {e}")  # ← así ves el error real
+    st.error(f"❌ Error NDVI: {e}")
 
-# --- TOPOGRAFÍA ---
+# Topografía
 try:
     lineas = ee.Algorithms.CannyEdgeDetector(topo_map, 0.5, 0.5)
     curvas = lineas.focal_max(1).mask(lineas)
     url_topo = curvas.visualize(palette=['black']).getMapId()['tile_fetcher'].url_format
-
-    folium.TileLayer(
-        tiles=url_topo,
-        attr='GEE - Topo',
-        name='Curvas de nivel',
-        overlay=True,
-        opacity=0.8
-    ).add_to(m2)
-    st.success("✅ Topografía cargada")
+    folium.TileLayer(tiles=url_topo, attr='GEE', name='Curvas', overlay=True, opacity=0.8).add_to(m2)
 except Exception as e:
-    st.error(f"❌ Error cargando topografía: {e}")
+    st.error(f"❌ Error Topo: {e}")
 
 # Polígono del lote
-folium.GeoJson(st.session_state.poligono, name="Lote").add_to(m2)
+folium.GeoJson(
+    st.session_state.poligono,
+    name="Lote",
+    style_function=lambda x: {"color": "yellow", "weight": 2, "fillOpacity": 0}
+).add_to(m2)
+
+# Marcadores de puntos ya guardados
+for i, d in enumerate(st.session_state.datos_rinde):
+    folium.Marker(
+        location=[d["lat"], d["lon"]],
+        popup=f"Punto {i+1}: {d['rend']} kg/ha",
+        icon=folium.Icon(color="blue", icon="info-sign")
+    ).add_to(m2)
+
 folium.LayerControl().add_to(m2)
 
-st.subheader("🌱 NDVI + Topografía")
-mapa2 = st_folium(m2, width=700, height=500, key="mapa_final")
-    # ================================
-    # ================================
+st.subheader("🌱 NDVI + Topografía — hacé click para marcar puntos")
+mapa2 = st_folium(
+    m2,
+    width=700,
+    height=500,
+    key="mapa_final",
+    returned_objects=["last_clicked"]  # ← captura clicks explícitamente
+)
+
+# ================================
 # 4️⃣ CARGA DE PUNTOS
 # ================================
 if mapa2 and mapa2.get("last_clicked"):
     c_lat = mapa2["last_clicked"]["lat"]
     c_lon = mapa2["last_clicked"]["lng"]
-
-    # Guardar el último punto clickeado en session_state
     st.session_state["ultimo_punto"] = {"lat": c_lat, "lon": c_lon}
 
 if st.session_state.get("ultimo_punto"):
     c_lat = st.session_state["ultimo_punto"]["lat"]
     c_lon = st.session_state["ultimo_punto"]["lon"]
 
-    st.info(f"📍 Punto: {c_lat:.5f}, {c_lon:.5f}")
-
+    st.info(f"📍 Punto seleccionado: {c_lat:.5f}, {c_lon:.5f}")
     rend = st.number_input("Rendimiento (kg/ha)", min_value=0.0, key="input_rinde")
 
-    if st.button("💾 Guardar punto", key="btn_guardar_punto"):  # ← key fijo
-        # Evitar duplicados
+    if st.button("💾 Guardar punto", key="btn_guardar_punto"):
         ya_existe = any(
             abs(d["lat"] - c_lat) < 0.00001 and abs(d["lon"] - c_lon) < 0.00001
             for d in st.session_state.datos_rinde
@@ -1969,20 +1968,21 @@ if st.session_state.get("ultimo_punto"):
                 "lon": c_lon,
                 "rend": rend
             })
-            st.success(f"✅ Punto guardado: {rend} kg/ha")
+            st.success(f"✅ Guardado: {rend} kg/ha")
         else:
-            st.warning("⚠️ Ese punto ya fue cargado")
+            st.warning("⚠️ Punto ya cargado")
         st.rerun()
 
-# Mostrar puntos cargados
+# Tabla de puntos
 if st.session_state.datos_rinde:
-    st.subheader("📊 Puntos cargados")
     import pandas as pd
+    st.subheader("📊 Puntos cargados")
     df = pd.DataFrame(st.session_state.datos_rinde)
     st.dataframe(df, use_container_width=True)
 
     if st.button("🗑️ Limpiar puntos", key="btn_limpiar"):
         st.session_state.datos_rinde = []
+        st.session_state.pop("ultimo_punto", None)
         st.rerun()
     # ================================
     # 5️⃣ MODELO
