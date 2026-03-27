@@ -1884,6 +1884,8 @@ mapa = st_folium(m, width=700, height=500, key="mapa_agro")
                 coords = st.session_state.poligono["geometry"]["coordinates"]
                 
                 poligono_ee = ee.Geometry.Polygon(coords)
+                ndvi_map = obtener_mapa_ndvi(lat, lon)
+                topo_map = obtener_relieve_srtm(lat, lon)
             
             # 🔥 INICIALIZAR DATOS
             if "datos_rinde" not in st.session_state:
