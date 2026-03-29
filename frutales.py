@@ -1741,16 +1741,6 @@ if menu == "🛰️ Rend. Inteligente":
     st.header("🛰️ Simulación de Rendimiento en Frutales")
     st.caption("Modelo multivariable: EVI · NDWI · LST — Sentinel-2 + MODIS")
 
-    if not ee_conectado:
-        st.error("⚠️ Error de conexión con Earth Engine.")
-        st.stop()
-if menu == "🛰️ Rend. Inteligente":
-    import numpy as np
-    import pandas as pd
-
-    st.header("🛰️ Simulación de Rendimiento en Frutales")
-    st.caption("Modelo multivariable: EVI · NDWI · LST — Sentinel-2 + MODIS")
-
     # ← AGREGÁ ESTO
     if "ee_conectado" not in dir():
         try:
