@@ -1744,7 +1744,24 @@ if menu == "🛰️ Rend. Inteligente":
     if not ee_conectado:
         st.error("⚠️ Error de conexión con Earth Engine.")
         st.stop()
+if menu == "🛰️ Rend. Inteligente":
+    import numpy as np
+    import pandas as pd
 
+    st.header("🛰️ Simulación de Rendimiento en Frutales")
+    st.caption("Modelo multivariable: EVI · NDWI · LST — Sentinel-2 + MODIS")
+
+    # ← AGREGÁ ESTO
+    if "ee_conectado" not in dir():
+        try:
+            ee_conectado = conectar_geoprocesamiento()
+        except Exception as e:
+            st.error(f"❌ Error conectando Earth Engine: {e}")
+            st.stop()
+
+    if not ee_conectado:
+        st.error("⚠️ Error de conexión con Earth Engine.")
+        st.stop()
     # ================================
     # ESTADOS
     # ================================
