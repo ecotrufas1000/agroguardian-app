@@ -2342,231 +2342,337 @@ if menu == "🛰️ Rend. Inteligente":
             # MAPA FINAL
             # ================================
             # ================================
-            # MAPA FINAL
-            # ================================
-            import math
+# MAPA FINAL — AGROGUARDIAN
+# Reemplazá todo el bloque "MAPA FINAL" con este código
+# ================================
 
-            def generar_grilla(coords, rend_est, p33, p66):
-                import math
-                puntos = coords[0]
-                lats = [p[1] for p in puntos]
-                lons = [p[0] for p in puntos]
-                lat_min, lat_max = min(lats), max(lats)
-                lon_min, lon_max = min(lons), max(lons)
+import math
+import folium
+from folium import plugins
+from streamlit_folium import st_folium
+import streamlit as st
 
-                delta_lat = 10 / 111320
-                delta_lon = 10 / (111320 * math.cos(math.radians((lat_min + lat_max) / 2)))
+def generar_grilla(coords, rend_est, p33, p66):
+    import math
+    puntos = coords[0]
+    lats = [p[1] for p in puntos]
+    lons = [p[0] for p in puntos]
+    lat_min, lat_max = min(lats), max(lats)
+    lon_min, lon_max = min(lons), max(lons)
 
-                centros = []
-                lat = lat_min
-                while lat < lat_max:
-                    lon = lon_min
-                    while lon < lon_max:
-                        centros.append({
-                            "lat": lat + delta_lat / 2,
-                            "lon": lon + delta_lon / 2,
-                            "lat_min": lat,
-                            "lon_min": lon
-                        })
-                        lon += delta_lon
-                    lat += delta_lat
+    delta_lat = 10 / 111320
+    delta_lon = 10 / (111320 * math.cos(math.radians((lat_min + lat_max) / 2)))
 
-                fc = ee.FeatureCollection([
-                    ee.Feature(ee.Geometry.Point([c["lon"], c["lat"]]))
-                    for c in centros
-                ])
+    centros = []
+    lat = lat_min
+    while lat < lat_max:
+        lon = lon_min
+        while lon < lon_max:
+            centros.append({
+                "lat": lat + delta_lat / 2,
+                "lon": lon + delta_lon / 2,
+                "lat_min": lat,
+                "lon_min": lon
+            })
+            lon += delta_lon
+        lat += delta_lat
 
-                muestras = rend_est.reduceRegions(
-                    collection=fc,
-                    reducer=ee.Reducer.mean(),
-                    scale=10
-                ).getInfo()
+    fc = ee.FeatureCollection([
+        ee.Feature(ee.Geometry.Point([c["lon"], c["lat"]]))
+        for c in centros
+    ])
 
-                celdas = []
-                features = muestras.get("features", [])
+    muestras = rend_est.reduceRegions(
+        collection=fc,
+        reducer=ee.Reducer.mean(),
+        scale=10
+    ).getInfo()
 
-                for i, feat in enumerate(features):
-                    if i >= len(centros):
-                        break
-                    c = centros[i]
-                    rend_val = feat.get("properties", {}).get("mean")
-                    if rend_val is None:
-                        continue
-                    if rend_val < p33:
-                        color = "#ffffcc"
-                        zona = f"🟡 Bajo: {rend_val:.0f} kg/ha"
-                    elif rend_val < p66:
-                        color = "#fd8d3c"
-                        zona = f"🟠 Medio: {rend_val:.0f} kg/ha"
-                    else:
-                        color = "#e31a1c"
-                        zona = f"🔴 Alto: {rend_val:.0f} kg/ha"
+    celdas = []
+    features = muestras.get("features", [])
 
-                    celda_coords = [
-                        [c["lon_min"],             c["lat_min"]],
-                        [c["lon_min"] + delta_lon, c["lat_min"]],
-                        [c["lon_min"] + delta_lon, c["lat_min"] + delta_lat],
-                        [c["lon_min"],             c["lat_min"] + delta_lat],
-                        [c["lon_min"],             c["lat_min"]]
-                    ]
-                    celdas.append({"coords": celda_coords, "color": color, "zona": zona})
+    for i, feat in enumerate(features):
+        if i >= len(centros):
+            break
+        c = centros[i]
+        rend_val = feat.get("properties", {}).get("mean")
+        if rend_val is None:
+            continue
 
-                return celdas
-            m3 = folium.Map(location=[lat, lon], zoom_start=17,
-                            tiles="Esri.WorldImagery")
+        # Paleta rojo → amarillo → verde (como la imagen referencia)
+        if rend_val < p33:
+            color      = "#d73027"
+            color_dark = "#a50026"
+            zona       = f"Bajo: {rend_val:.0f} kg/ha"
+            emoji      = "🔴"
+        elif rend_val < p66:
+            color      = "#fee08b"
+            color_dark = "#f59b00"
+            zona       = f"Medio: {rend_val:.0f} kg/ha"
+            emoji      = "🟡"
+        else:
+            color      = "#1a9850"
+            color_dark = "#00441b"
+            zona       = f"Alto: {rend_val:.0f} kg/ha"
+            emoji      = "🟢"
 
-            try:
-                # CAPA 1: Mapa de calor continuo GEE
-                url_rend = rend_est.visualize(
-                    min=min_r, max=max_r,
-                    palette=['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c']
-                ).getMapId()['tile_fetcher'].url_format
-                folium.TileLayer(tiles=url_rend, attr='GEE',
-                                 name='🌡️ Calor continuo',
-                                 overlay=True, opacity=0.75).add_to(m3)
-            
-                # CAPA 2: Grilla de celdas
-                grilla_group = folium.FeatureGroup(name="🟥 Grilla por zonas", show=False)
-                with st.spinner("⏳ Generando grilla de celdas..."):
-                    celdas = generar_grilla(coords, rend_est, p33, p66)
-            
-                # ── 3D PYDECK ──────────────────────────────────────────
-                import pydeck as pdk
-                import pandas as pd
-            
-                data_3d = []
-                for c in celdas:
-                    try:
-                        val_rinde = float(c["zona"].split(":")[1].split("kg/ha")[0].strip())
-                    except:
-                        val_rinde = 0.0
-            
-                    color = [34, 139, 34, 160] if "Alto" in c["zona"] else \
-                            [253, 141, 60, 160] if "Medio" in c["zona"] else [227, 26, 28, 160]
-            
-                    data_3d.append({
-                        "lon": c["coords"][0][0],
-                        "lat": c["coords"][0][1],
-                        "rinde": val_rinde,
-                        "color": color,
-                        "etiqueta": c["zona"]
-                    })
-            
-                df_3d = pd.DataFrame(data_3d)
-            
-                # ← capa_columnas definida AQUÍ dentro del try
-                capa_columnas = pdk.Layer(
-                    "ColumnLayer",
-                    data=df_3d,
-                    get_position=["lon", "lat"],
-                    get_elevation="rinde",
-                    elevation_scale=0.6,
-                    radius=10,
-                    get_fill_color="color",
-                    pickable=True,
-                    auto_highlight=True,
-                )
-            
-                st.subheader("🛰️ Simulación Topográfica y de Rendimiento")
-                st.pydeck_chart(pdk.Deck(
-                    map_style="mapbox://styles/mapbox/satellite-v9",
-                    map_provider="carto",
-                    layers=[capa_columnas],
-                    initial_view_state=pdk.ViewState(
-                        latitude=df_3d["lat"].mean(),
-                        longitude=df_3d["lon"].mean(),
-                        zoom=17,
-                        pitch=60,
-                        bearing=30
-                    ),
-                    tooltip={"text": "{etiqueta}"}
-                ))
-                            
-                # Grilla folium
-                for celda in celdas:
-                    folium.Polygon(
-                        locations=[[p[1], p[0]] for p in celda["coords"]],
-                        color="white",
-                        weight=0.5,
-                        fill=True,
-                        fill_color=celda["color"],
-                        fill_opacity=0.7,
-                        tooltip=celda["zona"]
-                    ).add_to(grilla_group)
-                grilla_group.add_to(m3)
-                st.success(f"✅ Grilla generada: {len(celdas)} celdas")
-            
-                # CAPA 3: Zonas de manejo GEE
-                url_zonas = zonas.visualize(
-                    min=1, max=3,
-                    palette=['#ffffcc', '#fd8d3c', '#e31a1c']
-                ).getMapId()['tile_fetcher'].url_format
-                folium.TileLayer(tiles=url_zonas, attr='GEE',
-                                 name='🗺️ Zonas Bajo/Medio/Alto',
-                                 overlay=True, opacity=0.0).add_to(m3)
-            
-            except Exception as e:
-                st.error(f"❌ Error mapa final: {e}")
-            # Polígono del lote
-            folium.GeoJson(
-                st.session_state.poligono,
-                name="Lote",
-                style_function=lambda x: {"color": "white", "weight": 2, "fillOpacity": 0}
-            ).add_to(m3)
+        celda_coords = [
+            [c["lon_min"],             c["lat_min"]],
+            [c["lon_min"] + delta_lon, c["lat_min"]],
+            [c["lon_min"] + delta_lon, c["lat_min"] + delta_lat],
+            [c["lon_min"],             c["lat_min"] + delta_lat],
+            [c["lon_min"],             c["lat_min"]]
+        ]
+        celdas.append({
+            "coords": celda_coords,
+            "color": color,
+            "color_dark": color_dark,
+            "zona": zona,
+            "emoji": emoji,
+            "rend_val": rend_val
+        })
 
-            # Marcadores pequeños puntos de muestra
-            for i, pt in enumerate(st.session_state.puntos_rinde):
-                folium.CircleMarker(
-                    location=[pt["lat"], pt["lon"]],
-                    radius=5,
-                    color="#00bcd4",
-                    fill=True,
-                    fill_color="#00bcd4",
-                    fill_opacity=0.9,
-                    tooltip=f"Muestra {i+1}: {pt['rend']} kg/ha"
-                ).add_to(m3)
+    return celdas, delta_lon, delta_lat
 
-            folium.LayerControl(collapsed=False).add_to(m3)
 
-            st.subheader("🔥 Mapa de Rendimiento Estimado")
-            st.caption("Activá 'Grilla' en el control de capas para ver las celdas individuales")
-            st_folium(m3, width=720, height=540, key="mapa_rend")
+# ── Mapa base con satélite ──────────────────────────────────────────────────
+m3 = folium.Map(
+    location=[lat, lon],
+    zoom_start=18,
+    tiles=None,          # sin tile por defecto
+    zoom_control=False,  # lo ponemos custom abajo
+)
 
-            # LEYENDA
-            col_ley1, col_ley2 = st.columns(2)
-            with col_ley1:
-                st.markdown("**Rendimiento continuo**")
-                st.markdown(f"""
-                <div style='font-size:12px; margin-bottom:4px; color:#aaa'>Bajo → Alto</div>
-                <div style='display:flex; align-items:center; gap:6px'>
-                    <span style='font-size:11px'>{min_r:.0f}</span>
-                    <div style='width:160px; height:18px; background: linear-gradient(to right, #ffffcc, #fed976, #fd8d3c, #e31a1c); border-radius:3px; border:1px solid #555'></div>
-                    <span style='font-size:11px'>{max_r:.0f}</span>
+# Capa satelital ESRI (sin token, gratis)
+folium.TileLayer(
+    tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attr="Esri",
+    name="🛰️ Satélite",
+    overlay=False,
+    control=True,
+    max_zoom=22,
+).add_to(m3)
+
+try:
+    # ── Capa 1: calor continuo GEE ──────────────────────────────────────────
+    url_rend = rend_est.visualize(
+        min=min_r, max=max_r,
+        palette=['#d73027', '#fee08b', '#1a9850']   # rojo→amarillo→verde
+    ).getMapId()['tile_fetcher'].url_format
+
+    folium.TileLayer(
+        tiles=url_rend,
+        attr='GEE',
+        name='🌡️ Calor continuo',
+        overlay=True,
+        opacity=0.65
+    ).add_to(m3)
+
+    # ── Capa 2: grilla de celdas ────────────────────────────────────────────
+    grilla_group = folium.FeatureGroup(name="⬛ Grilla por zonas", show=True)
+
+    with st.spinner("⏳ Generando grilla..."):
+        celdas, delta_lon, delta_lat = generar_grilla(coords, rend_est, p33, p66)
+
+    for celda in celdas:
+        # Tooltip con estilo
+        tooltip_html = f"""
+        <div style="
+            font-family: 'Courier New', monospace;
+            background: rgba(10,20,10,0.92);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            letter-spacing: 1px;
+        ">
+            {celda['emoji']} {celda['zona']}
+        </div>
+        """
+        folium.Polygon(
+            locations=[[p[1], p[0]] for p in celda["coords"]],
+            color=celda["color_dark"],
+            weight=0.8,
+            fill=True,
+            fill_color=celda["color"],
+            fill_opacity=0.6,
+            tooltip=folium.Tooltip(tooltip_html, sticky=True)
+        ).add_to(grilla_group)
+
+    grilla_group.add_to(m3)
+
+    # ── Capa 3: zonas de manejo GEE ─────────────────────────────────────────
+    url_zonas = zonas.visualize(
+        min=1, max=3,
+        palette=['#d73027', '#fee08b', '#1a9850']
+    ).getMapId()['tile_fetcher'].url_format
+
+    folium.TileLayer(
+        tiles=url_zonas,
+        attr='GEE',
+        name='🗺️ Zonas Bajo/Medio/Alto',
+        overlay=True,
+        opacity=0.0
+    ).add_to(m3)
+
+except Exception as e:
+    st.error(f"❌ Error mapa final: {e}")
+
+# ── Polígono del lote con borde brillante ───────────────────────────────────
+folium.GeoJson(
+    st.session_state.poligono,
+    name="Lote",
+    style_function=lambda x: {
+        "color": "#00ffcc",
+        "weight": 2.5,
+        "fillOpacity": 0,
+        "dashArray": "6 3",
+    }
+).add_to(m3)
+
+# ── Marcadores de puntos de muestra ─────────────────────────────────────────
+for i, pt in enumerate(st.session_state.puntos_rinde):
+    # Color del marcador según rendimiento
+    if pt['rend'] < p33:
+        bg = "#d73027"
+    elif pt['rend'] < p66:
+        bg = "#f59b00"
+    else:
+        bg = "#1a9850"
+
+    icon_html = f"""
+    <div style="
+        background:{bg};
+        border: 2px solid white;
+        border-radius: 50%;
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: bold; color: white;
+        font-family: monospace;
+        box-shadow: 0 0 8px {bg};
+    ">{pt['rend']:.0f}</div>
+    """
+    folium.Marker(
+        location=[pt["lat"], pt["lon"]],
+        icon=folium.DivIcon(html=icon_html, icon_size=(36, 36), icon_anchor=(18, 18)),
+        tooltip=f"Muestra {i+1}: {pt['rend']} kg/ha"
+    ).add_to(m3)
+
+folium.LayerControl(collapsed=True, position="topright").add_to(m3)
+
+# ── Título del mapa ──────────────────────────────────────────────────────────
+titulo_html = """
+<div style="
+    position: fixed;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 9999;
+    background: rgba(5, 15, 10, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid #00ffcc44;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #00ffcc;
+    text-transform: uppercase;
+    pointer-events: none;
+">
+    ◈ MAPA DE RENDIMIENTO — AGROGUARDIAN
+</div>
+"""
+m3.get_root().html.add_child(folium.Element(titulo_html))
+
+# ── Render del mapa ──────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+    .mapa-container {
+        border: 1px solid #00ffcc33;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 0 30px #00ffcc15;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="mapa-container">', unsafe_allow_html=True)
+st_folium(m3, width=720, height=560, key="mapa_rend")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ── Panel inferior ───────────────────────────────────────────────────────────
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
+    border: 1px solid #00ffcc33;
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-top: 12px;
+    font-family: 'Courier New', monospace;
+">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+
+        <div>
+            <div style="color:#00ffcc88; font-size:10px; letter-spacing:2px; margin-bottom:6px">ESCALA DE RENDIMIENTO</div>
+            <div style="display:flex; align-items:center; gap:10px">
+                <span style="color:#d73027; font-size:11px">BAJO</span>
+                <div style="width:180px; height:14px;
+                    background: linear-gradient(to right, #d73027, #fee08b, #1a9850);
+                    border-radius:4px; border:1px solid #ffffff22">
                 </div>
-                <div style='font-size:11px; color:#aaa; margin-top:4px'>kg/ha</div>
-                """, unsafe_allow_html=True)
+                <span style="color:#1a9850; font-size:11px">ALTO</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; width:200px; margin-top:4px">
+                <span style="color:#ffffff55; font-size:10px">{min_r:.0f} kg/ha</span>
+                <span style="color:#ffffff55; font-size:10px">{max_r:.0f} kg/ha</span>
+            </div>
+        </div>
 
-            with col_ley2:
-                st.markdown("**🗺️ Zonas de manejo**")
-                st.markdown(f"""
-                <div style='font-size:13px; line-height:2.2'>
-                    <span style='background:#ffffcc; color:#333; padding:2px 10px; border-radius:3px'>🟡 Bajo</span>
-                    &nbsp; < {p33:.0f} kg/ha<br>
-                    <span style='background:#fd8d3c; color:white; padding:2px 10px; border-radius:3px'>🟠 Medio</span>
-                    &nbsp; {p33:.0f} – {p66:.0f} kg/ha<br>
-                    <span style='background:#e31a1c; color:white; padding:2px 10px; border-radius:3px'>🔴 Alto</span>
-                    &nbsp; > {p66:.0f} kg/ha
-                </div>
-                """, unsafe_allow_html=True)
+        <div style="display:flex; gap:24px">
+            <div style="text-align:center">
+                <div style="
+                    background:#d73027; color:white;
+                    padding:4px 14px; border-radius:4px;
+                    font-size:12px; letter-spacing:1px
+                ">🔴 BAJO</div>
+                <div style="color:#ffffff55; font-size:10px; margin-top:4px">< {p33:.0f} kg/ha</div>
+            </div>
+            <div style="text-align:center">
+                <div style="
+                    background:#f59b00; color:white;
+                    padding:4px 14px; border-radius:4px;
+                    font-size:12px; letter-spacing:1px
+                ">🟡 MEDIO</div>
+                <div style="color:#ffffff55; font-size:10px; margin-top:4px">{p33:.0f} – {p66:.0f} kg/ha</div>
+            </div>
+            <div style="text-align:center">
+                <div style="
+                    background:#1a9850; color:white;
+                    padding:4px 14px; border-radius:4px;
+                    font-size:12px; letter-spacing:1px
+                ">🟢 ALTO</div>
+                <div style="color:#ffffff55; font-size:10px; margin-top:4px">> {p66:.0f} kg/ha</div>
+            </div>
+        </div>
 
-            # DESCARGA
-            st.download_button(
-                "📥 Descargar mapa HTML",
-                data=m3._repr_html_(),
-                file_name="rendimiento_frutales.html",
-                mime="text/html",
-                key="btn_descarga_mapa_anterior"  # ← key distinto
-            )
+        <div style="text-align:right">
+            <div style="color:#00ffcc88; font-size:10px; letter-spacing:2px; margin-bottom:4px">GRILLA</div>
+            <div style="color:#ffffff; font-size:20px; font-weight:bold">{len(celdas)}</div>
+            <div style="color:#ffffff55; font-size:10px">celdas 10×10m</div>
+        </div>
+
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Descarga ─────────────────────────────────────────────────────────────────
+st.download_button(
+    "📥 Descargar mapa HTML",
+    data=m3._repr_html_(),
+    file_name="rendimiento_agroguardian.html",
+    mime="text/html",
+    key="btn_descarga_mapa_final"
+)
             # ================================
             # ESTADÍSTICAS
             # ================================
