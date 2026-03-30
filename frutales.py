@@ -1944,6 +1944,14 @@ if menu == "🛰️ Rend. Inteligente":
     coords = st.session_state.poligono["geometry"]["coordinates"]
     #st.write(f"✅ DEBUG: Coords tipo={type(coords)}, len={len(coords)}")
 
+    # Área del lote
+    try:
+        poligono_area = ee.Geometry.Polygon(coords)
+        area_m2 = poligono_area.area().getInfo()
+        area_ha = area_m2 / 10000
+        st.info(f"📐 Superficie del lote: **{area_m2:,.0f} m²** ({area_ha:.2f} ha)")
+    except Exception as e:
+        st.warning(f"⚠️ No se pudo calcular el área: {e}")
     col_a, col_b = st.columns([3, 1])
     with col_a:
         st.success(f"✅ Lote definido — {len(st.session_state.puntos_rinde)} punto(s) cargado(s)")
@@ -2287,6 +2295,41 @@ if menu == "🛰️ Rend. Inteligente":
             st.subheader("🔥 Mapa de Rendimiento Estimado")
             st.caption("Activá 'Grilla' en el control de capas para ver las celdas individuales")
             st_folium(m3, width=720, height=540, key="mapa_rend")
+
+            # LEYENDA
+            col_ley1, col_ley2 = st.columns(2)
+            with col_ley1:
+                st.markdown("**Rendimiento continuo**")
+                st.markdown(f"""
+                <div style='font-size:12px; margin-bottom:4px; color:#aaa'>Bajo → Alto</div>
+                <div style='display:flex; align-items:center; gap:6px'>
+                    <span style='font-size:11px'>{min_r:.0f}</span>
+                    <div style='width:160px; height:18px; background: linear-gradient(to right, #ffffcc, #fed976, #fd8d3c, #e31a1c); border-radius:3px; border:1px solid #555'></div>
+                    <span style='font-size:11px'>{max_r:.0f}</span>
+                </div>
+                <div style='font-size:11px; color:#aaa; margin-top:4px'>kg/ha</div>
+                """, unsafe_allow_html=True)
+
+            with col_ley2:
+                st.markdown("**🗺️ Zonas de manejo**")
+                st.markdown(f"""
+                <div style='font-size:13px; line-height:2.2'>
+                    <span style='background:#ffffcc; color:#333; padding:2px 10px; border-radius:3px'>🟡 Bajo</span>
+                    &nbsp; < {p33:.0f} kg/ha<br>
+                    <span style='background:#fd8d3c; color:white; padding:2px 10px; border-radius:3px'>🟠 Medio</span>
+                    &nbsp; {p33:.0f} – {p66:.0f} kg/ha<br>
+                    <span style='background:#e31a1c; color:white; padding:2px 10px; border-radius:3px'>🔴 Alto</span>
+                    &nbsp; > {p66:.0f} kg/ha
+                </div>
+                """, unsafe_allow_html=True)
+
+            # DESCARGA
+            st.download_button(
+                "📥 Descargar mapa HTML",
+                data=m3._repr_html_(),
+                file_name="rendimiento_frutales.html",
+                mime="text/html"
+            )
             # ================================
             # ESTADÍSTICAS
             # ================================
