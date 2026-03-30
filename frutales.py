@@ -2328,6 +2328,7 @@ if menu == "🛰️ Rend. Inteligente":
                 data=m3._repr_html_(),
                 file_name="rendimiento_frutales.html",
                 mime="text/html"
+                key="btn_descarga_mapa_anterior"  # ← key distinto
             )
             # ================================
             # ESTADÍSTICAS
