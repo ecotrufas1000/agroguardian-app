@@ -2192,32 +2192,31 @@ if menu == "🛰️ Rend. Inteligente":
             # LEYENDA
             # ================================
             col_ley1, col_ley2 = st.columns(2)
-
             with col_ley1:
                 st.markdown("**🌡️ Rendimiento continuo**")
                 st.markdown(f"""
-                <div style='display:flex; align-items:center; gap:8px; margin-bottom:4px'>
-                    <div style='width:120px; height:18px; background: linear-gradient(to right, #313695, #74add1, #ffffbf, #f46d43, #a50026); border-radius:3px'></div>
+                <div style='font-size:12px; margin-bottom:4px; color:#aaa'>Bajo → Alto</div>
+                <div style='display:flex; align-items:center; gap:6px'>
+                    <span style='font-size:11px'>{min_r:.0f}</span>
+                    <div style='width:160px; height:18px; background: linear-gradient(to right, #ffffcc, #fed976, #fd8d3c, #e31a1c); border-radius:3px; border:1px solid #555'></div>
+                    <span style='font-size:11px'>{max_r:.0f}</span>
                 </div>
-                <div style='display:flex; justify-content:space-between; width:120px; font-size:12px'>
-                    <span>{min_r:.0f} kg/ha</span>
-                    <span>{max_r:.0f} kg/ha</span>
-                </div>
+                <div style='font-size:11px; color:#aaa; margin-top:4px'>kg/ha</div>
                 """, unsafe_allow_html=True)
 
             with col_ley2:
                 st.markdown("**🗺️ Zonas de manejo**")
                 st.markdown(f"""
                 <div style='font-size:13px; line-height:2.2'>
-                    <span style='background:#313695; color:white; padding:2px 10px; border-radius:3px'>🔵 Bajo</span>
+                    <span style='background:#ffffcc; color:#333; padding:2px 10px; border-radius:3px'>🟡 Bajo</span>
                     &nbsp; < {p33:.0f} kg/ha<br>
-                    <span style='background:#ffffbf; color:#333; padding:2px 10px; border-radius:3px'>🟡 Medio</span>
+                    <span style='background:#fd8d3c; color:white; padding:2px 10px; border-radius:3px'>🟠 Medio</span>
                     &nbsp; {p33:.0f} – {p66:.0f} kg/ha<br>
-                    <span style='background:#a50026; color:white; padding:2px 10px; border-radius:3px'>🔴 Alto</span>
+                    <span style='background:#e31a1c; color:white; padding:2px 10px; border-radius:3px'>🔴 Alto</span>
                     &nbsp; > {p66:.0f} kg/ha
                 </div>
                 """, unsafe_allow_html=True)
-            st.divider()
+                        st.divider()
             st_folium(m3, width=720, height=520, key="mapa_rend")
             # ================================
             # ESTADÍSTICAS
