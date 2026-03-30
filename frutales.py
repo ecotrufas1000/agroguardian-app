@@ -2152,35 +2152,126 @@ if menu == "🛰️ Rend. Inteligente":
             # ================================
             # MAPA FINAL
             # ================================
-            m3 = folium.Map(location=[lat, lon], zoom_start=16,
+            import math
+
+            def generar_grilla(coords, rend_est, a_coef, b_coef, p33, p66, densidad):
+                """Divide el lote en celdas y estima rendimiento por celda"""
+                # Obtener bounding box del polígono
+                puntos = coords[0]
+                lats = [p[1] for p in puntos]
+                lons = [p[0] for p in puntos]
+                lat_min, lat_max = min(lats), max(lats)
+                lon_min, lon_max = min(lons), max(lons)
+
+                # Tamaño de celda ~20x20 metros en grados
+                delta_lat = 20 / 111320
+                delta_lon = 20 / (111320 * math.cos(math.radians((lat_min + lat_max) / 2)))
+
+                celdas = []
+                lat = lat_min
+                while lat < lat_max:
+                    lon = lon_min
+                    while lon < lon_max:
+                        centro_lat = lat + delta_lat / 2
+                        centro_lon = lon + delta_lon / 2
+
+                        # Esquinas de la celda
+                        celda_coords = [
+                            [lon,           lat],
+                            [lon + delta_lon, lat],
+                            [lon + delta_lon, lat + delta_lat],
+                            [lon,           lat + delta_lat],
+                            [lon,           lat]
+                        ]
+
+                        try:
+                            p = ee.Geometry.Point([centro_lon, centro_lat])
+                            val = rend_est.reduceRegion(
+                                reducer=ee.Reducer.mean(),
+                                geometry=p.buffer(10),
+                                scale=10
+                            ).getInfo()
+
+                            rend_val = list(val.values())[0] if val else None
+
+                            if rend_val is not None:
+                                if rend_val < p33:
+                                    color = "#ffffcc"
+                                    zona = f"Bajo: {rend_val:.0f} kg/ha"
+                                elif rend_val < p66:
+                                    color = "#fd8d3c"
+                                    zona = f"Medio: {rend_val:.0f} kg/ha"
+                                else:
+                                    color = "#e31a1c"
+                                    zona = f"Alto: {rend_val:.0f} kg/ha"
+
+                                celdas.append({
+                                    "coords": celda_coords,
+                                    "color": color,
+                                    "zona": zona,
+                                    "rend": rend_val
+                                })
+                        except:
+                            pass
+
+                        lon += delta_lon
+                    lat += delta_lat
+
+                return celdas
+
+            m3 = folium.Map(location=[lat, lon], zoom_start=17,
                             tiles="Esri.WorldImagery")
 
             try:
-                # Mapa de calor continuo
+                # CAPA 1: Mapa de calor continuo GEE
                 url_rend = rend_est.visualize(
                     min=min_r, max=max_r,
                     palette=['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c']
                 ).getMapId()['tile_fetcher'].url_format
                 folium.TileLayer(tiles=url_rend, attr='GEE',
-                                 name='🌡️ Rendimiento continuo',
+                                 name='🌡️ Calor continuo',
                                  overlay=True, opacity=0.75).add_to(m3)
 
-                # Zonas de manejo — misma paleta que el gradiente
+                # CAPA 2: Grilla de celdas
+                grilla_group = folium.FeatureGroup(name="🟥 Grilla por zonas", show=False)
+
+                with st.spinner("⏳ Generando grilla de celdas..."):
+                    celdas = generar_grilla(coords, rend_est, a_coef, b_coef, p33, p66, densidad)
+
+                for celda in celdas:
+                    folium.Polygon(
+                        locations=[[p[1], p[0]] for p in celda["coords"]],
+                        color="white",
+                        weight=0.5,
+                        fill=True,
+                        fill_color=celda["color"],
+                        fill_opacity=0.7,
+                        tooltip=celda["zona"]
+                    ).add_to(grilla_group)
+
+                grilla_group.add_to(m3)
+                st.success(f"✅ Grilla generada: {len(celdas)} celdas")
+
+                # CAPA 3: Zonas de manejo GEE
                 url_zonas = zonas.visualize(
                     min=1, max=3,
-                    palette=['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c']  # azul→amarillo→rojo
+                    palette=['#ffffcc', '#fd8d3c', '#e31a1c']
                 ).getMapId()['tile_fetcher'].url_format
                 folium.TileLayer(tiles=url_zonas, attr='GEE',
                                  name='🗺️ Zonas Bajo/Medio/Alto',
-                                 overlay=True, opacity=0.7).add_to(m3)
+                                 overlay=True, opacity=0.0).add_to(m3)
+
             except Exception as e:
                 st.error(f"❌ Error mapa final: {e}")
 
+            # Polígono del lote
             folium.GeoJson(
                 st.session_state.poligono,
-                style_function=lambda x: {"color": "yellow", "weight": 2, "fillOpacity": 0}
+                name="Lote",
+                style_function=lambda x: {"color": "white", "weight": 2, "fillOpacity": 0}
             ).add_to(m3)
 
+            # Marcadores pequeños puntos de muestra
             for i, pt in enumerate(st.session_state.puntos_rinde):
                 folium.CircleMarker(
                     location=[pt["lat"], pt["lon"]],
@@ -2189,43 +2280,14 @@ if menu == "🛰️ Rend. Inteligente":
                     fill=True,
                     fill_color="white",
                     fill_opacity=0.9,
-                    popup=f"Muestra {i+1}: {pt['rend']} kg/ha"
+                    tooltip=f"Muestra {i+1}: {pt['rend']} kg/ha"
                 ).add_to(m3)
 
             folium.LayerControl(collapsed=False).add_to(m3)
 
             st.subheader("🔥 Mapa de Rendimiento Estimado")
-
-            # ================================
-            # LEYENDA
-            # ================================
-            col_ley1, col_ley2 = st.columns(2)
-            with col_ley1:
-                st.markdown("**🌡️ Rendimiento continuo**")
-                st.markdown(f"""
-                <div style='font-size:12px; margin-bottom:4px; color:#aaa'>Bajo → Alto</div>
-                <div style='display:flex; align-items:center; gap:6px'>
-                    <span style='font-size:11px'>{min_r:.0f}</span>
-                    <div style='width:160px; height:18px; background: linear-gradient(to right, #ffffcc, #fed976, #fd8d3c, #e31a1c); border-radius:3px; border:1px solid #555'></div>
-                    <span style='font-size:11px'>{max_r:.0f}</span>
-                </div>
-                <div style='font-size:11px; color:#aaa; margin-top:4px'>kg/ha</div>
-                """, unsafe_allow_html=True)
-
-            with col_ley2:
-                st.markdown("**🗺️ Zonas de manejo**")
-                st.markdown(f"""
-                <div style='font-size:13px; line-height:2.2'>
-                    <span style='background:#ffffcc; color:#333; padding:2px 10px; border-radius:3px'>🟡 Bajo</span>
-                    &nbsp; < {p33:.0f} kg/ha<br>
-                    <span style='background:#fd8d3c; color:white; padding:2px 10px; border-radius:3px'>🟠 Medio</span>
-                    &nbsp; {p33:.0f} – {p66:.0f} kg/ha<br>
-                    <span style='background:#e31a1c; color:white; padding:2px 10px; border-radius:3px'>🔴 Alto</span>
-                    &nbsp; > {p66:.0f} kg/ha
-                </div>
-                """, unsafe_allow_html=True)
-            st.divider()
-            st_folium(m3, width=720, height=520, key="mapa_rend")
+            st.caption("Activá 'Grilla' en el control de capas para ver las celdas individuales")
+            st_folium(m3, width=720, height=540, key="mapa_rend")
             # ================================
             # ESTADÍSTICAS
             # ================================
