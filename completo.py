@@ -61,7 +61,11 @@ try:
 except:
     st.error("🚨 Error de conexión con Supabase.")
     st.stop()
-
+try:
+    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+except Exception as e:
+    st.error(f"🚨 Error de conexión con Supabase: {e}")
+    st.stop()
 # ==========================================================
 # 3. SESSION STATE — inicializar siempre primero
 # ==========================================================
