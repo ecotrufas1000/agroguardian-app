@@ -2725,30 +2725,23 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Descarga
-st.download_button(
-    "📥 Descargar mapa HTML",
-    data=m3._repr_html_(),
-    file_name="rendimiento_frutales.html",
-    mime="text/html",
-    key="btn_descarga_mapa_final"
-)
+        st.download_button(
+            "📥 Descargar mapa HTML",
+            data=m3._repr_html_(),
+            file_name="rendimiento_frutales.html",
+            mime="text/html",
+            key="btn_descarga_mapa_final"
+        )
 
-else:
-    st.markdown("""
-    <div style="
-        background: rgba(215,48,39,0.1);
-        border: 1px solid #d7302744;
-        border-radius: 8px;
-        padding: 14px 20px;
-        font-family: 'Courier New', monospace;
-        color: #d73027;
-        font-size: 13px;
-        letter-spacing: 1px;
-    ">
-        ⚠️ Solo hay puntos con índices válidos — necesitás 3 dentro del área con cobertura Sentinel-2
-    </div>
+    else:  # ← este else cierra el if n_puntos con índices válidos
+        st.markdown("""
+        <div style="...">⚠️ Solo hay puntos con índices válidos...</div>
+        """, unsafe_allow_html=True)
+
+else:  # ← este else cierra el if n_puntos >= 3
+    st.markdown(f"""
+    <div style="...">👉 Marcá al menos 3 puntos...</div>
     """, unsafe_allow_html=True)
-
 else:
     st.markdown(f"""
     <div style="
