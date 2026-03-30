@@ -2166,41 +2166,41 @@ def interpolar_idw(puntos, grid_size=50):
     # ================================
     # MODELO MULTIVARIABLE — PECANES
     # ================================
-    n_puntos = len(st.session_state.puntos_rinde)
-    st.write(f"🔬 Puntos cargados: **{n_puntos}/3**")
+    # MODELO MULTIVARIABLE — PECANES
+# ================================
+n_puntos = len(st.session_state.puntos_rinde)
+st.write(f"🔬 Puntos cargados: **{n_puntos}/3**")
 
-    if n_puntos >= 3:
+if n_puntos >= 3:
+    # 1. Definición de funciones (mantener indentación de 4 espacios)
+    @st.cache_data
+    def obtener_indices_agro(coords):
+        """Extrae EVI, NDWI, NDRE, LST, GDD y precipitación para pecanes"""
+        try:
+            poligono_ee = ee.Geometry.Polygon(coords)
 
-        @st.cache_data
-        def obtener_indices_agro(coords):
-            """Extrae EVI, NDWI, NDRE, LST, GDD y precipitación para pecanes"""
-            try:
-                poligono_ee = ee.Geometry.Polygon(coords)
+            # --- Sentinel-2: EVI, NDWI, NDRE ---
+            s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+                  .filterBounds(poligono_ee)
+                  .filterDate('2025-09-01', '2026-03-26')
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                  .sort('CLOUDY_PIXEL_PERCENTAGE')
+                  .first())
 
-                # --- Sentinel-2: EVI, NDWI, NDRE ---
-                s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                      .filterBounds(poligono_ee)
-                      .filterDate('2025-09-01', '2026-03-26')
-                      .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                      .sort('CLOUDY_PIXEL_PERCENTAGE')
-                      .first())
+            evi_img = s2.expression(
+                '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))',
+                {
+                    'NIR':  s2.select('B8').divide(10000),
+                    'RED':  s2.select('B4').divide(10000),
+                    'BLUE': s2.select('B2').divide(10000)
+                }
+            ).rename('EVI').clip(poligono_ee)
 
-                evi = s2.expression(
-                    '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))',
-                    {
-                        'NIR':  s2.select('B8').divide(10000),
-                        'RED':  s2.select('B4').divide(10000),
-                        'BLUE': s2.select('B2').divide(10000)
-                    }
-                ).rename('EVI').clip(poligono_ee)
+            ndwi_img = s2.normalizedDifference(['B3', 'B8']).rename('NDWI').clip(poligono_ee)
+            ndre_img = s2.normalizedDifference(['B7', 'B4']).rename('NDRE').clip(poligono_ee)
 
-                ndwi = s2.normalizedDifference(['B3', 'B8']).rename('NDWI').clip(poligono_ee)
-
-                # NDRE = (RedEdge - Red) / (RedEdge + Red) — Sentinel B7 y B4
-                ndre = s2.normalizedDifference(['B7', 'B4']).rename('NDRE').clip(poligono_ee)
-
-                # --- MODIS LST ---
-                lst = (ee.ImageCollection("MODIS/061/MOD11A1")
+            # --- MODIS LST ---
+            lst_img = (ee.ImageCollection("MODIS/061/MOD11A1")
                        .filterBounds(poligono_ee)
                        .filterDate('2025-09-01', '2026-03-26')
                        .mean()
@@ -2209,42 +2209,43 @@ def interpolar_idw(puntos, grid_size=50):
                        .rename('LST')
                        .clip(poligono_ee))
 
-                # --- GDD: Grados Día de Crecimiento ---
-                # Usamos ERA5 temperatura diaria, base 10°C para pecán
-                era5 = (ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
-                        .filterBounds(poligono_ee)
-                        .filterDate('2025-09-01', '2026-03-26')
-                        .select(['temperature_2m_max', 'temperature_2m_min']))
+            # --- GDD ---
+            era5 = (ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
+                    .filterBounds(poligono_ee)
+                    .filterDate('2025-09-01', '2026-03-26')
+                    .select(['temperature_2m_max', 'temperature_2m_min']))
 
-                def calcular_gdd(img):
-                    tmax = img.select('temperature_2m_max').subtract(273.15)
-                    tmin = img.select('temperature_2m_min').subtract(273.15)
-                    tmean = tmax.add(tmin).divide(2)
-                    gdd = tmean.subtract(10).max(0)  # base 10°C
-                    return gdd.rename('GDD')
+            def calcular_gdd(img):
+                tmax = img.select('temperature_2m_max').subtract(273.15)
+                tmin = img.select('temperature_2m_min').subtract(273.15)
+                tmean = tmax.add(tmin).divide(2)
+                return tmean.subtract(10).max(0).rename('GDD')
 
-                gdd_total = (era5.map(calcular_gdd)
-                             .sum()
-                             .clip(poligono_ee))
+            gdd_img = era5.map(calcular_gdd).sum().clip(poligono_ee)
 
-                # --- Precipitación acumulada (CHIRPS) ---
-                precip = (ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+            # --- Precipitación ---
+            precip_img = (ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
                           .filterBounds(poligono_ee)
                           .filterDate('2025-09-01', '2026-03-26')
                           .sum()
                           .rename('PRECIP')
                           .clip(poligono_ee))
 
-                return evi, ndwi, ndre, lst, gdd_total, precip
+            return evi_img, ndwi_img, ndre_img, lst_img, gdd_img, precip_img
 
-            except Exception as e:
-                st.error(f"❌ Error cargando índices agro: {e}")
-                return None, None, None, None, None, None
+        except Exception as e:
+            st.error(f"❌ Error cargando índices agro: {e}")
+            return None, None, None, None, None, None
 
+    # LLAMADA A LA FUNCIÓN (Esto faltaba o estaba mal indentado)
+    # Usamos las coordenadas del polígono guardado en session_state
+    coords = st.session_state.poligono['geometry']['coordinates']
+    evi, ndwi, ndre, lst, gdd, precip = obtener_indices_agro(coords)
+
+    if evi is not None:
         def extraer_valores_agro(punto_lat, punto_lon, evi, ndwi, ndre, lst, gdd, precip):
             try:
                 p = ee.Geometry.Point([punto_lon, punto_lat])
-
                 def get_val(img, banda, buffer=15, scale=10):
                     v = img.reduceRegion(
                         reducer=ee.Reducer.mean(),
@@ -2262,32 +2263,20 @@ def interpolar_idw(puntos, grid_size=50):
                     "PRECIP": get_val(precip,  "PRECIP", buffer=500, scale=5000),
                 }
             except Exception as e:
-                st.warning(f"⚠️ Error extrayendo: {e}")
                 return {}
 
-        if evi is None:
-            st.error("❌ Error cargando índices")
-            st.stop()
-
-        # Extraer valores por punto
+        # --- Extracción de datos ---
         evi_v, ndwi_v, ndre_v, lst_v, gdd_v, precip_v, rend_v = [], [], [], [], [], [], []
 
-        with st.spinner("🔄 Extrayendo índices por punto de muestra..."):
+        with st.spinner("🔄 Extrayendo índices por punto..."):
             for pt in st.session_state.puntos_rinde:
-                vals = extraer_valores_agro(
-                    pt["lat"], pt["lon"], evi, ndwi, ndre, lst, gdd, precip
-                )
-                e  = vals.get("EVI")
-                w  = vals.get("NDWI")
-                r  = vals.get("NDRE")
-                l  = vals.get("LST")
-                g  = vals.get("GDD")
-                pr = vals.get("PRECIP")
+                vals = extraer_valores_agro(pt["lat"], pt["lon"], evi, ndwi, ndre, lst, gdd, precip)
+                e, w, r = vals.get("EVI"), vals.get("NDWI"), vals.get("NDRE")
+                l, g, pr = vals.get("LST"), vals.get("GDD"), vals.get("PRECIP")
 
                 if all(v is not None for v in [e, w, r, l, g, pr]):
-                    evi_v.append(e);   ndwi_v.append(w)
-                    ndre_v.append(r);  lst_v.append(l)
-                    gdd_v.append(g);   precip_v.append(pr)
+                    evi_v.append(e); ndwi_v.append(w); ndre_v.append(r)
+                    lst_v.append(l); gdd_v.append(g); precip_v.append(pr)
                     rend_v.append(pt["rend"])
                 else:
                     st.warning(f"⚠️ Datos incompletos en {pt['lat']:.4f}, {pt['lon']:.4f} — {vals}")
