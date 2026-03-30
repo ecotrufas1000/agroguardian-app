@@ -675,7 +675,9 @@ st.divider()
         """, unsafe_allow_html=True)
 
     st.divider()
-
+# Bloqueo hasta aceptar condiciones
+if not st.session_state.get("condiciones_aceptadas", False):
+    st.stop()
 # ==========================================================
 # GPS - INICIALIZACIÓN (corre siempre, en silencio)
 # ==========================================================
