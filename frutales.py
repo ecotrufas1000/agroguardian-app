@@ -1734,6 +1734,57 @@ elif menu == "📝 Bitácora":
 # ================================================
 # MENÚ: RENDIMIENTO INTELIGENTE
 # ================================================
+import streamlit as st
+import ee
+import json
+import google.generativeai as genai
+import folium
+from streamlit_folium import st_folium
+import numpy as np
+
+# --- 1. CONFIGURACIÓN DE IA (Gemini 1.5 Flash) ---
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash') 
+else:
+    st.warning("Falta GOOGLE_API_KEY en los Secrets")
+
+# --- 2. CONEXIÓN A EARTH ENGINE ---
+@st.cache_resource
+def conectar_geoprocesamiento():
+    if "JSON_LLAVE" in st.secrets:
+        try:
+            info_llave = json.loads(st.secrets["JSON_LLAVE"])
+            credentials = ee.ServiceAccountCredentials(
+                info_llave['client_email'], 
+                key_data=st.secrets["JSON_LLAVE"]
+            )
+            ee.Initialize(credentials, project='agroguardian-ee')
+            return True
+        except Exception as e:
+            st.sidebar.error(f"Error de conexión GEE: {e}")
+            return False
+    return False
+
+ee_conectado = conectar_geoprocesamiento()
+
+# --- 3. FUNCIÓN DEL MAPA (Definida arriba para evitar NameError) ---
+@st.cache_data
+def obtener_mapa_ndvi(lat, lon):
+    try:
+        punto = ee.Geometry.Point([lon, lat])
+        # Filtramos por las fechas más recientes de esta temporada
+        coleccion = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+                     .filterBounds(punto.buffer(5000)) 
+                     .filterDate('2025-01-01', '2026-03-26') 
+                     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                     .median())
+        
+        ndvi = coleccion.normalizedDifference(['B8', 'B4']).rename('NDVI')
+        return ndvi
+    except Exception as e:
+        return None
+
 if menu == "🛰️ Rend. Inteligente":
     import numpy as np
     import pandas as pd
