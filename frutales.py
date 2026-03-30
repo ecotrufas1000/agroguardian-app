@@ -2259,55 +2259,61 @@ if menu == "🛰️ Rend. Inteligente":
 
         if len(rend_v) >= 3:
 
-            # Regresión múltiple: EVI + NDWI + NDRE + LST + GDD + PRECIP
-            X = np.column_stack([evi_v, ndwi_v, ndre_v, lst_v, gdd_v, precip_v,
-                                  np.ones(len(rend_v))])
+            if len(rend_v) >= 3:
+
+            # Solo índices que varían espacialmente dentro del lote (10m)
+            X = np.column_stack([evi_v, ndwi_v, ndre_v, np.ones(len(rend_v))])
             y = np.array(rend_v)
             coefs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
-            a, b, c, d, e_gdd, f, g_cte = coefs
-            # DEBUG — verificar que el modelo usa los nuevos índices
-            st.write("🔍 DEBUG coeficientes:")
-            st.write(f"  EVI={a:.3f}, NDWI={b:.3f}, NDRE={c:.3f}")
-            st.write(f"  LST={d:.3f}, GDD={e_gdd:.3f}, Precip={f:.3f}, cte={g_cte:.3f}")
-            st.write(f"  Valores EVI muestras: {evi_v}")
-            st.write(f"  Valores GDD muestras: {gdd_v}")
-            st.write(f"  Valores PRECIP muestras: {precip_v}")
-            st.write(f"  Rendimientos ingresados: {rend_v}")
-            # Verificar rend_est
-            st.write("🔍 DEBUG rend_est bandas:", rend_est.bandNames().getInfo())
+            a, b, c, d_cte = coefs
+
+            # GDD y PRECIP como factores escalares globales
+            # GDD óptimo pecán: 2000-3000 GDD. Normalizamos sobre 2500
+            gdd_escalar = float(np.mean(gdd_v)) / 2500
+            # Precip óptima pecán: 500-800mm. Normalizamos sobre 650
+            precip_escalar = float(np.mean(precip_v)) / 650
+            # Factor combinado: penaliza si GDD o precip están lejos del óptimo
+            factor_agro = min(gdd_escalar, 1.2) * min(precip_escalar, 1.2)
+
             st.success(
-                f"📈 Modelo pecán: Rend = "
-                f"{a:.2f}·EVI + {b:.2f}·NDWI + {c:.2f}·NDRE + "
-                f"{d:.2f}·LST + {e_gdd:.2f}·GDD + {f:.2f}·Precip + {g_cte:.1f}"
+                f"📈 Modelo: Rend = {a:.2f}·EVI + {b:.2f}·NDWI + {c:.2f}·NDRE + {d_cte:.1f}"
+            )
+            st.info(
+                f"🌡️ Factor agrometeorológico: GDD={np.mean(gdd_v):.0f} | "
+                f"Precip={np.mean(precip_v):.0f}mm | Factor={factor_agro:.2f}"
             )
 
-            # Mostrar importancia relativa de cada factor
-            st.subheader("🔍 Importancia de factores")
+            # Tabla de factores
             import pandas as pd
             factores = pd.DataFrame({
                 "Factor": ["EVI (vigor)", "NDWI (humedad hoja)", "NDRE (nutrición)",
-                           "LST (temp. suelo)", "GDD (calor acumulado)", "Precipitación"],
-                "Coeficiente": [round(a,2), round(b,2), round(c,2),
-                                round(d,2), round(e_gdd,2), round(f,2)],
-                "Efecto": ["↑ más verde = más rend." if a>0 else "↓",
-                           "↑ más húmedo = más rend." if b>0 else "↓",
-                           "↑ mejor nutrición = más rend." if c>0 else "↓",
-                           "↑ más calor = más rend." if d>0 else "↓ estrés térmico",
-                           "↑ más GDD = más rend." if e_gdd>0 else "↓",
-                           "↑ más lluvia = más rend." if f>0 else "↓ exceso hídrico"]
+                           "GDD acumulado", "Precipitación"],
+                "Valor promedio lote": [
+                    f"{np.mean(evi_v):.3f}",
+                    f"{np.mean(ndwi_v):.3f}",
+                    f"{np.mean(ndre_v):.3f}",
+                    f"{np.mean(gdd_v):.0f} °C·día",
+                    f"{np.mean(precip_v):.0f} mm"
+                ],
+                "Coeficiente": [f"{a:.2f}", f"{b:.2f}", f"{c:.2f}", "escalar", "escalar"],
+                "Efecto": [
+                    "↑ más verde = más rend." if a > 0 else "↓",
+                    "↑ más húmedo = más rend." if b > 0 else "↓",
+                    "↑ mejor nutrición = más rend." if c > 0 else "↓",
+                    f"{'✅ Óptimo' if 2000 <= np.mean(gdd_v) <= 3000 else '⚠️ Fuera de rango'}",
+                    f"{'✅ Óptimo' if 500 <= np.mean(precip_v) <= 800 else '⚠️ Fuera de rango'}"
+                ]
             })
             st.dataframe(factores, use_container_width=True, hide_index=True)
 
-            # Imagen de rendimiento estimado
+            # rend_est espacial con índices de 10m + ajuste agrometeorológico
             rend_est = (
                 evi.multiply(a)
                 .add(ndwi.multiply(b))
                 .add(ndre.multiply(c))
-                .add(lst.multiply(d))
-                .add(gdd.multiply(e_gdd))
-                .add(precip.multiply(f))
-                .add(g_cte)
+                .add(d_cte)
                 .multiply(densidad / 400)
+                .multiply(factor_agro)  # ajuste global GDD + precip
             )
 
             # Umbrales zonas de manejo
