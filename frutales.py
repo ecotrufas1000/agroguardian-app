@@ -2224,7 +2224,7 @@ if menu == "🛰️ Rend. Inteligente":
                     &nbsp; > {p66:.0f} kg/ha
                 </div>
                 """, unsafe_allow_html=True)
-                        st.divider()
+            st.divider()
             st_folium(m3, width=720, height=520, key="mapa_rend")
             # ================================
             # ESTADÍSTICAS
