@@ -2265,7 +2265,16 @@ if menu == "🛰️ Rend. Inteligente":
             y = np.array(rend_v)
             coefs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
             a, b, c, d, e_gdd, f, g_cte = coefs
-
+            # DEBUG — verificar que el modelo usa los nuevos índices
+            st.write("🔍 DEBUG coeficientes:")
+            st.write(f"  EVI={a:.3f}, NDWI={b:.3f}, NDRE={c:.3f}")
+            st.write(f"  LST={d:.3f}, GDD={e_gdd:.3f}, Precip={f:.3f}, cte={g_cte:.3f}")
+            st.write(f"  Valores EVI muestras: {evi_v}")
+            st.write(f"  Valores GDD muestras: {gdd_v}")
+            st.write(f"  Valores PRECIP muestras: {precip_v}")
+            st.write(f"  Rendimientos ingresados: {rend_v}")
+            # Verificar rend_est
+            st.write("🔍 DEBUG rend_est bandas:", rend_est.bandNames().getInfo())
             st.success(
                 f"📈 Modelo pecán: Rend = "
                 f"{a:.2f}·EVI + {b:.2f}·NDWI + {c:.2f}·NDRE + "
