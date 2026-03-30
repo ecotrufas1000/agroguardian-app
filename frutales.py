@@ -1961,8 +1961,8 @@ if menu == "🛰️ Rend. Inteligente":
 
     st.write(f"DEBUG evi={evi}, ndwi={ndwi}, lst={lst}, dem={dem}")
 
-    if not evi or not ndwi or not lst:
-        st.error("❌ No se pudieron cargar los índices. Verificá el polígono o el rango de fechas.")
+     if evi is None or ndwi is None or lst is None:
+        st.error("❌ No se pudieron cargar los índices.")
         st.stop()
     # ================================
     # ================================
