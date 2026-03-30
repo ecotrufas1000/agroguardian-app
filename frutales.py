@@ -2713,129 +2713,189 @@ color: #00ffcc88;
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
+# ==========================================================
+# MENÚ: ÍNDICES SATELITALES
+# ==========================================================
 elif menu == "🛰️ Índices Satelitales":
+
     import geopandas as gpd
     import streamlit.components.v1 as components
     from datetime import datetime
+    import os
+    import pandas as pd
 
-    st.markdown("""<style>.leaflet-control-attribution { display: none !important; }</style>""", unsafe_allow_html=True)
+    st.markdown(
+        """<style>.leaflet-control-attribution { display: none !important; }</style>""",
+        unsafe_allow_html=True
+    )
+
     st.header("🛰️ Monitor Satelital Dinámico")
 
     INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d"
 
+    # ================================
+    # CARGA DE LÍMITES
+    # ================================
     @st.cache_data
     def cargar_limites():
         gdf_arg = None
         gdf_ury = None
+
         if os.path.exists("gadm41_AGR_2.gpkg"):
             gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
             gdf_arg["PAIS"] = "Argentina"
+
         if os.path.exists("gadm41_URY.gpkg"):
             gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_ury["PAIS"] = "Uruguay"
-            gdf_ury = gdf_ury.rename(columns={"NAME_1": "NAME_1", "NAME_2": "NAME_2"})
+
         if gdf_arg is not None and gdf_ury is not None:
             return gpd.GeoDataFrame(pd.concat([gdf_arg, gdf_ury], ignore_index=True))
-        return gdf_arg
-    
-    gdf_argentina = cargar_limites()
 
-    if gdf_argentina is not None:
+        return gdf_arg
+
+    gdf_total = cargar_limites()
+
+    # ================================
+    # SELECTORES
+    # ================================
+    if gdf_total is not None:
+
         col_prov = "NAME_1"
         col_depto = "NAME_2"
-        c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
+
+        c0, c1, c2, c3 = st.columns(4)
+
         with c0:
             pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Uruguay"])
+
         with c1:
-            if pais_sel == "Argentina":
-                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Argentina"]
-                label_prov = "Provincia:"
-                label_depto = "Departamento:"
+            if pais_sel != "Seleccionar...":
+                gdf_pais = gdf_total[gdf_total["PAIS"] == pais_sel]
                 opciones_prov = sorted(gdf_pais[col_prov].unique())
-                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
-            elif pais_sel == "Uruguay":
-                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Uruguay"]
-                label_prov = "Departamento:"
-                label_depto = "Sección:"
-                opciones_prov = sorted(gdf_pais[col_prov].unique())
-                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
+                prov_sel = st.selectbox("Provincia / Departamento:", ["Seleccionar..."] + opciones_prov)
             else:
                 prov_sel = st.selectbox("Provincia:", ["Seleccionar..."], disabled=True)
-                gdf_pais = gdf_argentina
+                gdf_pais = gdf_total
+
         with c2:
             if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar...":
                 deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
+                depto_sel = st.selectbox("Zona:", ["Seleccionar..."] + deptos)
             else:
                 depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
-        with c3:
-            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "EVI"])
 
+        with c3:
+            indice_sel = st.selectbox(
+                "Índice",
+                ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "EVI"]
+            )
+
+        # ================================
+        # MAPA
+        # ================================
         if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
+
             with st.spinner(f"Calculando {indice_sel}..."):
-                gdf_loc = gdf_pais[(gdf_pais[col_prov] == prov_sel) & (gdf_pais[col_depto] == depto_sel)]
+
+                gdf_loc = gdf_pais[
+                    (gdf_pais[col_prov] == prov_sel) &
+                    (gdf_pais[col_depto] == depto_sel)
+                ]
+
                 centro = gdf_loc.geometry.centroid.iloc[0]
-                m = folium.Map(location=[centro.y, centro.x], zoom_start=13, tiles='OpenStreetMap', attr=' ', height='100%', width='100%')
+
+                m = folium.Map(
+                    location=[centro.y, centro.x],
+                    zoom_start=13,
+                    tiles='OpenStreetMap'
+                )
+
                 capa_wms = {
                     "NDVI": "NDVI",
                     "NDWI": "NDWI",
                     "TRUE-COLOR": "TRUE-COLOR",
                     "NDMI": "NDMI",
                     "EVI": "EVI"
-                }    
+                }
 
-                folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=capa_wms[indice_sel], name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
-                # Todos los departamentos de la provincia en gris
-                gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+                folium.WmsTileLayer(
+                    url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}",
+                    layers=capa_wms[indice_sel],
+                    name=f"{indice_sel}",
+                    fmt="image/png",
+                    transparent=True,
+                    overlay=True,
+                    opacity=1.0,
+                    version="1.1.1",
+                    maxcc=100,
+                    time="2023-01-01/2026-03-04"
+                ).add_to(m)
+
+                # Provincia gris
+                gdf_prov = gdf_total[gdf_total[col_prov] == prov_sel]
                 folium.GeoJson(
                     gdf_prov,
                     style_function=lambda x: {
-                        'fillColor': '#333333',
-                        'color': '#666666',
+                        'fillColor': '#333',
+                        'color': '#666',
                         'weight': 1,
                         'fillOpacity': 0.3
                     }
                 ).add_to(m)
-                
-                # Departamento seleccionado resaltado en verde
+
+                # Zona seleccionada
                 folium.GeoJson(
                     gdf_loc,
                     style_function=lambda x: {
                         'fillColor': 'transparent',
                         'color': '#00ffc3',
-                        'weight': 3,
-                        'fillOpacity': 0
+                        'weight': 3
                     }
                 ).add_to(m)
-                
+
                 m.fit_bounds(gdf_loc.total_bounds.tolist())
-                mapa_html = m.get_root().render()
-                mapa_html = mapa_html.replace(
-                    '</head>',
-                    '<style>.leaflet-control-attribution { display: none !important; } .leaflet-control-container .leaflet-top, .leaflet-control-container .leaflet-bottom { display: none !important; }</style></head>'
-                )
-                components.html(mapa_html, height=1000, width=None)
-                st.write("---")
 
-                if indice_sel == "NDVI":
-                    st.subheader("🍃 Análisis de Vigor Vegetal (NDVI)")
-                    st.markdown("""El **NDVI** mide la salud de la vegetación:\n* 🟩 **Verde Oscuro:** Cultivo muy sano o bosque denso.\n* 🟩 **Verde Claro:** Vegetación en crecimiento.\n* 🟨 **Amarillo/Marrón:** Suelo desnudo o cultivo estresado.\n* 🟥 **Rojo/Blanco:** Zonas sin vegetación o agua.""")
-                elif indice_sel == "NDWI":
-                    st.subheader("💧 Monitor de Humedad y Agua (NDWI)")
-                    st.markdown("""El **NDWI** resalta la presencia de agua:\n* 🟦 **Azul Oscuro:** Cuerpos de agua claros.\n* 🔷 **Celeste:** Suelo muy húmedo o inundado.\n* ⬜ **Blanco:** Suelo seco o zonas urbanas.""")
-                elif indice_sel == "TRUE-COLOR":
-                    st.subheader("📸 Fotografía Satelital Real (True Color)")
-                    st.markdown("""Composición de color natural (RGB):\n* 🌿 **Verdes:** Cultivos activos y montes.\n* 🪵 **Marrones/Grises:** Lotes preparados o rastrojo.\n* ⚫ **Oscuros:** Agua profunda o sombras.\n* ☁️ **Blanco Brillante:** Nubes.""")
-                elif indice_sel == "NDMI":
-                    st.subheader("💦 Índice de Humedad del Cultivo (NDMI)")
-                    st.markdown("""El **NDMI** detecta el contenido de agua en la vegetación:\n* 🔵 **Azul Oscuro:** Alta humedad en canopeo — cultivo bien abastecido.\n* 🟦 **Celeste:** Humedad moderada — monitorear.\n* 🟨 **Amarillo:** Humedad baja — estrés hídrico incipiente.\n* 🟥 **Rojo:** Estrés hídrico severo — intervención urgente.""")
-                elif indice_sel == "EVI":
-                    st.subheader("🌱 Índice de Vegetación Mejorado (EVI)")
-                    st.markdown("""El **EVI** mejora el NDVI en zonas de alta biomasa:\n* 🟩 **Verde Oscuro:** Cultivo muy denso y sano.\n* 🟩 **Verde Claro:** Vegetación activa en crecimiento.\n* 🟨 **Amarillo:** Cultivo con estrés o baja densidad.\n* 🟥 **Rojo/Naranja:** Suelo desnudo o cultivo muy estresado.""")
+                components.html(m.get_root().render(), height=800)
 
-                fecha_reporte = datetime.now().strftime('%d/%m/%Y')
-                texto_reporte = f"📊 INFORME DE MONITOREO SATELITAL\n---------------------------------\n📍 Ubicación: {depto_sel}, {prov_sel}\n📅 Fecha: {fecha_reporte}\n🛰️ Capa: {indice_sel}\n"
-                st.download_button(label=f"📥 Descargar Reporte {depto_sel}", data=texto_reporte, file_name=f"Reporte_{depto_sel}_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain")
+            # ================================
+            # INFO DEL ÍNDICE
+            # ================================
+            if indice_sel == "NDVI":
+                st.subheader("🍃 NDVI")
+                st.write("Salud vegetal")
+
+            elif indice_sel == "NDWI":
+                st.subheader("💧 NDWI")
+                st.write("Contenido de agua")
+
+            elif indice_sel == "TRUE-COLOR":
+                st.subheader("📸 True Color")
+
+            elif indice_sel == "NDMI":
+                st.subheader("💦 NDMI")
+
+            elif indice_sel == "EVI":
+                st.subheader("🌱 EVI")
+
+            # ================================
+            # DESCARGA
+            # ================================
+            fecha = datetime.now().strftime('%d/%m/%Y')
+
+            reporte = f"""
+INFORME SATELITAL
+Ubicación: {depto_sel}, {prov_sel}
+Fecha: {fecha}
+Índice: {indice_sel}
+"""
+
+            st.download_button(
+                "📥 Descargar reporte",
+                data=reporte,
+                file_name=f"reporte_{depto_sel}.txt",
+                mime="text/plain"
+            )
 
 # ==========================================================
 # MENÚ: DIAGNÓSTICO IA
