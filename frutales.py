@@ -2343,7 +2343,16 @@ if menu == "🛰️ Rend. Inteligente":
                 .multiply(densidad / 400)
                 .multiply(factor_agro)  # ajuste global GDD + precip
             )
+            # ================================
+            # 🔥 INTERPOLACIÓN IDW
+            # ================================
+            with st.spinner("🧠 Generando interpolación de puntos..."):
+                grid_interp = interpolar_idw(
+                    st.session_state.puntos_rinde,
+                    grid_size=40
+                )
 
+            st.success(f"✅ Interpolación generada: {len(grid_interp)} puntos")
             # Umbrales calculados sobre todos los píxeles del lote
             poligono_ee = ee.Geometry.Polygon(coords)
             stats = rend_est.reduceRegion(
