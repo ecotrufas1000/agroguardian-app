@@ -2200,12 +2200,6 @@ if menu == "🛰️ Rend. Inteligente":
                 st.warning(f"⚠️ Error extrayendo: {e}")
                 return {}
 
-        # Cargar índices agro
-        with st.spinner("🌿 Cargando índices agrometeorológicos..."):
-            evi, ndwi, ndre, lst, gdd, precip = obtener_indices_agro(
-                tuple(map(tuple, coords[0]))
-            )
-
         if evi is None:
             st.error("❌ Error cargando índices")
             st.stop()
