@@ -2436,280 +2436,254 @@ def generar_grilla(coords, rend_est, p33, p66):
 
 
 # ── Mapa base con satélite ──────────────────────────────────────────────────
-m3 = folium.Map(
-    location=[lat, lon],
-    zoom_start=18,
-    tiles=None,          # sin tile por defecto
-    zoom_control=False,  # lo ponemos custom abajo
-)
-
-# Capa satelital ESRI (sin token, gratis)
-folium.TileLayer(
-    tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attr="Esri",
-    name="🛰️ Satélite",
-    overlay=False,
-    control=True,
-    max_zoom=22,
-).add_to(m3)
-
-try:
-    # ── Capa 1: calor continuo GEE ──────────────────────────────────────────
-    url_rend = rend_est.visualize(
-        min=min_r, max=max_r,
-        palette=['#d73027', '#fee08b', '#1a9850']   # rojo→amarillo→verde
-    ).getMapId()['tile_fetcher'].url_format
-
+  # ── Mapa base con satélite ──────────────────────────────────────────────────
+    m3 = folium.Map(
+        location=[lat, lon],
+        zoom_start=18,
+        tiles=None,
+        zoom_control=False,
+    )
     folium.TileLayer(
-        tiles=url_rend,
-        attr='GEE',
-        name='🌡️ Calor continuo',
-        overlay=True,
-        opacity=0.65
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attr="Esri",
+        name="🛰️ Satélite",
+        overlay=False,
+        control=True,
+        max_zoom=22,
     ).add_to(m3)
-
-    # ── Capa 2: grilla de celdas ────────────────────────────────────────────
-    grilla_group = folium.FeatureGroup(name="⬛ Grilla por zonas", show=True)
-
-    with st.spinner("⏳ Generando grilla..."):
-        celdas, delta_lon, delta_lat = generar_grilla(coords, rend_est, p33, p66)
-
-    for celda in celdas:
-        # Tooltip con estilo
-        tooltip_html = f"""
+    try:
+        url_rend = rend_est.visualize(
+            min=min_r,
+            max=max_r,
+            palette=["#d73027", "#fee08b", "#1a9850"],
+        ).getMapId()["tile_fetcher"].url_format
+        folium.TileLayer(
+            tiles=url_rend,
+            attr="GEE",
+            name="🌡️ Calor continuo",
+            overlay=True,
+            opacity=0.65,
+        ).add_to(m3)
+        grilla_group = folium.FeatureGroup(name="⬛ Grilla por zonas", show=True)
+        with st.spinner("⏳ Generando grilla..."):
+            celdas, delta_lon, delta_lat = generar_grilla(coords, rend_est, p33, p66)
+        for celda in celdas:
+            tooltip_html = f"""
+            <div style="
+                font-family: 'Courier New', monospace;
+                background: rgba(10,20,10,0.92);
+                color: #00ff88;
+                border: 1px solid #00ff88;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 13px;
+                letter-spacing: 1px;
+            ">
+                {celda['emoji']} {celda['zona']}
+            </div>
+            """
+            folium.Polygon(
+                locations=[[p[1], p[0]] for p in celda["coords"]],
+                color=celda["color_dark"],
+                weight=0.8,
+                fill=True,
+                fill_color=celda["color"],
+                fill_opacity=0.6,
+                tooltip=folium.Tooltip(tooltip_html, sticky=True),
+            ).add_to(grilla_group)
+        grilla_group.add_to(m3)
+        url_zonas = zonas.visualize(
+            min=1,
+            max=3,
+            palette=["#d73027", "#fee08b", "#1a9850"],
+        ).getMapId()["tile_fetcher"].url_format
+        folium.TileLayer(
+            tiles=url_zonas,
+            attr="GEE",
+            name="🗺️ Zonas Bajo/Medio/Alto",
+            overlay=True,
+            opacity=0.0,
+        ).add_to(m3)
+    except Exception as e:
+        st.error(f"❌ Error mapa final: {e}")
+    folium.GeoJson(
+        st.session_state.poligono,
+        name="Lote",
+        style_function=lambda x: {
+            "color": "#00ffcc",
+            "weight": 2.5,
+            "fillOpacity": 0,
+            "dashArray": "6 3",
+        },
+    ).add_to(m3)
+    for i, pt in enumerate(st.session_state.puntos_rinde):
+        if pt["rend"] < p33:
+            bg = "#d73027"
+        elif pt["rend"] < p66:
+            bg = "#f59b00"
+        else:
+            bg = "#1a9850"
+        icon_html = f"""
         <div style="
-            font-family: 'Courier New', monospace;
-            background: rgba(10,20,10,0.92);
-            color: #00ff88;
-            border: 1px solid #00ff88;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 13px;
-            letter-spacing: 1px;
-        ">
-            {celda['emoji']} {celda['zona']}
-        </div>
+            background:{bg};
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: white;
+            font-family: monospace;
+            box-shadow: 0 0 8px {bg};
+        ">{pt['rend']:.0f}</div>
         """
-        folium.Polygon(
-            locations=[[p[1], p[0]] for p in celda["coords"]],
-            color=celda["color_dark"],
-            weight=0.8,
-            fill=True,
-            fill_color=celda["color"],
-            fill_opacity=0.6,
-            tooltip=folium.Tooltip(tooltip_html, sticky=True)
-        ).add_to(grilla_group)
-
-    grilla_group.add_to(m3)
-
-    # ── Capa 3: zonas de manejo GEE ─────────────────────────────────────────
-    url_zonas = zonas.visualize(
-        min=1, max=3,
-        palette=['#d73027', '#fee08b', '#1a9850']
-    ).getMapId()['tile_fetcher'].url_format
-
-    folium.TileLayer(
-        tiles=url_zonas,
-        attr='GEE',
-        name='🗺️ Zonas Bajo/Medio/Alto',
-        overlay=True,
-        opacity=0.0
-    ).add_to(m3)
-
-except Exception as e:
-    st.error(f"❌ Error mapa final: {e}")
-
-# ── Polígono del lote con borde brillante ───────────────────────────────────
-folium.GeoJson(
-    st.session_state.poligono,
-    name="Lote",
-    style_function=lambda x: {
-        "color": "#00ffcc",
-        "weight": 2.5,
-        "fillOpacity": 0,
-        "dashArray": "6 3",
-    }
-).add_to(m3)
-
-# ── Marcadores de puntos de muestra ─────────────────────────────────────────
-for i, pt in enumerate(st.session_state.puntos_rinde):
-    # Color del marcador según rendimiento
-    if pt['rend'] < p33:
-        bg = "#d73027"
-    elif pt['rend'] < p66:
-        bg = "#f59b00"
-    else:
-        bg = "#1a9850"
-
-    icon_html = f"""
+        folium.Marker(
+            location=[pt["lat"], pt["lon"]],
+            icon=folium.DivIcon(html=icon_html, icon_size=(36, 36), icon_anchor=(18, 18)),
+            tooltip=f"Muestra {i+1}: {pt['rend']} kg/ha",
+        ).add_to(m3)
+    folium.LayerControl(collapsed=True, position="topright").add_to(m3)
+    titulo_html = """
     <div style="
-        background:{bg};
-        border: 2px solid white;
-        border-radius: 50%;
-        width: 32px; height: 32px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 10px; font-weight: bold; color: white;
-        font-family: monospace;
-        box-shadow: 0 0 8px {bg};
-    ">{pt['rend']:.0f}</div>
+        position: fixed;
+        top: 12px; left: 50%; transform: translateX(-50%);
+        z-index: 9999;
+        background: rgba(5, 15, 10, 0.85);
+        backdrop-filter: blur(8px);
+        border: 1px solid #00ffcc44;
+        border-radius: 8px;
+        padding: 8px 24px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        letter-spacing: 3px;
+        color: #00ffcc;
+        text-transform: uppercase;
+        pointer-events: none;
+    ">
+        ◈ MAPA DE RENDIMIENTO — AGROGUARDIAN
+    </div>
     """
-    folium.Marker(
-        location=[pt["lat"], pt["lon"]],
-        icon=folium.DivIcon(html=icon_html, icon_size=(36, 36), icon_anchor=(18, 18)),
-        tooltip=f"Muestra {i+1}: {pt['rend']} kg/ha"
-    ).add_to(m3)
-
-folium.LayerControl(collapsed=True, position="topright").add_to(m3)
-
-# ── Título del mapa ──────────────────────────────────────────────────────────
-titulo_html = """
-<div style="
-    position: fixed;
-    top: 12px; left: 50%; transform: translateX(-50%);
-    z-index: 9999;
-    background: rgba(5, 15, 10, 0.85);
-    backdrop-filter: blur(8px);
-    border: 1px solid #00ffcc44;
-    border-radius: 8px;
-    padding: 8px 24px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: #00ffcc;
-    text-transform: uppercase;
-    pointer-events: none;
-">
-    ◈ MAPA DE RENDIMIENTO — AGROGUARDIAN
-</div>
-"""
-m3.get_root().html.add_child(folium.Element(titulo_html))
-
-
-# ── Render del mapa ─────────────────────────────────────────────
-st.markdown("""
-<style>
-    .mapa-container {
+    m3.get_root().html.add_child(folium.Element(titulo_html))
+    st.markdown(
+        """
+    <style>
+        .mapa-container {
+            border: 1px solid #00ffcc33;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 30px #00ffcc15;
+        }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="mapa-container">', unsafe_allow_html=True)
+    st_folium(m3, width=720, height=560, key="mapa_rend")
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+    <div style="
+        background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
         border: 1px solid #00ffcc33;
         border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 0 30px #00ffcc15;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown('<div class="mapa-container">', unsafe_allow_html=True)
-st_folium(m3, width=720, height=560, key="mapa_rend")
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ── Panel inferior ─────────────────────────────────────────────
-st.markdown(f"""
-<div style="
-    background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
-    border: 1px solid #00ffcc33;
-    border-radius: 12px;
-    padding: 20px 28px;
-    margin-top: 12px;
-    font-family: 'Courier New', monospace;
-">
-    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px">
-
-        <div>
-            <div style="color:#00ffcc88; font-size:10px;">ESCALA</div>
-            <div style="display:flex; align-items:center; gap:10px">
-                <span style="color:#d73027;">BAJO</span>
-                <div style="width:180px; height:14px;
-                    background: linear-gradient(to right, #d73027, #fee08b, #1a9850);
-                    border-radius:4px;">
+        padding: 20px 28px;
+        margin-top: 12px;
+        font-family: 'Courier New', monospace;
+    ">
+        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px">
+            <div>
+                <div style="color:#00ffcc88; font-size:10px;">ESCALA</div>
+                <div style="display:flex; align-items:center; gap:10px">
+                    <span style="color:#d73027;">BAJO</span>
+                    <div style="width:180px; height:14px;
+                        background: linear-gradient(to right, #d73027, #fee08b, #1a9850);
+                        border-radius:4px;">
+                    </div>
+                    <span style="color:#1a9850;">ALTO</span>
                 </div>
-                <span style="color:#1a9850;">ALTO</span>
+                <div style="display:flex; justify-content:space-between; width:200px">
+                    <span>{min_r:.0f}</span>
+                    <span>{max_r:.0f}</span>
+                </div>
             </div>
-            <div style="display:flex; justify-content:space-between; width:200px">
-                <span>{min_r:.0f}</span>
-                <span>{max_r:.0f}</span>
+            <div style="text-align:center">
+                <div style="color:#00ffcc88;">GRILLA</div>
+                <div style="font-size:20px">{len(celdas)}</div>
+                <div style="font-size:10px">celdas</div>
             </div>
         </div>
-
-        <div style="text-align:center">
-            <div style="color:#00ffcc88;">GRILLA</div>
-            <div style="font-size:20px">{len(celdas)}</div>
-            <div style="font-size:10px">celdas</div>
-        </div>
-
     </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Estadísticas ─────────────────────────────────────────────
-st.markdown(f"""
-<div style="
-    background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
-    border: 1px solid #00ffcc33;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 16px 0;
-">
-    <div style="display:flex; justify-content:space-around">
-
-        <div style="text-align:center">
-            <div style="color:#d73027; font-size:20px">< {p33:.0f}</div>
-            <div>🔴 Bajo</div>
+    """,
+        unsafe_allow_html=True,
+    )
+    # Ejemplo de control: puntos válidos (rend_v debe existir y tener >=3)
+    if len(rend_v) >= 3:
+        st.markdown(
+            f"""
+        <div style="
+            background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
+            border: 1px solid #00ffcc33;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+        ">
+            <div style="display:flex; justify-content:space-around">
+                <div style="text-align:center">
+                    <div style="color:#d73027; font-size:20px">&lt; {p33:.0f}</div>
+                    <div>🔴 Bajo</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="color:#f59b00; font-size:20px">{p33:.0f}–{p66:.0f}</div>
+                    <div>🟡 Medio</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="color:#1a9850; font-size:20px">&gt; {p66:.0f}</div>
+                    <div>🟢 Alto</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="color:#00ffcc; font-size:20px">{np.mean(rend_v):.0f}</div>
+                    <div>📦 Promedio</div>
+                </div>
+            </div>
         </div>
-
-        <div style="text-align:center">
-            <div style="color:#f59b00; font-size:20px">{p33:.0f}–{p66:.0f}</div>
-            <div>🟡 Medio</div>
-        </div>
-
-        <div style="text-align:center">
-            <div style="color:#1a9850; font-size:20px">> {p66:.0f}</div>
-            <div>🟢 Alto</div>
-        </div>
-
-        <div style="text-align:center">
-            <div style="color:#00ffcc; font-size:20px">{np.mean(rend_v):.0f}</div>
-            <div>📦 Promedio</div>
-        </div>
-
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Descarga ─────────────────────────────────────────────
-st.download_button(
-    "📥 Descargar mapa HTML",
-    data=m3._repr_html_(),
-    file_name="rendimiento_agroguardian.html",
-    mime="text/html",
-    key="btn_descarga_mapa_final"
-)
-
+        """,
+            unsafe_allow_html=True,
+        )
+        st.download_button(
+            "📥 Descargar mapa HTML",
+            data=m3._repr_html_(),
+            file_name="rendimiento_agroguardian.html",
+            mime="text/html",
+            key="btn_descarga_mapa_final",
+        )
     else:
-        # ⚠️ Pocos puntos válidos
-        st.markdown("""
+        st.markdown(
+            """
         <div style="
             background: rgba(215,48,39,0.1);
             border: 1px solid #d7302744;
             border-radius: 8px;
             padding: 14px;
             color: #d73027;
-    ">
-    ⚠️ Solo hay puntos con índices válidos — necesitás 3 bien ubicados
-    </div>
-    """, unsafe_allow_html=True)
-
+        ">
+        ⚠️ Solo hay puntos con índices válidos — necesitás 3 bien ubicados
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
 else:
-    # ⚠️ Pocos puntos totales
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div style="
-    background: rgba(0,255,204,0.05);
-    border: 1px solid #00ffcc22;
-    border-radius: 8px;
-    padding: 14px;
-    color: #00ffcc88;
-">
-👉 Marcá al menos 3 puntos ({n_puntos}/3)
-</div>
-""", unsafe_allow_html=True)    
+        background: rgba(0,255,204,0.05);
+        border: 1px solid #00ffcc22;
+        border-radius: 8px;
+        padding: 14px;
+        color: #00ffcc88;
+    ">
+    👉 Marcá al menos 3 puntos ({n_puntos}/3)
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
