@@ -2674,89 +2674,90 @@ st.download_button(
     key="btn_descarga_mapa_final"
 )
 # ================================
-# ESTADÍSTICAS
 # ================================
-st.markdown(f"""
-<div style="
-    background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
-    border: 1px solid #00ffcc33;
-    border-radius: 12px;
-    padding: 20px 28px;
-    margin: 16px 0;
-    font-family: 'Courier New', monospace;
-">
-    <div style="color:#00ffcc88; font-size:10px; letter-spacing:3px; margin-bottom:16px">
-        ◈ RESUMEN DEL MODELO
-    </div>
-    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            # ESTADÍSTICAS
+            # ================================
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
+                border: 1px solid #00ffcc33;
+                border-radius: 12px;
+                padding: 20px 28px;
+                margin: 16px 0;
+                font-family: 'Courier New', monospace;
+            ">
+                <div style="color:#00ffcc88; font-size:10px; letter-spacing:3px; margin-bottom:16px">
+                    ◈ RESUMEN DEL MODELO
+                </div>
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                    <div style="text-align:center; flex:1; min-width:120px">
+                        <div style="color:#d73027; font-size:22px; font-weight:bold">< {p33:.0f}</div>
+                        <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
+                        <div style="color:#d73027; font-size:11px; margin-top:6px; letter-spacing:1px">🔴 ZONA BAJA</div>
+                    </div>
+                    <div style="width:1px; background:#ffffff11"></div>
+                    <div style="text-align:center; flex:1; min-width:120px">
+                        <div style="color:#f59b00; font-size:22px; font-weight:bold">{p33:.0f} – {p66:.0f}</div>
+                        <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
+                        <div style="color:#f59b00; font-size:11px; margin-top:6px; letter-spacing:1px">🟡 ZONA MEDIA</div>
+                    </div>
+                    <div style="width:1px; background:#ffffff11"></div>
+                    <div style="text-align:center; flex:1; min-width:120px">
+                        <div style="color:#1a9850; font-size:22px; font-weight:bold">> {p66:.0f}</div>
+                        <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
+                        <div style="color:#1a9850; font-size:11px; margin-top:6px; letter-spacing:1px">🟢 ZONA ALTA</div>
+                    </div>
+                    <div style="width:1px; background:#ffffff11"></div>
+                    <div style="text-align:center; flex:1; min-width:120px">
+                        <div style="color:#00ffcc; font-size:22px; font-weight:bold">{np.mean(rend_v):.0f}</div>
+                        <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
+                        <div style="color:#00ffcc88; font-size:11px; margin-top:6px; letter-spacing:1px">📦 PROMEDIO</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        <div style="text-align:center; flex:1; min-width:120px">
-            <div style="color:#d73027; font-size:22px; font-weight:bold">< {p33:.0f}</div>
-            <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
-            <div style="color:#d73027; font-size:11px; margin-top:6px; letter-spacing:1px">🔴 ZONA BAJA</div>
+            # Descarga
+            st.download_button(
+                "📥 Descargar mapa HTML",
+                data=m3._repr_html_(),
+                file_name="rendimiento_frutales.html",
+                mime="text/html",
+                key="btn_descarga_mapa_final"
+            )
+
+        else:  # ← cierra: if len(evi_vals) >= 3
+            st.markdown("""
+            <div style="
+                background: rgba(215,48,39,0.1);
+                border: 1px solid #d7302744;
+                border-radius: 8px;
+                padding: 14px 20px;
+                font-family: 'Courier New', monospace;
+                color: #d73027;
+                font-size: 13px;
+                letter-spacing: 1px;
+            ">
+                ⚠️ Solo hay puntos con índices válidos — necesitás 3 dentro del área con cobertura Sentinel-2
+            </div>
+            """, unsafe_allow_html=True)
+
+    else:  # ← cierra: if n_puntos >= 3
+        st.markdown(f"""
+        <div style="
+            background: rgba(0,255,204,0.05);
+            border: 1px solid #00ffcc22;
+            border-radius: 8px;
+            padding: 14px 20px;
+            font-family: 'Courier New', monospace;
+            color: #00ffcc88;
+            font-size: 13px;
+            letter-spacing: 1px;
+        ">
+            👉 Marcá al menos 3 puntos de muestra dentro del lote ({n_puntos}/3)
         </div>
-
-        <div style="width:1px; background:#ffffff11"></div>
-
-        <div style="text-align:center; flex:1; min-width:120px">
-            <div style="color:#f59b00; font-size:22px; font-weight:bold">{p33:.0f} – {p66:.0f}</div>
-            <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
-            <div style="color:#f59b00; font-size:11px; margin-top:6px; letter-spacing:1px">🟡 ZONA MEDIA</div>
-        </div>
-
-        <div style="width:1px; background:#ffffff11"></div>
-
-        <div style="text-align:center; flex:1; min-width:120px">
-            <div style="color:#1a9850; font-size:22px; font-weight:bold">> {p66:.0f}</div>
-            <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
-            <div style="color:#1a9850; font-size:11px; margin-top:6px; letter-spacing:1px">🟢 ZONA ALTA</div>
-        </div>
-
-        <div style="width:1px; background:#ffffff11"></div>
-
-        <div style="text-align:center; flex:1; min-width:120px">
-            <div style="color:#00ffcc; font-size:22px; font-weight:bold">{np.mean(rend_v):.0f}</div>
-            <div style="color:#ffffff55; font-size:10px; letter-spacing:1px; margin-top:4px">kg/ha</div>
-            <div style="color:#00ffcc88; font-size:11px; margin-top:6px; letter-spacing:1px">📦 PROMEDIO</div>
-        </div>
-
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# Descarga
-        st.download_button(
-            "📥 Descargar mapa HTML",
-            data=m3._repr_html_(),
-            file_name="rendimiento_frutales.html",
-            mime="text/html",
-            key="btn_descarga_mapa_final"
-        )
-
-    else:  # ← este else cierra el if n_puntos con índices válidos
-        st.markdown("""
-        <div style="...">⚠️ Solo hay puntos con índices válidos...</div>
         """, unsafe_allow_html=True)
 
-else:  # ← este else cierra el if n_puntos >= 3
-    st.markdown(f"""
-    <div style="...">👉 Marcá al menos 3 puntos...</div>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown(f"""
-    <div style="
-        background: rgba(0,255,204,0.05);
-        border: 1px solid #00ffcc22;
-        border-radius: 8px;
-        padding: 14px 20px;
-        font-family: 'Courier New', monospace;
-        color: #00ffcc88;
-        font-size: 13px;
-        letter-spacing: 1px;
-    ">
-        👉 Marcá al menos 3 puntos de muestra dentro del lote ({n_puntos}/3)
-    </div>
-    """, unsafe_allow_html=True)
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
