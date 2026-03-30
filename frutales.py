@@ -1793,12 +1793,20 @@ if menu == "🛰️ Rend. Inteligente":
     st.caption("Modelo multivariable: EVI · NDWI · LST — Sentinel-2 + MODIS")
 
     # ← AGREGÁ ESTO
-    if "ee_conectado" not in dir():
+    if "ee_conectado" not in st.session_state:
         try:
-            ee_conectado = conectar_geoprocesamiento()
+            info_llave = json.loads(st.secrets["JSON_LLAVE"])
+            credentials = ee.ServiceAccountCredentials(
+                info_llave['client_email'],
+                key_data=st.secrets["JSON_LLAVE"]
+            )
+            ee.Initialize(credentials, project='agroguardian-ee')
+            st.session_state.ee_conectado = True
         except Exception as e:
             st.error(f"❌ Error conectando Earth Engine: {e}")
             st.stop()
+
+    ee_conectado = st.session_state.ee_conectado
 
     if not ee_conectado:
         st.error("⚠️ Error de conexión con Earth Engine.")
