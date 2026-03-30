@@ -2461,11 +2461,20 @@ if menu == "🛰️ Rend. Inteligente":
                 
                 # 2. DEFINICIÓN DEL MAPA INTEGRAL (Aquí está el truco del fondo)
                 # Usamos una capa de satélite abierta si no tenés Token de Mapbox
-                capa_satelite = pdk.Layer(
-                    "TileLayer",
-                    data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                    pickable=False,
-                )
+                st.pydeck_chart(pdk.Deck(
+                    map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",  # oscuro
+                    # O usá satélite con token de Mapbox:
+                    # map_style="mapbox://styles/mapbox/satellite-v9",
+                    layers=[capa_columnas],  # ← solo las columnas, sin capa_satelite
+                    initial_view_state=pdk.ViewState(
+                        latitude=df_3d["lat"].mean(),
+                        longitude=df_3d["lon"].mean(),
+                        zoom=17,
+                        pitch=60,
+                        bearing=30
+                    ),
+                    tooltip={"text": "{etiqueta}"}
+                ))
                 
                 capa_columnas = pdk.Layer(
                     "ColumnLayer",
