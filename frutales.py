@@ -2840,6 +2840,7 @@ elif menu == "🛰️ Índices Satelitales":
                 st.download_button(label=f"📥 Descargar Reporte {depto_sel}", data=texto_reporte, file_name=f"Reporte_{depto_sel}_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain")
 # ==========================================================
 # MENÚ: DIAGNÓSTICO IA
+# MENÚ: DIAGNÓSTICO IA
 # ==========================================================
 elif menu == "🔍 Diagnóstico IA":
     st.header("🔍 Laboratorio Móvil")
