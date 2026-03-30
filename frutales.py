@@ -2469,8 +2469,9 @@ if menu == "🛰️ Rend. Inteligente":
             
                 st.subheader("🛰️ Simulación Topográfica y de Rendimiento")
                 st.pydeck_chart(pdk.Deck(
-                    map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-                    layers=[capa_columnas],  # ← ahora sí está definida
+                    map_style="mapbox://styles/mapbox/satellite-v9",
+                    map_provider="carto",
+                    layers=[capa_columnas],
                     initial_view_state=pdk.ViewState(
                         latitude=df_3d["lat"].mean(),
                         longitude=df_3d["lon"].mean(),
@@ -2480,7 +2481,7 @@ if menu == "🛰️ Rend. Inteligente":
                     ),
                     tooltip={"text": "{etiqueta}"}
                 ))
-            
+                            
                 # Grilla folium
                 for celda in celdas:
                     folium.Polygon(
