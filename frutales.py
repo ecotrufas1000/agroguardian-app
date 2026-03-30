@@ -2510,12 +2510,34 @@ if menu == "🛰️ Rend. Inteligente":
                     fill_opacity=0.9,
                     tooltip=f"Muestra {i+1}: {pt['rend']} kg/ha"
                 ).add_to(m3)
-
-            folium.LayerControl(collapsed=False).add_to(m3)
-
-            st.subheader("🔥 Mapa de Rendimiento Estimado")
-            st.caption("Activá 'Grilla' en el control de capas para ver las celdas individuales")
-            st_folium(m3, width=720, height=540, key="mapa_rend")
+            # ================================
+            # 🧠 INTERPOLACIÓN IDW
+            # ================================
+            interp_group = folium.FeatureGroup(name="🧠 Interpolación (IDW)", show=False)
+            
+            for p in grid_interp:
+                if p["rend"] < p33:
+                    color = "#ffffcc"
+                elif p["rend"] < p66:
+                    color = "#fd8d3c"
+                else:
+                    color = "#e31a1c"
+            
+                folium.CircleMarker(
+                    location=[p["lat"], p["lon"]],
+                    radius=3,
+                    stroke=False,
+                    fill=True,
+                    fill_color=color,
+                    fill_opacity=0.4
+                ).add_to(interp_group)
+            
+            interp_group.add_to(m3)
+                        folium.LayerControl(collapsed=False).add_to(m3)
+                        
+                        st.subheader("🔥 Mapa de Rendimiento Estimado")
+                        st.caption("Activá 'Grilla' en el control de capas para ver las celdas individuales")
+                        st_folium(m3, width=720, height=540, key="mapa_rend")
 
             # LEYENDA
             col_ley1, col_ley2 = st.columns(2)
