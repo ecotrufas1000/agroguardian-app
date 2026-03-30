@@ -2157,15 +2157,14 @@ if menu == "🛰️ Rend. Inteligente":
                                  name='🌡️ Rendimiento continuo',
                                  overlay=True, opacity=0.75).add_to(m3)
 
-                # Zonas de manejo — opacity 0.7 visible por defecto
+                # Zonas de manejo — misma paleta que el gradiente
                 url_zonas = zonas.visualize(
                     min=1, max=3,
-                    palette=['#d7191c', '#ffffbf', '#1a9641']
+                    palette=['#313695', '#ffffbf', '#a50026']  # azul→amarillo→rojo
                 ).getMapId()['tile_fetcher'].url_format
                 folium.TileLayer(tiles=url_zonas, attr='GEE',
                                  name='🗺️ Zonas Bajo/Medio/Alto',
                                  overlay=True, opacity=0.7).add_to(m3)
-
             except Exception as e:
                 st.error(f"❌ Error mapa final: {e}")
 
