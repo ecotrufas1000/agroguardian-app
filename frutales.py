@@ -2236,8 +2236,7 @@ if menu == "🛰️ Rend. Inteligente":
                 grilla_group = folium.FeatureGroup(name="🟥 Grilla por zonas", show=False)
 
                 with st.spinner("⏳ Generando grilla de celdas..."):
-                    celdas = generar_grilla(coords, rend_est, a_coef, b_coef, p33, p66, densidad)
-
+                    celdas = generar_grilla(coords, rend_est, a, b, p33, p66, densidad)
                 for celda in celdas:
                     folium.Polygon(
                         locations=[[p[1], p[0]] for p in celda["coords"]],
