@@ -2744,20 +2744,20 @@ else:  # ← cierra: if len(evi_vals) >= 3
     """, unsafe_allow_html=True)
 
 else:  # ← cierra: if n_puntos >= 3
-st.markdown(f"""
-<div style="
-background: rgba(0,255,204,0.05);
-border: 1px solid #00ffcc22;
-border-radius: 8px;
-padding: 14px 20px;
-font-family: 'Courier New', monospace;
-color: #00ffcc88;
-font-size: 13px;
-letter-spacing: 1px;
-">
-👉 Marcá al menos 3 puntos de muestra dentro del lote ({n_puntos}/3)
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="
+    background: rgba(0,255,204,0.05);
+    border: 1px solid #00ffcc22;
+    border-radius: 8px;
+    padding: 14px 20px;
+    font-family: 'Courier New', monospace;
+    color: #00ffcc88;
+    font-size: 13px;
+    letter-spacing: 1px;
+    ">
+    👉 Marcá al menos 3 puntos de muestra dentro del lote ({n_puntos}/3)
+    </div>
+    """, unsafe_allow_html=True)
     
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
