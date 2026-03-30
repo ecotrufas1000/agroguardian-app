@@ -1959,7 +1959,7 @@ if menu == "🛰️ Rend. Inteligente":
         evi, ndwi, lst = obtener_indices(coords)
         dem = obtener_dem(lat, lon)
 
-    st.write(f"DEBUG evi={evi}, ndwi={ndwi}, lst={lst}, dem={dem}")
+    #st.write(f"DEBUG evi={evi}, ndwi={ndwi}, lst={lst}, dem={dem}")
 
     if evi is None or ndwi is None or lst is None:
         st.error("❌ No se pudieron cargar los índices.")
