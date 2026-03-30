@@ -2683,29 +2683,29 @@ st.download_button(
     key="btn_descarga_mapa_final"
 )
 
-else:
-# ⚠️ Pocos puntos válidos
-st.markdown("""
-<div style="
-    background: rgba(215,48,39,0.1);
-    border: 1px solid #d7302744;
-    border-radius: 8px;
-    padding: 14px;
-    color: #d73027;
-">
-⚠️ Solo hay puntos con índices válidos — necesitás 3 bien ubicados
-</div>
-""", unsafe_allow_html=True)
+    else:
+        # ⚠️ Pocos puntos válidos
+        st.markdown("""
+        <div style="
+            background: rgba(215,48,39,0.1);
+            border: 1px solid #d7302744;
+            border-radius: 8px;
+            padding: 14px;
+            color: #d73027;
+    ">
+    ⚠️ Solo hay puntos con índices válidos — necesitás 3 bien ubicados
+    </div>
+    """, unsafe_allow_html=True)
 
 else:
-# ⚠️ Pocos puntos totales
-st.markdown(f"""
-<div style="
-background: rgba(0,255,204,0.05);
-border: 1px solid #00ffcc22;
-border-radius: 8px;
-padding: 14px;
-color: #00ffcc88;
+    # ⚠️ Pocos puntos totales
+    st.markdown(f"""
+    <div style="
+    background: rgba(0,255,204,0.05);
+    border: 1px solid #00ffcc22;
+    border-radius: 8px;
+    padding: 14px;
+    color: #00ffcc88;
 ">
 👉 Marcá al menos 3 puntos ({n_puntos}/3)
 </div>
