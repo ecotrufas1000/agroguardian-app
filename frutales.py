@@ -1992,13 +1992,13 @@ if menu == "🛰️ Rend. Inteligente":
     # Cargar índices con debug
     st.write("⏳ DEBUG: Iniciando carga de índices...")
     with st.spinner("🛰️ Cargando índices satelitales..."):
-        evi, ndwi, lst = obtener_indices(coords)
+        evi, ndwi, ndre, lst, gdd, precip = obtener_indices_agro(
+            tuple(map(tuple, coords[0]))
+        )
         dem = obtener_dem(lat, lon)
 
-    #st.write(f"DEBUG evi={evi}, ndwi={ndwi}, lst={lst}, dem={dem}")
-
-    if evi is None or ndwi is None or lst is None:
-        st.error("❌ No se pudieron cargar los índices.")
+    if evi is None:
+        st.error("❌ Error cargando índices")
         st.stop()
     # ================================
     # ================================
