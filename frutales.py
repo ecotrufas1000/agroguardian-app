@@ -2510,7 +2510,7 @@ if menu == "🛰️ Rend. Inteligente":
             col1.metric("🔴 Zona Baja", f"< {p33:.0f} kg/ha")
             col2.metric("🟡 Zona Media", f"{p33:.0f} – {p66:.0f} kg/ha")
             col3.metric("🟢 Zona Alta", f"> {p66:.0f} kg/ha")
-            col4.metric("📦 Promedio muestras", f"{np.mean(rend_vals):.0f} kg/ha")
+            col4.metric("📦 Promedio muestras", f"{np.mean(rend_v):.0f} kg/ha")
 
             # Descarga
             st.download_button(
