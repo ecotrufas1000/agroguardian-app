@@ -1907,29 +1907,29 @@ if menu == "🛰️ Rend. Inteligente":
             return None
 
     def extraer_valores_agro(punto_lat, punto_lon, evi, ndwi, ndre, lst, gdd, precip):
-    try:
-        p = ee.Geometry.Point([punto_lon, punto_lat])
-
-        def get_val(img, banda, buffer=15, scale=10):
-            v = img.reduceRegion(
-                reducer=ee.Reducer.mean(),
-                geometry=p.buffer(buffer),
-                scale=scale
-            ).getInfo()
-            return v.get(banda)
-
-        return {
-            "EVI":    get_val(evi,    "EVI"),
-            "NDWI":   get_val(ndwi,   "NDWI"),
-            "NDRE":   get_val(ndre,   "NDRE"),
-            "LST":    get_val(lst,     "LST",    buffer=500, scale=1000),
-            "GDD":    get_val(gdd,     "GDD",    buffer=500, scale=1000),
-            "PRECIP": get_val(precip,  "PRECIP", buffer=500, scale=5000),
-        }
-
-    except Exception as e:
-        st.warning(f"⚠️ Error extrayendo: {e}")
-        return {}
+        try:
+            p = ee.Geometry.Point([punto_lon, punto_lat])
+    
+            def get_val(img, banda, buffer=15, scale=10):
+                v = img.reduceRegion(
+                    reducer=ee.Reducer.mean(),
+                    geometry=p.buffer(buffer),
+                    scale=scale
+                ).getInfo()
+                return v.get(banda)
+    
+            return {
+                "EVI":    get_val(evi,    "EVI"),
+                "NDWI":   get_val(ndwi,   "NDWI"),
+                "NDRE":   get_val(ndre,   "NDRE"),
+                "LST":    get_val(lst,     "LST",    buffer=500, scale=1000),
+                "GDD":    get_val(gdd,     "GDD",    buffer=500, scale=1000),
+                "PRECIP": get_val(precip,  "PRECIP", buffer=500, scale=5000),
+            }
+    
+        except Exception as e:
+            st.warning(f"⚠️ Error extrayendo: {e}")
+            return {}
     # ================================
 # 🔥 INTERPOLACIÓN IDW
 # ================================
