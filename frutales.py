@@ -1994,12 +1994,15 @@ if menu == "🛰️ Rend. Inteligente":
                 st.session_state[k] = None if k != "puntos_rinde" else []
             st.rerun()
     # Cargar índices
-    with st.spinner("🛰️ Cargando índices satelitales..."):
-        evi, ndwi, lst = obtener_indices(tuple(map(tuple, coords[0])) if coords else coords)
+    # Cargar índices — UNA SOLA VEZ con todos los factores
+    with st.spinner("🛰️ Cargando índices satelitales y agrometeorológicos..."):
+        evi, ndwi, ndre, lst, gdd, precip = obtener_indices_agro(
+            tuple(map(tuple, coords[0]))
+        )
         dem = obtener_dem(lat, lon)
 
-    if not evi or not ndwi or not lst:
-        st.error("❌ No se pudieron cargar los índices. Verificá el polígono o el rango de fechas.")
+    if evi is None or ndwi is None:
+        st.error("❌ Error cargando índices")
         st.stop()
 
     # ================================
