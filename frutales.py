@@ -1939,7 +1939,7 @@ if menu == "🛰️ Rend. Inteligente":
         else:
             st.stop()
     # ← FASE 2 EMPIEZA ACÁ
-    st.write(f"✅ DEBUG: Polígono guardado, avanzando a Fase 2")
+    #st.write(f"✅ DEBUG: Polígono guardado, avanzando a Fase 2")
     
     coords = st.session_state.poligono["geometry"]["coordinates"]
     st.write(f"✅ DEBUG: Coords tipo={type(coords)}, len={len(coords)}")
