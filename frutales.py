@@ -1969,6 +1969,14 @@ if menu == "🛰️ Rend. Inteligente":
     # FASE 2: ÍNDICES + PUNTOS + MODELO
     # ================================
     coords = st.session_state.poligono["geometry"]["coordinates"]
+    # Calcular área del lote
+    try:
+        poligono_ee = ee.Geometry.Polygon(coords)
+        area_m2 = poligono_ee.area().getInfo()
+        area_ha = area_m2 / 10000
+        st.info(f"📐 Superficie del lote: **{area_m2:,.0f} m²** ({area_ha:.2f} ha)")
+    except Exception as e:
+        st.warning(f"⚠️ No se pudo calcular el área: {e}")
     col_a, col_b = st.columns([3, 1])
     with col_a:
         st.success(f"✅ Lote definido — {len(st.session_state.puntos_rinde)} punto(s) cargado(s)")
