@@ -1834,14 +1834,14 @@ if menu == "🛰️ Rend. Inteligente":
         densidad = st.number_input("🌳 Plantas/ha", value=400, step=10)
 
     # ================================
+    # ================================
     # FUNCIONES SATELITALES
     # ================================
     @st.cache_data
-    def obtener_indices(coords):
+    def obtener_indices_agro(coords):
         try:
-            poligono_ee = ee.Geometry.Polygon(coords)
+            poligono_ee = ee.Geometry.Polygon(list(coords))
 
-            # Sentinel-2 — EVI y NDWI
             s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
                   .filterBounds(poligono_ee)
                   .filterDate('2025-09-01', '2026-03-26')
@@ -1849,10 +1849,6 @@ if menu == "🛰️ Rend. Inteligente":
                   .sort('CLOUDY_PIXEL_PERCENTAGE')
                   .first())
 
-            if not s2:
-                return None, None, None
-
-            # EVI = 2.5 * (NIR - RED) / (NIR + 6*RED - 7.5*BLUE + 1)
             evi = s2.expression(
                 '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))',
                 {
@@ -1862,24 +1858,43 @@ if menu == "🛰️ Rend. Inteligente":
                 }
             ).rename('EVI').clip(poligono_ee)
 
-            # NDWI = (GREEN - NIR) / (GREEN + NIR)
             ndwi = s2.normalizedDifference(['B3', 'B8']).rename('NDWI').clip(poligono_ee)
+            ndre = s2.normalizedDifference(['B7', 'B4']).rename('NDRE').clip(poligono_ee)
 
-            # LST desde MODIS Terra (1km resolución)
             lst = (ee.ImageCollection("MODIS/061/MOD11A1")
                    .filterBounds(poligono_ee)
                    .filterDate('2025-09-01', '2026-03-26')
                    .mean()
                    .select('LST_Day_1km')
-                   .multiply(0.02).subtract(273.15)  # Kelvin → Celsius
+                   .multiply(0.02).subtract(273.15)
                    .rename('LST')
                    .clip(poligono_ee))
 
-            return evi, ndwi, lst
+            def calcular_gdd(img):
+                tmax = img.select('temperature_2m_max').subtract(273.15)
+                tmin = img.select('temperature_2m_min').subtract(273.15)
+                return tmax.add(tmin).divide(2).subtract(10).max(0).rename('GDD')
+
+            gdd = (ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
+                   .filterBounds(poligono_ee)
+                   .filterDate('2025-09-01', '2026-03-26')
+                   .select(['temperature_2m_max', 'temperature_2m_min'])
+                   .map(calcular_gdd)
+                   .sum()
+                   .clip(poligono_ee))
+
+            precip = (ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+                      .filterBounds(poligono_ee)
+                      .filterDate('2025-09-01', '2026-03-26')
+                      .sum()
+                      .rename('PRECIP')
+                      .clip(poligono_ee))
+
+            return evi, ndwi, ndre, lst, gdd, precip
 
         except Exception as e:
             st.error(f"❌ Error cargando índices: {e}")
-            return None, None, None
+            return None, None, None, None, None, None
 
     @st.cache_data
     def obtener_dem(lat, lon):
@@ -1890,18 +1905,31 @@ if menu == "🛰️ Rend. Inteligente":
         except:
             return None
 
-    def extraer_valores(punto_lat, punto_lon, evi, ndwi, lst):
+    def extraer_valores_agro(punto_lat, punto_lon, evi, ndwi, ndre, lst, gdd, precip):
         try:
             p = ee.Geometry.Point([punto_lon, punto_lat])
-            vals = ee.Image.cat([evi, ndwi, lst]).reduceRegion(
-                reducer=ee.Reducer.mean(),
-                geometry=p.buffer(15),
-                scale=10
-            ).getInfo()
-            return vals
+            def get_val(img, banda, buffer=15, scale=10):
+                v = img.reduceRegion(
+                    reducer=ee.Reducer.mean(),
+                    geometry=p.buffer(buffer),
+                    scale=scale
+                ).getInfo()
+                return v.get(banda)
+            return {
+                "EVI":    get_val(evi,    "EVI"),
+                "NDWI":   get_val(ndwi,   "NDWI"),
+                "NDRE":   get_val(ndre,   "NDRE"),
+                "LST":    get_val(lst,     "LST",    buffer=500, scale=1000),
+                "GDD":    get_val(gdd,     "GDD",    buffer=500, scale=1000),
+                "PRECIP": get_val(precip,  "PRECIP", buffer=500, scale=5000),
+            }
         except Exception as e:
+            st.warning(f"⚠️ Error extrayendo: {e}")
             return {}
 
+    # ================================
+    # FASE 1: DIBUJAR POLÍGONO
+    # ================================
     # ================================
     # FASE 1: DIBUJAR POLÍGONO
     # ================================
