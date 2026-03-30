@@ -2429,6 +2429,71 @@ if menu == "🛰️ Rend. Inteligente":
                 grilla_group = folium.FeatureGroup(name="🟥 Grilla por zonas", show=False)
                 with st.spinner("⏳ Generando grilla de celdas..."):
                     celdas = generar_grilla(coords, rend_est, p33, p66)
+                # ==========================================
+                # 🔥 AQUÍ AGREGÁS LA INTERFAZ 3D PYDECK
+                # ==========================================
+                import pydeck as pdk
+                import pandas as pd
+                
+                st.subheader("🌐 Panel de Control 3D")
+                
+                # Preparamos el DataFrame para PyDeck
+                data_3d = []
+                for c in celdas:
+                    # Limpieza del rinde (ej: de "🟡 Bajo: 85 kg/ha" a 85.0)
+                    try:
+                        val_str = c["zona"].split(":")[1].split("kg/ha")[0].strip()
+                        val_rinde = float(val_str)
+                    except:
+                        val_rinde = 0.0
+                    
+                    # Asignación de colores RGBA (Verde, Naranja, Rojo)
+                    if "Alto" in c["zona"]:
+                        color = [34, 139, 34, 180]
+                    elif "Medio" in c["zona"]:
+                        color = [255, 165, 0, 180]
+                    else:
+                        color = [255, 69, 0, 180]
+                
+                    data_3d.append({
+                        "lon": c["coords"][0][0],
+                        "lat": c["coords"][0][1],
+                        "rinde": val_rinde,
+                        "color": color,
+                        "etiqueta": c["zona"]
+                    })
+                
+                df_3d = pd.DataFrame(data_3d)
+                
+                # Configuración de Capas
+                column_layer = pdk.Layer(
+                    "ColumnLayer",
+                    data=df_3d,
+                    get_position=["lon", "lat"],
+                    get_elevation="rinde",
+                    elevation_scale=0.6, # Ajustá según qué tan "altas" quieras las torres
+                    radius=8,
+                    get_fill_color="color",
+                    pickable=True,
+                    auto_highlight=True,
+                )
+                
+                # Vista de cámara inicial
+                view_state = pdk.ViewState(
+                    latitude=df_3d["lat"].mean(),
+                    longitude=df_3d["lon"].mean(),
+                    zoom=17,
+                    pitch=60,
+                    bearing=30
+                )
+                
+                # Renderizado
+                st.pydeck_chart(pdk.Deck(
+                    layers=[column_layer],
+                    initial_view_state=view_state,
+                    map_style="mapbox://styles/mapbox/satellite-v9", # O pdk.map_styles.SATELLITE
+                    tooltip={"text": "{etiqueta}"}
+                ))
                 for celda in celdas:
                     folium.Polygon(
                         locations=[[p[1], p[0]] for p in celda["coords"]],
