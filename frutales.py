@@ -2345,7 +2345,7 @@ if menu == "🛰️ Rend. Inteligente":
                 "📥 Descargar mapa HTML",
                 data=m3._repr_html_(),
                 file_name="rendimiento_frutales.html",
-                mime="text/html"
+                mime="text/html",
                 key="btn_descarga_mapa_final"  # ← agregá esto
             )
 
