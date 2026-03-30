@@ -2584,9 +2584,6 @@ titulo_html = """
 """
 m3.get_root().html.add_child(folium.Element(titulo_html))
 
-if n_puntos >= 3:
-
-    if len(evi_vals) >= 3:
 
         # ── Render del mapa ─────────────────────────────────────────────
         st.markdown("""
