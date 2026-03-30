@@ -1909,7 +1909,7 @@ if menu == "🛰️ Rend. Inteligente":
         from folium.plugins import Draw
 
         st.subheader("📐 Paso 1: Delimitá el lote")
-        st.info("Dibujá el contorno del lote con el rectángulo o polígono")
+        st.info("Dibujá el rectángulo sobre el lote y luego presioná **Save**")
 
         m = folium.Map(location=[lat, lon], zoom_start=16,
                        tiles="Esri.WorldImagery")
@@ -1924,11 +1924,7 @@ if menu == "🛰️ Rend. Inteligente":
                          key="mapa_dibujo",
                          returned_objects=["all_drawings", "last_active_drawing"])
 
-        # Debug para ver qué devuelve
-        st.write(f"all_drawings: {mapa.get('all_drawings')}")
-        st.write(f"last_active_drawing: {mapa.get('last_active_drawing')}")
-
-        # Intentar capturar por cualquiera de las dos vías
+        # Capturar dibujo sin rerun inmediato
         dibujo = None
         if mapa.get("last_active_drawing"):
             dibujo = mapa["last_active_drawing"]
@@ -1937,11 +1933,11 @@ if menu == "🛰️ Rend. Inteligente":
 
         if dibujo:
             st.session_state.poligono = dibujo
-            st.rerun()
-
-        st.stop()
-    st.stop()
-
+            st.success("✅ Lote capturado — presioná el botón para continuar")
+            if st.button("➡️ Continuar al análisis", key="btn_continuar"):
+                st.rerun()
+        else:
+            st.stop()
     # ← FASE 2 EMPIEZA ACÁ
     st.write(f"✅ DEBUG: Polígono guardado, avanzando a Fase 2")
     
