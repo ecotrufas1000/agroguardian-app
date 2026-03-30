@@ -2174,10 +2174,14 @@ if menu == "🛰️ Rend. Inteligente":
             ).add_to(m3)
 
             for i, pt in enumerate(st.session_state.puntos_rinde):
-                folium.Marker(
-                    [pt["lat"], pt["lon"]],
-                    popup=f"Muestra {i+1}: {pt['rend']} kg/ha",
-                    icon=folium.Icon(color="white", icon="leaf")
+                folium.CircleMarker(
+                    location=[pt["lat"], pt["lon"]],
+                    radius=5,
+                    color="white",
+                    fill=True,
+                    fill_color="white",
+                    fill_opacity=0.9,
+                    popup=f"Muestra {i+1}: {pt['rend']} kg/ha"
                 ).add_to(m3)
 
             folium.LayerControl(collapsed=False).add_to(m3)
