@@ -2259,8 +2259,6 @@ if menu == "🛰️ Rend. Inteligente":
 
         if len(rend_v) >= 3:
 
-            if len(rend_v) >= 3:
-
             # Solo índices que varían espacialmente dentro del lote (10m)
             X = np.column_stack([evi_v, ndwi_v, ndre_v, np.ones(len(rend_v))])
             y = np.array(rend_v)
