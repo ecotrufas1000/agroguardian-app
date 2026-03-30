@@ -2342,8 +2342,8 @@ if menu == "🛰️ Rend. Inteligente":
                 lat_min, lat_max = min(lats), max(lats)
                 lon_min, lon_max = min(lons), max(lons)
 
-                delta_lat = 20 / 111320
-                delta_lon = 20 / (111320 * math.cos(math.radians((lat_min + lat_max) / 2)))
+                delta_lat = 10 / 111320
+                delta_lon = 10 / (111320 * math.cos(math.radians((lat_min + lat_max) / 2)))
 
                 centros = []
                 lat = lat_min
