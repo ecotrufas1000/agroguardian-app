@@ -2432,28 +2432,22 @@ if menu == "🛰️ Rend. Inteligente":
                 # ==========================================
                 # 🔥 AQUÍ AGREGÁS LA INTERFAZ 3D PYDECK
                 # ==========================================
+                # ... (debajo de celdas = generar_grilla(...))
+
                 import pydeck as pdk
                 import pandas as pd
                 
-                st.subheader("🌐 Panel de Control 3D")
-                
-                # Preparamos el DataFrame para PyDeck
+                # 1. Transformamos los datos (aseguramos que df_3d tenga lo necesario)
                 data_3d = []
                 for c in celdas:
-                    # Limpieza del rinde (ej: de "🟡 Bajo: 85 kg/ha" a 85.0)
                     try:
-                        val_str = c["zona"].split(":")[1].split("kg/ha")[0].strip()
-                        val_rinde = float(val_str)
+                        val_rinde = float(c["zona"].split(":")[1].split("kg/ha")[0].strip())
                     except:
                         val_rinde = 0.0
                     
-                    # Asignación de colores RGBA (Verde, Naranja, Rojo)
-                    if "Alto" in c["zona"]:
-                        color = [34, 139, 34, 180]
-                    elif "Medio" in c["zona"]:
-                        color = [255, 165, 0, 180]
-                    else:
-                        color = [255, 69, 0, 180]
+                    # Colores con transparencia (RGBA)
+                    color = [34, 139, 34, 160] if "Alto" in c["zona"] else \
+                            [253, 141, 60, 160] if "Medio" in c["zona"] else [227, 26, 28, 160]
                 
                     data_3d.append({
                         "lon": c["coords"][0][0],
@@ -2465,33 +2459,39 @@ if menu == "🛰️ Rend. Inteligente":
                 
                 df_3d = pd.DataFrame(data_3d)
                 
-                # Configuración de Capas
-                column_layer = pdk.Layer(
+                # 2. DEFINICIÓN DEL MAPA INTEGRAL (Aquí está el truco del fondo)
+                # Usamos una capa de satélite abierta si no tenés Token de Mapbox
+                capa_satelite = pdk.Layer(
+                    "TileLayer",
+                    data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                    pickable=False,
+                )
+                
+                capa_columnas = pdk.Layer(
                     "ColumnLayer",
                     data=df_3d,
                     get_position=["lon", "lat"],
                     get_elevation="rinde",
-                    elevation_scale=0.6, # Ajustá según qué tan "altas" quieras las torres
-                    radius=8,
+                    elevation_scale=0.6,
+                    radius=10, # Ajustalo según el tamaño de tus plantas
                     get_fill_color="color",
                     pickable=True,
                     auto_highlight=True,
                 )
                 
-                # Vista de cámara inicial
-                view_state = pdk.ViewState(
-                    latitude=df_3d["lat"].mean(),
-                    longitude=df_3d["lon"].mean(),
-                    zoom=17,
-                    pitch=60,
-                    bearing=30
-                )
+                # 3. RENDERIZADO FINAL
+                st.subheader("🛰️ Simulación Topográfica y de Rendimiento")
                 
-                # Renderizado
                 st.pydeck_chart(pdk.Deck(
-                    layers=[column_layer],
-                    initial_view_state=view_state,
-                    map_style="mapbox://styles/mapbox/satellite-v9", # O pdk.map_styles.SATELLITE
+                    layers=[capa_satelite, capa_columnas], # Primero el satélite, encima las columnas
+                    initial_view_state=pdk.ViewState(
+                        latitude=df_3d["lat"].mean(),
+                        longitude=df_3d["lon"].mean(),
+                        zoom=17,
+                        pitch=60,
+                        bearing=30
+                    ),
+                    controller=True, # IMPORTANTE: Esto permite girar con clic derecho
                     tooltip={"text": "{etiqueta}"}
                 ))
                 for celda in celdas:
