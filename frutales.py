@@ -2483,7 +2483,7 @@ if menu == "🛰️ Rend. Inteligente":
                 st.subheader("🛰️ Simulación Topográfica y de Rendimiento")
                 
                 st.pydeck_chart(pdk.Deck(
-                    layers=[capa_satelite, capa_columnas], # Primero el satélite, encima las columnas
+                    layers=[capa_satelite, capa_columnas],
                     initial_view_state=pdk.ViewState(
                         latitude=df_3d["lat"].mean(),
                         longitude=df_3d["lon"].mean(),
@@ -2491,7 +2491,6 @@ if menu == "🛰️ Rend. Inteligente":
                         pitch=60,
                         bearing=30
                     ),
-                    controller=True, # IMPORTANTE: Esto permite girar con clic derecho
                     tooltip={"text": "{etiqueta}"}
                 ))
                 for celda in celdas:
