@@ -649,6 +649,32 @@ with st.sidebar:
     """, height=60)
 
     st.divider()
+st.divider()
+
+    # --- CONDICIONES DE TESTEO ---
+    if "condiciones_aceptadas" not in st.session_state:
+        st.session_state.condiciones_aceptadas = False
+
+    if not st.session_state.condiciones_aceptadas:
+        st.markdown("""
+            <div style='background:#1a1a2e; border:1px solid #ff6b35; border-radius:8px; padding:10px; font-family:monospace; font-size:10px; color:#ff6b35;'>
+                ⚠️ <b>VERSIÓN DE TESTEO</b><br><br>
+                Esta app está en fase de pruebas. Los datos son orientativos y pueden contener errores.
+                Al continuar aceptás usar la app bajo tu responsabilidad.
+            </div>
+        """, unsafe_allow_html=True)
+        aceptar = st.checkbox("✅ Acepto las condiciones de testeo", key="chk_condiciones")
+        if aceptar:
+            st.session_state.condiciones_aceptadas = True
+            st.rerun()
+    else:
+        st.markdown("""
+            <div style='font-family:monospace; font-size:10px; color:#444; text-align:center;'>
+                ✅ Condiciones aceptadas
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
 
 # ==========================================================
 # GPS - INICIALIZACIÓN (corre siempre, en silencio)
