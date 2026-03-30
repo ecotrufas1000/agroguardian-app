@@ -2141,6 +2141,9 @@ if menu == "🛰️ Rend. Inteligente":
             # ================================
             # MAPA FINAL
             # ================================
+            # ================================
+            # MAPA FINAL
+            # ================================
             m3 = folium.Map(location=[lat, lon], zoom_start=16,
                             tiles="Esri.WorldImagery")
 
@@ -2151,17 +2154,17 @@ if menu == "🛰️ Rend. Inteligente":
                     palette=['#313695','#74add1','#ffffbf','#f46d43','#a50026']
                 ).getMapId()['tile_fetcher'].url_format
                 folium.TileLayer(tiles=url_rend, attr='GEE',
-                                 name='🌡️ Rendimiento (calor)',
+                                 name='🌡️ Rendimiento continuo',
                                  overlay=True, opacity=0.75).add_to(m3)
 
-                # Zonas de manejo
+                # Zonas de manejo — opacity 0.7 visible por defecto
                 url_zonas = zonas.visualize(
                     min=1, max=3,
                     palette=['#d7191c', '#ffffbf', '#1a9641']
                 ).getMapId()['tile_fetcher'].url_format
                 folium.TileLayer(tiles=url_zonas, attr='GEE',
-                                 name='🗺️ Zonas (Bajo/Medio/Alto)',
-                                 overlay=True, opacity=0.0).add_to(m3)
+                                 name='🗺️ Zonas Bajo/Medio/Alto',
+                                 overlay=True, opacity=0.7).add_to(m3)
 
             except Exception as e:
                 st.error(f"❌ Error mapa final: {e}")
@@ -2178,12 +2181,42 @@ if menu == "🛰️ Rend. Inteligente":
                     icon=folium.Icon(color="white", icon="leaf")
                 ).add_to(m3)
 
-            folium.LayerControl().add_to(m3)
+            folium.LayerControl(collapsed=False).add_to(m3)
 
             st.subheader("🔥 Mapa de Rendimiento Estimado")
-            st.caption("Activá 'Zonas' en el control de capas para ver Bajo / Medio / Alto")
-            st_folium(m3, width=720, height=520, key="mapa_rend")
 
+            # ================================
+            # LEYENDA
+            # ================================
+            col_ley1, col_ley2 = st.columns(2)
+
+            with col_ley1:
+                st.markdown("**🌡️ Rendimiento continuo**")
+                st.markdown(f"""
+                <div style='display:flex; align-items:center; gap:8px; margin-bottom:4px'>
+                    <div style='width:120px; height:18px; background: linear-gradient(to right, #313695, #74add1, #ffffbf, #f46d43, #a50026); border-radius:3px'></div>
+                </div>
+                <div style='display:flex; justify-content:space-between; width:120px; font-size:12px'>
+                    <span>{min_r:.0f} kg/ha</span>
+                    <span>{max_r:.0f} kg/ha</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_ley2:
+                st.markdown("**🗺️ Zonas de manejo**")
+                st.markdown(f"""
+                <div style='font-size:13px; line-height:2'>
+                    <span style='background:#d7191c; color:white; padding:2px 10px; border-radius:3px'>🔴 Bajo</span>
+                    &nbsp; < {p33:.0f} kg/ha<br>
+                    <span style='background:#ffffbf; color:#333; padding:2px 10px; border-radius:3px'>🟡 Medio</span>
+                    &nbsp; {p33:.0f} – {p66:.0f} kg/ha<br>
+                    <span style='background:#1a9641; color:white; padding:2px 10px; border-radius:3px'>🟢 Alto</span>
+                    &nbsp; > {p66:.0f} kg/ha
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.divider()
+            st_folium(m3, width=720, height=520, key="mapa_rend")
             # ================================
             # ESTADÍSTICAS
             # ================================
