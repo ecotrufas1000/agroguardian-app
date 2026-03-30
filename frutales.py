@@ -1965,19 +1965,18 @@ if menu == "🛰️ Rend. Inteligente":
         st.error("❌ No se pudieron cargar los índices. Verificá el polígono o el rango de fechas.")
         st.stop()
     # ================================
+    # ================================
     # FASE 2: ÍNDICES + PUNTOS + MODELO
     # ================================
     coords = st.session_state.poligono["geometry"]["coordinates"]
-
     col_a, col_b = st.columns([3, 1])
     with col_a:
         st.success(f"✅ Lote definido — {len(st.session_state.puntos_rinde)} punto(s) cargado(s)")
     with col_b:
-        if st.button("🔄 Redibujar"):
+        if st.button("🔄 Redibujar", key="btn_redibujar_fase2"):
             for k in ["poligono", "puntos_rinde", "ultimo_click"]:
                 st.session_state[k] = None if k != "puntos_rinde" else []
             st.rerun()
-
     # Cargar índices
     with st.spinner("🛰️ Cargando índices satelitales..."):
         evi, ndwi, lst = obtener_indices(tuple(map(tuple, coords[0])) if coords else coords)
