@@ -2095,65 +2095,199 @@ if menu == "🛰️ Rend. Inteligente":
             st.rerun()
 
     # ================================
-    # MODELO MULTIVARIABLE
+    # ================================
+    # MODELO MULTIVARIABLE — PECANES
     # ================================
     n_puntos = len(st.session_state.puntos_rinde)
     st.write(f"🔬 Puntos cargados: **{n_puntos}/3**")
 
     if n_puntos >= 3:
 
-        evi_vals, ndwi_vals, lst_vals, rend_vals = [], [], [], []
+        @st.cache_data
+        def obtener_indices_agro(coords):
+            """Extrae EVI, NDWI, NDRE, LST, GDD y precipitación para pecanes"""
+            try:
+                poligono_ee = ee.Geometry.Polygon(coords)
 
-        with st.spinner("🔄 Extrayendo índices satelitales por punto..."):
+                # --- Sentinel-2: EVI, NDWI, NDRE ---
+                s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+                      .filterBounds(poligono_ee)
+                      .filterDate('2025-09-01', '2026-03-26')
+                      .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                      .sort('CLOUDY_PIXEL_PERCENTAGE')
+                      .first())
+
+                evi = s2.expression(
+                    '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))',
+                    {
+                        'NIR':  s2.select('B8').divide(10000),
+                        'RED':  s2.select('B4').divide(10000),
+                        'BLUE': s2.select('B2').divide(10000)
+                    }
+                ).rename('EVI').clip(poligono_ee)
+
+                ndwi = s2.normalizedDifference(['B3', 'B8']).rename('NDWI').clip(poligono_ee)
+
+                # NDRE = (RedEdge - Red) / (RedEdge + Red) — Sentinel B7 y B4
+                ndre = s2.normalizedDifference(['B7', 'B4']).rename('NDRE').clip(poligono_ee)
+
+                # --- MODIS LST ---
+                lst = (ee.ImageCollection("MODIS/061/MOD11A1")
+                       .filterBounds(poligono_ee)
+                       .filterDate('2025-09-01', '2026-03-26')
+                       .mean()
+                       .select('LST_Day_1km')
+                       .multiply(0.02).subtract(273.15)
+                       .rename('LST')
+                       .clip(poligono_ee))
+
+                # --- GDD: Grados Día de Crecimiento ---
+                # Usamos ERA5 temperatura diaria, base 10°C para pecán
+                era5 = (ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
+                        .filterBounds(poligono_ee)
+                        .filterDate('2025-09-01', '2026-03-26')
+                        .select(['temperature_2m_max', 'temperature_2m_min']))
+
+                def calcular_gdd(img):
+                    tmax = img.select('temperature_2m_max').subtract(273.15)
+                    tmin = img.select('temperature_2m_min').subtract(273.15)
+                    tmean = tmax.add(tmin).divide(2)
+                    gdd = tmean.subtract(10).max(0)  # base 10°C
+                    return gdd.rename('GDD')
+
+                gdd_total = (era5.map(calcular_gdd)
+                             .sum()
+                             .clip(poligono_ee))
+
+                # --- Precipitación acumulada (CHIRPS) ---
+                precip = (ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+                          .filterBounds(poligono_ee)
+                          .filterDate('2025-09-01', '2026-03-26')
+                          .sum()
+                          .rename('PRECIP')
+                          .clip(poligono_ee))
+
+                return evi, ndwi, ndre, lst, gdd_total, precip
+
+            except Exception as e:
+                st.error(f"❌ Error cargando índices agro: {e}")
+                return None, None, None, None, None, None
+
+        def extraer_valores_agro(punto_lat, punto_lon, evi, ndwi, ndre, lst, gdd, precip):
+            try:
+                p = ee.Geometry.Point([punto_lon, punto_lat])
+
+                def get_val(img, banda, buffer=15, scale=10):
+                    v = img.reduceRegion(
+                        reducer=ee.Reducer.mean(),
+                        geometry=p.buffer(buffer),
+                        scale=scale
+                    ).getInfo()
+                    return v.get(banda)
+
+                return {
+                    "EVI":    get_val(evi,    "EVI"),
+                    "NDWI":   get_val(ndwi,   "NDWI"),
+                    "NDRE":   get_val(ndre,   "NDRE"),
+                    "LST":    get_val(lst,     "LST",    buffer=500, scale=1000),
+                    "GDD":    get_val(gdd,     "GDD",    buffer=500, scale=1000),
+                    "PRECIP": get_val(precip,  "PRECIP", buffer=500, scale=5000),
+                }
+            except Exception as e:
+                st.warning(f"⚠️ Error extrayendo: {e}")
+                return {}
+
+        # Cargar índices agro
+        with st.spinner("🌿 Cargando índices agrometeorológicos..."):
+            evi, ndwi, ndre, lst, gdd, precip = obtener_indices_agro(
+                tuple(map(tuple, coords[0]))
+            )
+
+        if evi is None:
+            st.error("❌ Error cargando índices")
+            st.stop()
+
+        # Extraer valores por punto
+        evi_v, ndwi_v, ndre_v, lst_v, gdd_v, precip_v, rend_v = [], [], [], [], [], [], []
+
+        with st.spinner("🔄 Extrayendo índices por punto de muestra..."):
             for pt in st.session_state.puntos_rinde:
-                vals = extraer_valores(pt["lat"], pt["lon"], evi, ndwi, lst)
-                e = vals.get("EVI")
-                w = vals.get("NDWI")
-                l = vals.get("LST")
+                vals = extraer_valores_agro(
+                    pt["lat"], pt["lon"], evi, ndwi, ndre, lst, gdd, precip
+                )
+                e  = vals.get("EVI")
+                w  = vals.get("NDWI")
+                r  = vals.get("NDRE")
+                l  = vals.get("LST")
+                g  = vals.get("GDD")
+                pr = vals.get("PRECIP")
 
-                if e is not None and w is not None and l is not None:
-                    evi_vals.append(e)
-                    ndwi_vals.append(w)
-                    lst_vals.append(l)
-                    rend_vals.append(pt["rend"])
+                if all(v is not None for v in [e, w, r, l, g, pr]):
+                    evi_v.append(e);   ndwi_v.append(w)
+                    ndre_v.append(r);  lst_v.append(l)
+                    gdd_v.append(g);   precip_v.append(pr)
+                    rend_v.append(pt["rend"])
                 else:
-                    st.warning(f"⚠️ Sin datos en {pt['lat']:.4f}, {pt['lon']:.4f} — {vals}")
+                    st.warning(f"⚠️ Datos incompletos en {pt['lat']:.4f}, {pt['lon']:.4f} — {vals}")
 
-        st.write(f"✅ Puntos con índices válidos: **{len(evi_vals)}/{n_puntos}**")
+        st.write(f"✅ Puntos válidos: **{len(rend_v)}/{n_puntos}**")
 
-        if len(evi_vals) >= 3:
+        if len(rend_v) >= 3:
 
-            # Regresión múltiple: Rend = a*EVI + b*NDWI + c*LST + d
-            X = np.column_stack([evi_vals, ndwi_vals, lst_vals, np.ones(len(evi_vals))])
-            y = np.array(rend_vals)
+            # Regresión múltiple: EVI + NDWI + NDRE + LST + GDD + PRECIP
+            X = np.column_stack([evi_v, ndwi_v, ndre_v, lst_v, gdd_v, precip_v,
+                                  np.ones(len(rend_v))])
+            y = np.array(rend_v)
             coefs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
-            a, b, c, d = coefs
+            a, b, c, d, e_gdd, f, g_cte = coefs
 
-            st.success(f"📈 Modelo: Rend = {a:.1f}·EVI + {b:.1f}·NDWI + {c:.1f}·LST + {d:.1f}")
+            st.success(
+                f"📈 Modelo pecán: Rend = "
+                f"{a:.2f}·EVI + {b:.2f}·NDWI + {c:.2f}·NDRE + "
+                f"{d:.2f}·LST + {e_gdd:.2f}·GDD + {f:.2f}·Precip + {g_cte:.1f}"
+            )
+
+            # Mostrar importancia relativa de cada factor
+            st.subheader("🔍 Importancia de factores")
+            import pandas as pd
+            factores = pd.DataFrame({
+                "Factor": ["EVI (vigor)", "NDWI (humedad hoja)", "NDRE (nutrición)",
+                           "LST (temp. suelo)", "GDD (calor acumulado)", "Precipitación"],
+                "Coeficiente": [round(a,2), round(b,2), round(c,2),
+                                round(d,2), round(e_gdd,2), round(f,2)],
+                "Efecto": ["↑ más verde = más rend." if a>0 else "↓",
+                           "↑ más húmedo = más rend." if b>0 else "↓",
+                           "↑ mejor nutrición = más rend." if c>0 else "↓",
+                           "↑ más calor = más rend." if d>0 else "↓ estrés térmico",
+                           "↑ más GDD = más rend." if e_gdd>0 else "↓",
+                           "↑ más lluvia = más rend." if f>0 else "↓ exceso hídrico"]
+            })
+            st.dataframe(factores, use_container_width=True, hide_index=True)
 
             # Imagen de rendimiento estimado
             rend_est = (
                 evi.multiply(a)
                 .add(ndwi.multiply(b))
-                .add(lst.multiply(c))
-                .add(d)
+                .add(ndre.multiply(c))
+                .add(lst.multiply(d))
+                .add(gdd.multiply(e_gdd))
+                .add(precip.multiply(f))
+                .add(g_cte)
                 .multiply(densidad / 400)
             )
 
             # Umbrales zonas de manejo
-            rend_arr = np.array(rend_vals)
+            rend_arr = np.array(rend_v)
             p33 = float(np.percentile(rend_arr, 33))
             p66 = float(np.percentile(rend_arr, 66))
             max_r = float(rend_arr.max() * 1.2)
             min_r = max(0, float(rend_arr.min() * 0.8))
 
-            # Zonas de manejo: bajo / medio / alto
             zonas = (
                 rend_est.where(rend_est.lt(p33), 1)
                         .where(rend_est.gte(p33).And(rend_est.lt(p66)), 2)
                         .where(rend_est.gte(p66), 3)
             )
-
             # ================================
             # MAPA FINAL
             # ================================
