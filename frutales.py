@@ -2162,71 +2162,72 @@ if menu == "🛰️ Rend. Inteligente":
             # ================================
             import math
 
-            def generar_grilla(coords, rend_est, a_coef, b_coef, p33, p66, densidad):
-                """Divide el lote en celdas y estima rendimiento por celda"""
-                # Obtener bounding box del polígono
+            def generar_grilla(coords, rend_est, p33, p66):
+                import math
                 puntos = coords[0]
                 lats = [p[1] for p in puntos]
                 lons = [p[0] for p in puntos]
                 lat_min, lat_max = min(lats), max(lats)
                 lon_min, lon_max = min(lons), max(lons)
 
-                # Tamaño de celda ~20x20 metros en grados
                 delta_lat = 20 / 111320
                 delta_lon = 20 / (111320 * math.cos(math.radians((lat_min + lat_max) / 2)))
 
-                celdas = []
+                centros = []
                 lat = lat_min
                 while lat < lat_max:
                     lon = lon_min
                     while lon < lon_max:
-                        centro_lat = lat + delta_lat / 2
-                        centro_lon = lon + delta_lon / 2
-
-                        # Esquinas de la celda
-                        celda_coords = [
-                            [lon,           lat],
-                            [lon + delta_lon, lat],
-                            [lon + delta_lon, lat + delta_lat],
-                            [lon,           lat + delta_lat],
-                            [lon,           lat]
-                        ]
-
-                        try:
-                            p = ee.Geometry.Point([centro_lon, centro_lat])
-                            val = rend_est.reduceRegion(
-                                reducer=ee.Reducer.mean(),
-                                geometry=p.buffer(10),
-                                scale=10
-                            ).getInfo()
-
-                            rend_val = list(val.values())[0] if val else None
-
-                            if rend_val is not None:
-                                if rend_val < p33:
-                                    color = "#ffffcc"
-                                    zona = f"Bajo: {rend_val:.0f} kg/ha"
-                                elif rend_val < p66:
-                                    color = "#fd8d3c"
-                                    zona = f"Medio: {rend_val:.0f} kg/ha"
-                                else:
-                                    color = "#e31a1c"
-                                    zona = f"Alto: {rend_val:.0f} kg/ha"
-
-                                celdas.append({
-                                    "coords": celda_coords,
-                                    "color": color,
-                                    "zona": zona,
-                                    "rend": rend_val
-                                })
-                        except:
-                            pass
-
+                        centros.append({
+                            "lat": lat + delta_lat / 2,
+                            "lon": lon + delta_lon / 2,
+                            "lat_min": lat,
+                            "lon_min": lon
+                        })
                         lon += delta_lon
                     lat += delta_lat
 
-                return celdas
+                fc = ee.FeatureCollection([
+                    ee.Feature(ee.Geometry.Point([c["lon"], c["lat"]]))
+                    for c in centros
+                ])
 
+                muestras = rend_est.reduceRegions(
+                    collection=fc,
+                    reducer=ee.Reducer.mean(),
+                    scale=10
+                ).getInfo()
+
+                celdas = []
+                features = muestras.get("features", [])
+
+                for i, feat in enumerate(features):
+                    if i >= len(centros):
+                        break
+                    c = centros[i]
+                    rend_val = feat.get("properties", {}).get("mean")
+                    if rend_val is None:
+                        continue
+                    if rend_val < p33:
+                        color = "#ffffcc"
+                        zona = f"🟡 Bajo: {rend_val:.0f} kg/ha"
+                    elif rend_val < p66:
+                        color = "#fd8d3c"
+                        zona = f"🟠 Medio: {rend_val:.0f} kg/ha"
+                    else:
+                        color = "#e31a1c"
+                        zona = f"🔴 Alto: {rend_val:.0f} kg/ha"
+
+                    celda_coords = [
+                        [c["lon_min"],             c["lat_min"]],
+                        [c["lon_min"] + delta_lon, c["lat_min"]],
+                        [c["lon_min"] + delta_lon, c["lat_min"] + delta_lat],
+                        [c["lon_min"],             c["lat_min"] + delta_lat],
+                        [c["lon_min"],             c["lat_min"]]
+                    ]
+                    celdas.append({"coords": celda_coords, "color": color, "zona": zona})
+
+                return celdas
             m3 = folium.Map(location=[lat, lon], zoom_start=17,
                             tiles="Esri.WorldImagery")
 
@@ -2242,9 +2243,8 @@ if menu == "🛰️ Rend. Inteligente":
 
                 # CAPA 2: Grilla de celdas
                 grilla_group = folium.FeatureGroup(name="🟥 Grilla por zonas", show=False)
-
                 with st.spinner("⏳ Generando grilla de celdas..."):
-                    celdas = generar_grilla(coords, rend_est, a, b, p33, p66, densidad)
+                    celdas = generar_grilla(coords, rend_est, p33, p66)
                 for celda in celdas:
                     folium.Polygon(
                         locations=[[p[1], p[0]] for p in celda["coords"]],
@@ -2255,7 +2255,6 @@ if menu == "🛰️ Rend. Inteligente":
                         fill_opacity=0.7,
                         tooltip=celda["zona"]
                     ).add_to(grilla_group)
-
                 grilla_group.add_to(m3)
                 st.success(f"✅ Grilla generada: {len(celdas)} celdas")
 
