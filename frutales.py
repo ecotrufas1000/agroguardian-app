@@ -1908,34 +1908,34 @@ if menu == "🛰️ Rend. Inteligente":
 
     def extraer_valores_agro(punto_lat, punto_lon, evi, ndwi, ndre, lst, gdd, precip):
     def interpolar_idw(puntos, grid_size=50):
-    import numpy as np
-
-    lats = np.array([p["lat"] for p in puntos])
-    lons = np.array([p["lon"] for p in puntos])
-    vals = np.array([p["rend"] for p in puntos])
-
-    lat_grid = np.linspace(min(lats), max(lats), grid_size)
-    lon_grid = np.linspace(min(lons), max(lons), grid_size)
-
-    grid = []
-
-    for lat in lat_grid:
-        for lon in lon_grid:
-            dist = np.sqrt((lats - lat)**2 + (lons - lon)**2)
-
-            # evitar división por cero
-            dist[dist == 0] = 0.00001
-
-            pesos = 1 / dist
-            valor = np.sum(pesos * vals) / np.sum(pesos)
-
-            grid.append({
-                "lat": lat,
-                "lon": lon,
-                "rend": valor
-            })
-
-    return grid
+        import numpy as np
+    
+        lats = np.array([p["lat"] for p in puntos])
+        lons = np.array([p["lon"] for p in puntos])
+        vals = np.array([p["rend"] for p in puntos])
+    
+        lat_grid = np.linspace(min(lats), max(lats), grid_size)
+        lon_grid = np.linspace(min(lons), max(lons), grid_size)
+    
+        grid = []
+    
+        for lat in lat_grid:
+            for lon in lon_grid:
+                dist = np.sqrt((lats - lat)**2 + (lons - lon)**2)
+    
+                # evitar división por cero
+                dist[dist == 0] = 0.00001
+    
+                pesos = 1 / dist
+                valor = np.sum(pesos * vals) / np.sum(pesos)
+    
+                grid.append({
+                    "lat": lat,
+                    "lon": lon,
+                    "rend": valor
+                })
+    
+        return grid
         try:
             p = ee.Geometry.Point([punto_lon, punto_lat])
             def get_val(img, banda, buffer=15, scale=10):
