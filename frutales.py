@@ -1922,12 +1922,22 @@ if menu == "🛰️ Rend. Inteligente":
 
         mapa = st_folium(m, width=720, height=520,
                          key="mapa_dibujo",
-                         returned_objects=["all_drawings"])
+                         returned_objects=["all_drawings", "last_active_drawing"])
 
-        if mapa and mapa.get("all_drawings"):
-            if len(mapa["all_drawings"]) > 0:
-                st.session_state.poligono = mapa["all_drawings"][-1]
-                st.rerun()
+        # Debug para ver qué devuelve
+        st.write(f"all_drawings: {mapa.get('all_drawings')}")
+        st.write(f"last_active_drawing: {mapa.get('last_active_drawing')}")
+
+        # Intentar capturar por cualquiera de las dos vías
+        dibujo = None
+        if mapa.get("last_active_drawing"):
+            dibujo = mapa["last_active_drawing"]
+        elif mapa.get("all_drawings") and len(mapa["all_drawings"]) > 0:
+            dibujo = mapa["all_drawings"][-1]
+
+        if dibujo:
+            st.session_state.poligono = dibujo
+            st.rerun()
 
         st.stop()
     st.stop()
