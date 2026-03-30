@@ -2728,20 +2728,20 @@ st.download_button(
 )
 
 else:  # ← cierra: if len(evi_vals) >= 3
-st.markdown("""
-<div style="
-    background: rgba(215,48,39,0.1);
-    border: 1px solid #d7302744;
-    border-radius: 8px;
-    padding: 14px 20px;
-    font-family: 'Courier New', monospace;
-    color: #d73027;
-    font-size: 13px;
-    letter-spacing: 1px;
-">
+    st.markdown("""
+    <div style="
+        background: rgba(215,48,39,0.1);
+        border: 1px solid #d7302744;
+        border-radius: 8px;
+        padding: 14px 20px;
+        font-family: 'Courier New', monospace;
+        color: #d73027;
+        font-size: 13px;
+        letter-spacing: 1px;
+    ">
     ⚠️ Solo hay puntos con índices válidos — necesitás 3 dentro del área con cobertura Sentinel-2
-</div>
-""", unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
 else:  # ← cierra: if n_puntos >= 3
 st.markdown(f"""
