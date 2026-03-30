@@ -2416,96 +2416,96 @@ if menu == "🛰️ Rend. Inteligente":
                             tiles="Esri.WorldImagery")
 
             try:
-    # CAPA 1: Mapa de calor continuo GEE
-    url_rend = rend_est.visualize(
-        min=min_r, max=max_r,
-        palette=['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c']
-    ).getMapId()['tile_fetcher'].url_format
-    folium.TileLayer(tiles=url_rend, attr='GEE',
-                     name='🌡️ Calor continuo',
-                     overlay=True, opacity=0.75).add_to(m3)
-
-    # CAPA 2: Grilla de celdas
-    grilla_group = folium.FeatureGroup(name="🟥 Grilla por zonas", show=False)
-    with st.spinner("⏳ Generando grilla de celdas..."):
-        celdas = generar_grilla(coords, rend_est, p33, p66)
-
-    # ── 3D PYDECK ──────────────────────────────────────────
-    import pydeck as pdk
-    import pandas as pd
-
-    data_3d = []
-    for c in celdas:
-        try:
-            val_rinde = float(c["zona"].split(":")[1].split("kg/ha")[0].strip())
-        except:
-            val_rinde = 0.0
-
-        color = [34, 139, 34, 160] if "Alto" in c["zona"] else \
-                [253, 141, 60, 160] if "Medio" in c["zona"] else [227, 26, 28, 160]
-
-        data_3d.append({
-            "lon": c["coords"][0][0],
-            "lat": c["coords"][0][1],
-            "rinde": val_rinde,
-            "color": color,
-            "etiqueta": c["zona"]
-        })
-
-    df_3d = pd.DataFrame(data_3d)
-
-    # ← capa_columnas definida AQUÍ dentro del try
-    capa_columnas = pdk.Layer(
-        "ColumnLayer",
-        data=df_3d,
-        get_position=["lon", "lat"],
-        get_elevation="rinde",
-        elevation_scale=0.6,
-        radius=10,
-        get_fill_color="color",
-        pickable=True,
-        auto_highlight=True,
-    )
-
-    st.subheader("🛰️ Simulación Topográfica y de Rendimiento")
-    st.pydeck_chart(pdk.Deck(
-        map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-        layers=[capa_columnas],  # ← ahora sí está definida
-        initial_view_state=pdk.ViewState(
-            latitude=df_3d["lat"].mean(),
-            longitude=df_3d["lon"].mean(),
-            zoom=17,
-            pitch=60,
-            bearing=30
-        ),
-        tooltip={"text": "{etiqueta}"}
-    ))
-
-    # Grilla folium
-    for celda in celdas:
-        folium.Polygon(
-            locations=[[p[1], p[0]] for p in celda["coords"]],
-            color="white",
-            weight=0.5,
-            fill=True,
-            fill_color=celda["color"],
-            fill_opacity=0.7,
-            tooltip=celda["zona"]
-        ).add_to(grilla_group)
-    grilla_group.add_to(m3)
-    st.success(f"✅ Grilla generada: {len(celdas)} celdas")
-
-    # CAPA 3: Zonas de manejo GEE
-    url_zonas = zonas.visualize(
-        min=1, max=3,
-        palette=['#ffffcc', '#fd8d3c', '#e31a1c']
-    ).getMapId()['tile_fetcher'].url_format
-    folium.TileLayer(tiles=url_zonas, attr='GEE',
-                     name='🗺️ Zonas Bajo/Medio/Alto',
-                     overlay=True, opacity=0.0).add_to(m3)
-
-except Exception as e:
-    st.error(f"❌ Error mapa final: {e}")
+                # CAPA 1: Mapa de calor continuo GEE
+                url_rend = rend_est.visualize(
+                    min=min_r, max=max_r,
+                    palette=['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c']
+                ).getMapId()['tile_fetcher'].url_format
+                folium.TileLayer(tiles=url_rend, attr='GEE',
+                                 name='🌡️ Calor continuo',
+                                 overlay=True, opacity=0.75).add_to(m3)
+            
+                # CAPA 2: Grilla de celdas
+                grilla_group = folium.FeatureGroup(name="🟥 Grilla por zonas", show=False)
+                with st.spinner("⏳ Generando grilla de celdas..."):
+                    celdas = generar_grilla(coords, rend_est, p33, p66)
+            
+                # ── 3D PYDECK ──────────────────────────────────────────
+                import pydeck as pdk
+                import pandas as pd
+            
+                data_3d = []
+                for c in celdas:
+                    try:
+                        val_rinde = float(c["zona"].split(":")[1].split("kg/ha")[0].strip())
+                    except:
+                        val_rinde = 0.0
+            
+                    color = [34, 139, 34, 160] if "Alto" in c["zona"] else \
+                            [253, 141, 60, 160] if "Medio" in c["zona"] else [227, 26, 28, 160]
+            
+                    data_3d.append({
+                        "lon": c["coords"][0][0],
+                        "lat": c["coords"][0][1],
+                        "rinde": val_rinde,
+                        "color": color,
+                        "etiqueta": c["zona"]
+                    })
+            
+                df_3d = pd.DataFrame(data_3d)
+            
+                # ← capa_columnas definida AQUÍ dentro del try
+                capa_columnas = pdk.Layer(
+                    "ColumnLayer",
+                    data=df_3d,
+                    get_position=["lon", "lat"],
+                    get_elevation="rinde",
+                    elevation_scale=0.6,
+                    radius=10,
+                    get_fill_color="color",
+                    pickable=True,
+                    auto_highlight=True,
+                )
+            
+                st.subheader("🛰️ Simulación Topográfica y de Rendimiento")
+                st.pydeck_chart(pdk.Deck(
+                    map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+                    layers=[capa_columnas],  # ← ahora sí está definida
+                    initial_view_state=pdk.ViewState(
+                        latitude=df_3d["lat"].mean(),
+                        longitude=df_3d["lon"].mean(),
+                        zoom=17,
+                        pitch=60,
+                        bearing=30
+                    ),
+                    tooltip={"text": "{etiqueta}"}
+                ))
+            
+                # Grilla folium
+                for celda in celdas:
+                    folium.Polygon(
+                        locations=[[p[1], p[0]] for p in celda["coords"]],
+                        color="white",
+                        weight=0.5,
+                        fill=True,
+                        fill_color=celda["color"],
+                        fill_opacity=0.7,
+                        tooltip=celda["zona"]
+                    ).add_to(grilla_group)
+                grilla_group.add_to(m3)
+                st.success(f"✅ Grilla generada: {len(celdas)} celdas")
+            
+                # CAPA 3: Zonas de manejo GEE
+                url_zonas = zonas.visualize(
+                    min=1, max=3,
+                    palette=['#ffffcc', '#fd8d3c', '#e31a1c']
+                ).getMapId()['tile_fetcher'].url_format
+                folium.TileLayer(tiles=url_zonas, attr='GEE',
+                                 name='🗺️ Zonas Bajo/Medio/Alto',
+                                 overlay=True, opacity=0.0).add_to(m3)
+            
+            except Exception as e:
+                st.error(f"❌ Error mapa final: {e}")
             # Polígono del lote
             folium.GeoJson(
                 st.session_state.poligono,
