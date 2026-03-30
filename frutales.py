@@ -1961,7 +1961,7 @@ if menu == "🛰️ Rend. Inteligente":
 
     st.write(f"DEBUG evi={evi}, ndwi={ndwi}, lst={lst}, dem={dem}")
 
-     if evi is None or ndwi is None or lst is None:
+    if evi is None or ndwi is None or lst is None:
         st.error("❌ No se pudieron cargar los índices.")
         st.stop()
     # ================================
