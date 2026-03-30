@@ -2282,9 +2282,9 @@ if menu == "🛰️ Rend. Inteligente":
                 folium.CircleMarker(
                     location=[pt["lat"], pt["lon"]],
                     radius=5,
-                    color="white",
+                    color="#00bcd4",
                     fill=True,
-                    fill_color="white",
+                    fill_color="#00bcd4",
                     fill_opacity=0.9,
                     tooltip=f"Muestra {i+1}: {pt['rend']} kg/ha"
                 ).add_to(m3)
