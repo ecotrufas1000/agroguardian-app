@@ -2204,16 +2204,15 @@ if menu == "🛰️ Rend. Inteligente":
             with col_ley2:
                 st.markdown("**🗺️ Zonas de manejo**")
                 st.markdown(f"""
-                <div style='font-size:13px; line-height:2'>
-                    <span style='background:#d7191c; color:white; padding:2px 10px; border-radius:3px'>🔴 Bajo</span>
+                <div style='font-size:13px; line-height:2.2'>
+                    <span style='background:#313695; color:white; padding:2px 10px; border-radius:3px'>🔵 Bajo</span>
                     &nbsp; < {p33:.0f} kg/ha<br>
                     <span style='background:#ffffbf; color:#333; padding:2px 10px; border-radius:3px'>🟡 Medio</span>
                     &nbsp; {p33:.0f} – {p66:.0f} kg/ha<br>
-                    <span style='background:#1a9641; color:white; padding:2px 10px; border-radius:3px'>🟢 Alto</span>
+                    <span style='background:#a50026; color:white; padding:2px 10px; border-radius:3px'>🔴 Alto</span>
                     &nbsp; > {p66:.0f} kg/ha
                 </div>
                 """, unsafe_allow_html=True)
-
             st.divider()
             st_folium(m3, width=720, height=520, key="mapa_rend")
             # ================================
