@@ -2585,131 +2585,131 @@ titulo_html = """
 m3.get_root().html.add_child(folium.Element(titulo_html))
 
 
-        # ── Render del mapa ─────────────────────────────────────────────
-        st.markdown("""
-        <style>
-            .mapa-container {
-                border: 1px solid #00ffcc33;
-                border-radius: 12px;
-                overflow: hidden;
-                box-shadow: 0 0 30px #00ffcc15;
-            }
-        </style>
-        """, unsafe_allow_html=True)
+# ── Render del mapa ─────────────────────────────────────────────
+st.markdown("""
+<style>
+    .mapa-container {
+        border: 1px solid #00ffcc33;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 0 30px #00ffcc15;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-        st.markdown('<div class="mapa-container">', unsafe_allow_html=True)
-        st_folium(m3, width=720, height=560, key="mapa_rend")
-        st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('<div class="mapa-container">', unsafe_allow_html=True)
+st_folium(m3, width=720, height=560, key="mapa_rend")
+st.markdown('</div>', unsafe_allow_html=True)
 
-        # ── Panel inferior ─────────────────────────────────────────────
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
-            border: 1px solid #00ffcc33;
-            border-radius: 12px;
-            padding: 20px 28px;
-            margin-top: 12px;
-            font-family: 'Courier New', monospace;
-        ">
-            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px">
+# ── Panel inferior ─────────────────────────────────────────────
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
+    border: 1px solid #00ffcc33;
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-top: 12px;
+    font-family: 'Courier New', monospace;
+">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px">
 
-                <div>
-                    <div style="color:#00ffcc88; font-size:10px;">ESCALA</div>
-                    <div style="display:flex; align-items:center; gap:10px">
-                        <span style="color:#d73027;">BAJO</span>
-                        <div style="width:180px; height:14px;
-                            background: linear-gradient(to right, #d73027, #fee08b, #1a9850);
-                            border-radius:4px;">
-                        </div>
-                        <span style="color:#1a9850;">ALTO</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; width:200px">
-                        <span>{min_r:.0f}</span>
-                        <span>{max_r:.0f}</span>
-                    </div>
+        <div>
+            <div style="color:#00ffcc88; font-size:10px;">ESCALA</div>
+            <div style="display:flex; align-items:center; gap:10px">
+                <span style="color:#d73027;">BAJO</span>
+                <div style="width:180px; height:14px;
+                    background: linear-gradient(to right, #d73027, #fee08b, #1a9850);
+                    border-radius:4px;">
                 </div>
-
-                <div style="text-align:center">
-                    <div style="color:#00ffcc88;">GRILLA</div>
-                    <div style="font-size:20px">{len(celdas)}</div>
-                    <div style="font-size:10px">celdas</div>
-                </div>
-
+                <span style="color:#1a9850;">ALTO</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; width:200px">
+                <span>{min_r:.0f}</span>
+                <span>{max_r:.0f}</span>
             </div>
         </div>
-        """, unsafe_allow_html=True)
 
-        # ── Estadísticas ─────────────────────────────────────────────
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
-            border: 1px solid #00ffcc33;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 16px 0;
-        ">
-            <div style="display:flex; justify-content:space-around">
-
-                <div style="text-align:center">
-                    <div style="color:#d73027; font-size:20px">< {p33:.0f}</div>
-                    <div>🔴 Bajo</div>
-                </div>
-
-                <div style="text-align:center">
-                    <div style="color:#f59b00; font-size:20px">{p33:.0f}–{p66:.0f}</div>
-                    <div>🟡 Medio</div>
-                </div>
-
-                <div style="text-align:center">
-                    <div style="color:#1a9850; font-size:20px">> {p66:.0f}</div>
-                    <div>🟢 Alto</div>
-                </div>
-
-                <div style="text-align:center">
-                    <div style="color:#00ffcc; font-size:20px">{np.mean(rend_v):.0f}</div>
-                    <div>📦 Promedio</div>
-                </div>
-
-            </div>
+        <div style="text-align:center">
+            <div style="color:#00ffcc88;">GRILLA</div>
+            <div style="font-size:20px">{len(celdas)}</div>
+            <div style="font-size:10px">celdas</div>
         </div>
-        """, unsafe_allow_html=True)
 
-        # ── Descarga ─────────────────────────────────────────────
-        st.download_button(
-            "📥 Descargar mapa HTML",
-            data=m3._repr_html_(),
-            file_name="rendimiento_agroguardian.html",
-            mime="text/html",
-            key="btn_descarga_mapa_final"
-        )
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-    else:
-        # ⚠️ Pocos puntos válidos
-        st.markdown("""
-        <div style="
-            background: rgba(215,48,39,0.1);
-            border: 1px solid #d7302744;
-            border-radius: 8px;
-            padding: 14px;
-            color: #d73027;
-        ">
-        ⚠️ Solo hay puntos con índices válidos — necesitás 3 bien ubicados
+# ── Estadísticas ─────────────────────────────────────────────
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #050f0a 0%, #0a1f12 100%);
+    border: 1px solid #00ffcc33;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+">
+    <div style="display:flex; justify-content:space-around">
+
+        <div style="text-align:center">
+            <div style="color:#d73027; font-size:20px">< {p33:.0f}</div>
+            <div>🔴 Bajo</div>
         </div>
-        """, unsafe_allow_html=True)
+
+        <div style="text-align:center">
+            <div style="color:#f59b00; font-size:20px">{p33:.0f}–{p66:.0f}</div>
+            <div>🟡 Medio</div>
+        </div>
+
+        <div style="text-align:center">
+            <div style="color:#1a9850; font-size:20px">> {p66:.0f}</div>
+            <div>🟢 Alto</div>
+        </div>
+
+        <div style="text-align:center">
+            <div style="color:#00ffcc; font-size:20px">{np.mean(rend_v):.0f}</div>
+            <div>📦 Promedio</div>
+        </div>
+
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Descarga ─────────────────────────────────────────────
+st.download_button(
+    "📥 Descargar mapa HTML",
+    data=m3._repr_html_(),
+    file_name="rendimiento_agroguardian.html",
+    mime="text/html",
+    key="btn_descarga_mapa_final"
+)
 
 else:
-    # ⚠️ Pocos puntos totales
-    st.markdown(f"""
-    <div style="
-        background: rgba(0,255,204,0.05);
-        border: 1px solid #00ffcc22;
-        border-radius: 8px;
-        padding: 14px;
-        color: #00ffcc88;
-    ">
-    👉 Marcá al menos 3 puntos ({n_puntos}/3)
-    </div>
-    """, unsafe_allow_html=True)    
+# ⚠️ Pocos puntos válidos
+st.markdown("""
+<div style="
+    background: rgba(215,48,39,0.1);
+    border: 1px solid #d7302744;
+    border-radius: 8px;
+    padding: 14px;
+    color: #d73027;
+">
+⚠️ Solo hay puntos con índices válidos — necesitás 3 bien ubicados
+</div>
+""", unsafe_allow_html=True)
+
+else:
+# ⚠️ Pocos puntos totales
+st.markdown(f"""
+<div style="
+background: rgba(0,255,204,0.05);
+border: 1px solid #00ffcc22;
+border-radius: 8px;
+padding: 14px;
+color: #00ffcc88;
+">
+👉 Marcá al menos 3 puntos ({n_puntos}/3)
+</div>
+""", unsafe_allow_html=True)    
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
