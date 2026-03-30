@@ -2151,7 +2151,7 @@ if menu == "🛰️ Rend. Inteligente":
                 # Mapa de calor continuo
                 url_rend = rend_est.visualize(
                     min=min_r, max=max_r,
-                    palette=['#313695','#74add1','#ffffbf','#f46d43','#a50026']
+                    palette=['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c']
                 ).getMapId()['tile_fetcher'].url_format
                 folium.TileLayer(tiles=url_rend, attr='GEE',
                                  name='🌡️ Rendimiento continuo',
@@ -2160,7 +2160,7 @@ if menu == "🛰️ Rend. Inteligente":
                 # Zonas de manejo — misma paleta que el gradiente
                 url_zonas = zonas.visualize(
                     min=1, max=3,
-                    palette=['#313695', '#ffffbf', '#a50026']  # azul→amarillo→rojo
+                    palette=['#ffffcc', '#fed976', '#fd8d3c', '#e31a1c']  # azul→amarillo→rojo
                 ).getMapId()['tile_fetcher'].url_format
                 folium.TileLayer(tiles=url_zonas, attr='GEE',
                                  name='🗺️ Zonas Bajo/Medio/Alto',
