@@ -1942,7 +1942,7 @@ if menu == "🛰️ Rend. Inteligente":
     #st.write(f"✅ DEBUG: Polígono guardado, avanzando a Fase 2")
     
     coords = st.session_state.poligono["geometry"]["coordinates"]
-    st.write(f"✅ DEBUG: Coords tipo={type(coords)}, len={len(coords)}")
+    #st.write(f"✅ DEBUG: Coords tipo={type(coords)}, len={len(coords)}")
 
     col_a, col_b = st.columns([3, 1])
     with col_a:
