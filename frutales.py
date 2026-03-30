@@ -2314,12 +2314,23 @@ if menu == "🛰️ Rend. Inteligente":
                 .multiply(factor_agro)  # ajuste global GDD + precip
             )
 
-            # Umbrales zonas de manejo
-            rend_arr = np.array(rend_v)
-            p33 = float(np.percentile(rend_arr, 33))
-            p66 = float(np.percentile(rend_arr, 66))
-            max_r = float(rend_arr.max() * 1.2)
-            min_r = max(0, float(rend_arr.min() * 0.8))
+            # Umbrales calculados sobre todos los píxeles del lote
+            poligono_ee = ee.Geometry.Polygon(coords)
+            stats = rend_est.reduceRegion(
+                reducer=ee.Reducer.percentile([10, 33, 66, 90]),
+                geometry=poligono_ee,
+                scale=10,
+                maxPixels=1e8
+            ).getInfo()
+
+            # Extraer valores — el nombre de banda puede variar
+            banda = list(stats.keys())[0].rsplit('_p', 1)[0] if stats else "nd"
+            p33   = stats.get(f"{banda}_p33") or float(np.percentile(rend_v, 33))
+            p66   = stats.get(f"{banda}_p66") or float(np.percentile(rend_v, 66))
+            min_r = stats.get(f"{banda}_p10") or max(0, float(np.min(rend_v) * 0.8))
+            max_r = stats.get(f"{banda}_p90") or float(np.max(rend_v) * 1.2)
+
+            st.write(f"📊 Rangos reales del lote — 🟡 Bajo: <{p33:.1f} | 🟠 Medio: {p33:.1f}–{p66:.1f} | 🔴 Alto: >{p66:.1f} kg/ha")
 
             zonas = (
                 rend_est.where(rend_est.lt(p33), 1)
