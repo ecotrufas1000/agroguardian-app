@@ -2540,11 +2540,11 @@ def interpolar_idw(puntos, grid_size=50):
                 ).add_to(interp_group)
             
             interp_group.add_to(m3)
-                        folium.LayerControl(collapsed=False).add_to(m3)
+            folium.LayerControl(collapsed=False).add_to(m3)
                         
-                        st.subheader("🔥 Mapa de Rendimiento Estimado")
-                        st.caption("Activá 'Grilla' en el control de capas para ver las celdas individuales")
-                        st_folium(m3, width=720, height=540, key="mapa_rend")
+            st.subheader("🔥 Mapa de Rendimiento Estimado")
+            st.caption("Activá 'Grilla' en el control de capas para ver las celdas individuales")
+            st_folium(m3, width=720, height=540, key="mapa_rend")
 
             # LEYENDA
             col_ley1, col_ley2 = st.columns(2)
