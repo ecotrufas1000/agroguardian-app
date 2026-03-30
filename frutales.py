@@ -1930,7 +1930,34 @@ if menu == "🛰️ Rend. Inteligente":
                 st.rerun()
 
         st.stop()
+    st.stop()
 
+    # ← FASE 2 EMPIEZA ACÁ
+    st.write(f"✅ DEBUG: Polígono guardado, avanzando a Fase 2")
+    
+    coords = st.session_state.poligono["geometry"]["coordinates"]
+    st.write(f"✅ DEBUG: Coords tipo={type(coords)}, len={len(coords)}")
+
+    col_a, col_b = st.columns([3, 1])
+    with col_a:
+        st.success(f"✅ Lote definido — {len(st.session_state.puntos_rinde)} punto(s) cargado(s)")
+    with col_b:
+        if st.button("🔄 Redibujar"):
+            for k in ["poligono", "puntos_rinde", "ultimo_click"]:
+                st.session_state[k] = None if k != "puntos_rinde" else []
+            st.rerun()
+
+    # Cargar índices con debug
+    st.write("⏳ DEBUG: Iniciando carga de índices...")
+    with st.spinner("🛰️ Cargando índices satelitales..."):
+        evi, ndwi, lst = obtener_indices(coords)
+        dem = obtener_dem(lat, lon)
+
+    st.write(f"DEBUG evi={evi}, ndwi={ndwi}, lst={lst}, dem={dem}")
+
+    if not evi or not ndwi or not lst:
+        st.error("❌ No se pudieron cargar los índices. Verificá el polígono o el rango de fechas.")
+        st.stop()
     # ================================
     # FASE 2: ÍNDICES + PUNTOS + MODELO
     # ================================
