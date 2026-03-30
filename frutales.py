@@ -1907,56 +1907,63 @@ if menu == "🛰️ Rend. Inteligente":
             return None
 
     def extraer_valores_agro(punto_lat, punto_lon, evi, ndwi, ndre, lst, gdd, precip):
-    def interpolar_idw(puntos, grid_size=50):
-        import numpy as np
-    
-        lats = np.array([p["lat"] for p in puntos])
-        lons = np.array([p["lon"] for p in puntos])
-        vals = np.array([p["rend"] for p in puntos])
-    
-        lat_grid = np.linspace(min(lats), max(lats), grid_size)
-        lon_grid = np.linspace(min(lons), max(lons), grid_size)
-    
-        grid = []
-    
-        for lat in lat_grid:
-            for lon in lon_grid:
-                dist = np.sqrt((lats - lat)**2 + (lons - lon)**2)
-    
-                # evitar división por cero
-                dist[dist == 0] = 0.00001
-    
-                pesos = 1 / dist
-                valor = np.sum(pesos * vals) / np.sum(pesos)
-    
-                grid.append({
-                    "lat": lat,
-                    "lon": lon,
-                    "rend": valor
-                })
-    
-        return grid
-        try:
-            p = ee.Geometry.Point([punto_lon, punto_lat])
-            def get_val(img, banda, buffer=15, scale=10):
-                v = img.reduceRegion(
-                    reducer=ee.Reducer.mean(),
-                    geometry=p.buffer(buffer),
-                    scale=scale
-                ).getInfo()
-                return v.get(banda)
-            return {
-                "EVI":    get_val(evi,    "EVI"),
-                "NDWI":   get_val(ndwi,   "NDWI"),
-                "NDRE":   get_val(ndre,   "NDRE"),
-                "LST":    get_val(lst,     "LST",    buffer=500, scale=1000),
-                "GDD":    get_val(gdd,     "GDD",    buffer=500, scale=1000),
-                "PRECIP": get_val(precip,  "PRECIP", buffer=500, scale=5000),
-            }
-        except Exception as e:
-            st.warning(f"⚠️ Error extrayendo: {e}")
-            return {}
+    try:
+        p = ee.Geometry.Point([punto_lon, punto_lat])
 
+        def get_val(img, banda, buffer=15, scale=10):
+            v = img.reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=p.buffer(buffer),
+                scale=scale
+            ).getInfo()
+            return v.get(banda)
+
+        return {
+            "EVI":    get_val(evi,    "EVI"),
+            "NDWI":   get_val(ndwi,   "NDWI"),
+            "NDRE":   get_val(ndre,   "NDRE"),
+            "LST":    get_val(lst,     "LST",    buffer=500, scale=1000),
+            "GDD":    get_val(gdd,     "GDD",    buffer=500, scale=1000),
+            "PRECIP": get_val(precip,  "PRECIP", buffer=500, scale=5000),
+        }
+
+    except Exception as e:
+        st.warning(f"⚠️ Error extrayendo: {e}")
+        return {}
+    # ================================
+# 🔥 INTERPOLACIÓN IDW
+# ================================
+def interpolar_idw(puntos, grid_size=50):
+    import numpy as np
+
+    if len(puntos) < 2:
+        return []
+
+    lats = np.array([p["lat"] for p in puntos])
+    lons = np.array([p["lon"] for p in puntos])
+    vals = np.array([p["rend"] for p in puntos])
+
+    lat_grid = np.linspace(min(lats), max(lats), grid_size)
+    lon_grid = np.linspace(min(lons), max(lons), grid_size)
+
+    grid = []
+
+    for lat in lat_grid:
+        for lon in lon_grid:
+            dist = np.sqrt((lats - lat)**2 + (lons - lon)**2)
+
+            dist[dist == 0] = 0.00001
+
+            pesos = 1 / dist
+            valor = np.sum(pesos * vals) / np.sum(pesos)
+
+            grid.append({
+                "lat": float(lat),
+                "lon": float(lon),
+                "rend": float(valor)
+            })
+
+    return grid    
     # ================================
     # FASE 1: DIBUJAR POLÍGONO
     # ================================
