@@ -149,7 +149,7 @@ elif menu == "📝 Bitácora":
     if os.path.exists('bitacora_campo.txt'):
         with open('bitacora_campo.txt', 'r', encoding='utf-8') as f:
             for n in reversed(f.readlines()): st.info(n.strip())
-=======
+
 import streamlit as st
 from streamlit_folium import folium_static
 import folium
@@ -294,7 +294,59 @@ if menu == "📊 Monitoreo":
 
     # --- RECOMENDACIÓN RÁPIDA ---
     st.info(f"💡 **Nota del día:** Con el pronóstico actual y una ET0 de {clima['etc']} mm, planifica riegos de refresco si las máximas superan los 30°C.")
+# --- Agregá esto a tu lista de menús de Streamlit ---
+elif menu == "🛰️ Monitoreo Satelital":
+    st.title("🛰️ Monitoreo de Vigor (EVI)")
+    st.subheader("Análisis de Resolución 10m (Sentinel-2)")
 
+    # 1. Definimos el punto de interés (Balcarce por defecto)
+    punto_interes = ee.Geometry.Point([LON, LAT])
+
+    # 2. Buscamos la imagen más reciente sin nubes
+    coleccion = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                 .filterBounds(punto_interes)
+                 .filterDate('2026-01-01', '2026-04-03')
+                 .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                 .sort('system:time_start', False))
+
+    if coleccion.size().getInfo() > 0:
+        imagen = coleccion.first()
+        fecha_img = imagen.date().format('dd/MM/yyyy').getInfo()
+        
+        # 3. Cálculo de EVI (Ideal para trufas)
+        evi = imagen.expression(
+            '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+                'NIR': imagen.select('B8'),
+                'RED': imagen.select('B4'),
+                'BLUE': imagen.select('B2')
+            }).rename('EVI')
+
+        st.info(f"📅 Última imagen disponible: {fecha_img}")
+
+        # 4. Crear el mapa interactivo
+        m = geemap.Map(center=[LAT, LON], zoom=16)
+        
+        # Paleta agroclimática que te gusta (Rojo a Verde Oscuro)
+        vis_params = {
+            'min': 0, 
+            'max': 0.7, 
+            'palette': ['#FF0000', '#FF8000', '#FFFF00', '#99FF33', '#00FF00', '#004400']
+        }
+        
+        m.addLayer(evi, vis_params, 'Vigor EVI')
+        
+        # Mostrar el mapa en Streamlit
+        m.to_streamlit(height=500)
+        
+        st.caption("Los tonos rojos/naranjas indican suelo desnudo o bajo vigor. Los verdes oscuros indican copas de árboles sanas.")
+    else:
+        st.warning("No se encontraron imágenes satelitales recientes sin nubes para esta zona.")
+
+    # --- Sección de Estrés Hídrico ---
+    st.divider()
+    with st.expander("💧 Ver Estrés Hídrico (NDWI)"):
+        st.write("Este índice detecta la falta de agua en la hoja antes de que sea visible al ojo.")
+        # Aquí podrías repetir el proceso para el NDWI (B8 y B11)
 elif menu == "💧 Balance Hídrico":
     st.header("💧 Balance Hídrico Especializado - Trufera")
     kc_fijo = 1.0
@@ -357,9 +409,6 @@ elif menu == "🌡️Temp. del Suelo":
         if st.button("💾 GUARDAR TRUFA"):
             st.balloons()
             st.success("¡Trufa registrada!")
-
-
-
 
 
 
