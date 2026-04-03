@@ -1,4 +1,3 @@
-
 import streamlit as st
 from streamlit_folium import folium_static
 import folium
@@ -365,4 +364,3 @@ elif menu == "🌡️Temp. del Suelo":
 
 
 
->>>>>>> e0612e52aaefd4a57207d4f317bafd3b97a81d7e
