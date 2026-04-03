@@ -229,7 +229,7 @@ clima = obtener_datos()
 # === 2. BARRA LATERAL ===
 with st.sidebar:
     st.title("AgroGuardian Pro")
-    menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "⛈️ Granizo", "❄️ Heladas", "📝 Bitácora", "🌡️Temp. del Suelo"])
+    menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "Monitoeo Satelital","⛈️ Granizo", "❄️ Heladas", "📝 Bitácora", "🌡️Temp. del Suelo"])
     st.divider()
     st.caption(f"📍 {round(LAT,3)}, {round(LON,3)}")
     if st.button("🔄 ACTUALIZAR"): st.rerun()
