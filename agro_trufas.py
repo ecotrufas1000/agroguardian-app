@@ -226,127 +226,84 @@ def obtener_pronostico():
 
 clima = obtener_datos()
 
-# === 2. BARRA LATERAL ===
+# ... (tus funciones de datos obtener_datos y obtener_pronostico quedan igual)
+
+# === 2. BARRA LATERAL (Menú Unificado) ===
 with st.sidebar:
     st.title("AgroGuardian Pro")
-    menu = st.radio("SECCIONES", ["📊 Monitoreo", "💧 Balance Hídrico", "Monitoeo Satelital","⛈️ Granizo", "❄️ Heladas", "📝 Bitácora", "🌡️Temp. del Suelo"])
+    # Definimos las opciones aquí para evitar errores de escritura luego
+    opciones = [
+        "📊 Monitoreo", 
+        "🛰️ Monitoreo Satelital", # Asegurate que este nombre sea igual al del elif
+        "💧 Balance Hídrico", 
+        "⛈️ Granizo", 
+        "❄️ Heladas", 
+        "📝 Bitácora", 
+        "🌡️Temp. del Suelo"
+    ]
+    menu = st.radio("SECCIONES", opciones)
     st.divider()
     st.caption(f"📍 {round(LAT,3)}, {round(LON,3)}")
     if st.button("🔄 ACTUALIZAR"): st.rerun()
 
-# === 3. PÁGINA: MONITOREO ===
+# === 3. LÓGICA DE PÁGINAS ===
+
 if menu == "📊 Monitoreo":
-# --- ENCABEZADO VIOLETA EN DEGRADADO HORIZONTAL ---
-    st.markdown("""
-        <div style="
-            background: linear-gradient(to right, #4c1d95, #7c3aed, #a78bfa);
-            padding: 30px; 
-            border-radius: 15px; 
-            margin-bottom: 25px; 
-            color: white; 
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-        ">
-            <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);"> 💎 AgroGuardian Pro - Trufas</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem; font-weight: 300; letter-spacing: 1.5px;">SISTEMA DE INTELIGENCIA AGROCLIMÁTICA</p>
-        </div>
-    """, unsafe_allow_html=True)
+    # --- Tu código de Monitoreo ---
+    st.markdown("""<div style="background: linear-gradient(to right, #4c1d95, #7c3aed, #a78bfa); padding: 30px; border-radius: 15px; color: white; text-align: center;">
+                <h1 style='color:white;'>💎 AgroGuardian Pro - Trufas</h1></div>""", unsafe_allow_html=True)
+    # ... resto del código de monitoreo ...
 
-    # --- MÉTRICAS ACTUALES ---
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("TEMP.", f"{clima['temp']}°C")
-    m2.metric("HUMEDAD", f"{clima['hum']}%")
-    dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
-    m3.metric("VIENTO", f"{clima['v_vel']} km/h")
-    m4.metric("DIRECCIÓN", dirs[int((clima['v_dir'] + 22.5) / 45) % 8])
-    m5.metric("PRECIPITACIÓN", f"{clima['tpw']} mm")
-
-    st.divider()
-
-    # --- MAPA Y PRONÓSTICO ---
-    c1, c2 = st.columns([2, 1])
-    
-    with c1:
-        st.caption("🗺️ CENTRO DE MONITOREO GEOPRESENCIAL")
-        m = folium.Map(location=[LAT, LON], zoom_start=15, control_scale=True)
-        folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                         attr='Esri', name='Vista Satelital').add_to(m)
-        folium.TileLayer(tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-                         attr='OpenTopoMap', name='Relieve', overlay=True, opacity=0.4).add_to(m)
-        folium.Marker([LAT, LON], icon=folium.Icon(color="green", icon="leaf")).add_to(m)
-        folium.LayerControl().add_to(m)
-        folium_static(m, width=700, height=350)
-
-    with c2:
-        st.subheader("📅 Pronóstico 5 Días")
-        pronos = obtener_pronostico()
-        if pronos:
-            for p in pronos:
-                with st.container():
-                    col_fecha, col_temp = st.columns([1, 1])
-                    col_fecha.write(f"**{p['f']}**")
-                    col_temp.write(f"{p['min']}° / {p['max']}°")
-                    st.caption(f"☁️ {p['d']}")
-                    st.write("---")
-        else:
-            st.warning("No se pudo cargar el pronóstico extendido.")
-
-    # --- RECOMENDACIÓN RÁPIDA ---
-    st.info(f"💡 **Nota del día:** Con el pronóstico actual y una ET0 de {clima['etc']} mm, planifica riegos de refresco si las máximas superan los 30°C.")
-# --- Agregá esto a tu lista de menús de Streamlit ---
 elif menu == "🛰️ Monitoreo Satelital":
     st.title("🛰️ Monitoreo de Vigor (EVI)")
     st.subheader("Análisis de Resolución 10m (Sentinel-2)")
-
-    # 1. Definimos el punto de interés (Balcarce por defecto)
-    punto_interes = ee.Geometry.Point([LON, LAT])
-
-    # 2. Buscamos la imagen más reciente sin nubes
-    coleccion = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-                 .filterBounds(punto_interes)
-                 .filterDate('2026-01-01', '2026-04-03')
-                 .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                 .sort('system:time_start', False))
-
-    if coleccion.size().getInfo() > 0:
-        imagen = coleccion.first()
-        fecha_img = imagen.date().format('dd/MM/yyyy').getInfo()
+    
+    # Importante: Para que funcione 'ee' y 'geemap' recordá tenerlos instalados
+    import ee
+    import geemap.foliumap as geemap
+    
+    try:
+        # Inicialización de GEE (asegurate de haber corrido ee.Authenticate() una vez antes)
+        ee.Initialize()
         
-        # 3. Cálculo de EVI (Ideal para trufas)
-        evi = imagen.expression(
-            '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
-                'NIR': imagen.select('B8'),
-                'RED': imagen.select('B4'),
-                'BLUE': imagen.select('B2')
-            }).rename('EVI')
+        punto_interes = ee.Geometry.Point([LON, LAT])
+        coleccion = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                     .filterBounds(punto_interes)
+                     .filterDate('2026-01-01', '2026-04-03')
+                     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                     .sort('system:time_start', False))
 
-        st.info(f"📅 Última imagen disponible: {fecha_img}")
+        if coleccion.size().getInfo() > 0:
+            imagen = coleccion.first()
+            fecha_img = imagen.date().format('dd/MM/yyyy').getInfo()
+            
+            # Cálculo de EVI
+            evi = imagen.expression(
+                '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+                    'NIR': imagen.select('B8'),
+                    'RED': imagen.select('B4'),
+                    'BLUE': imagen.select('B2')
+                }).rename('EVI')
 
-        # 4. Crear el mapa interactivo
-        m = geemap.Map(center=[LAT, LON], zoom=16)
-        
-        # Paleta agroclimática que te gusta (Rojo a Verde Oscuro)
-        vis_params = {
-            'min': 0, 
-            'max': 0.7, 
-            'palette': ['#FF0000', '#FF8000', '#FFFF00', '#99FF33', '#00FF00', '#004400']
-        }
-        
-        m.addLayer(evi, vis_params, 'Vigor EVI')
-        
-        # Mostrar el mapa en Streamlit
-        m.to_streamlit(height=500)
-        
-        st.caption("Los tonos rojos/naranjas indican suelo desnudo o bajo vigor. Los verdes oscuros indican copas de árboles sanas.")
-    else:
-        st.warning("No se encontraron imágenes satelitales recientes sin nubes para esta zona.")
+            st.info(f"📅 Última imagen disponible: {fecha_img}")
 
-    # --- Sección de Estrés Hídrico ---
-    st.divider()
-    with st.expander("💧 Ver Estrés Hídrico (NDWI)"):
-        st.write("Este índice detecta la falta de agua en la hoja antes de que sea visible al ojo.")
-        # Aquí podrías repetir el proceso para el NDWI (B8 y B11)
+            m = geemap.Map(center=[LAT, LON], zoom=16)
+            vis_params = {
+                'min': 0, 'max': 0.7, 
+                'palette': ['#FF0000', '#FF8000', '#FFFF00', '#99FF33', '#00FF00', '#004400']
+            }
+            m.addLayer(evi, vis_params, 'Vigor EVI')
+            m.to_streamlit(height=500)
+        else:
+            st.warning("No hay imágenes recientes sin nubes.")
+    except Exception as e:
+        st.error(f"Error al conectar con Google Earth Engine: {e}")
+
+elif menu == "💧 Balance Hídrico":
+    st.header("💧 Balance Hídrico Especializado - Trufera")
+    # ... tu código de balance ...
+
+# ... (seguí con el resto de los elif: Granizo, Heladas, etc.)
 elif menu == "💧 Balance Hídrico":
     st.header("💧 Balance Hídrico Especializado - Trufera")
     kc_fijo = 1.0
