@@ -13,7 +13,7 @@ xlsxwriter==3.2.3
 shapely==2.0.6
 pyproj==3.6.1
 geopandas==0.14.4
-fiona==1.9.6
+pyogrio==0.7.2
 pyogrio==0.7.2
 earthengine-api==0.1.384
 geemap==0.35.0
