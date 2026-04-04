@@ -1535,16 +1535,30 @@ elif menu == "📝 Bitácora":
 # ==========================================================
 # MENÚ: ÍNDICES SATELITALES
 # ==========================================================
+# ==========================================================
+# MENÚ: ÍNDICES SATELITALES — Google Earth Engine
+# Reemplazá todo el bloque elif menu == "🛰️ Índices Satelitales":
+# ==========================================================
 elif menu == "🛰️ Índices Satelitales":
+    import ee
+    import folium
     import geopandas as gpd
     import streamlit.components.v1 as components
     from datetime import datetime
 
-    st.markdown("""<style>.leaflet-control-attribution { display: none !important; }</style>""", unsafe_allow_html=True)
-    st.header("🛰️ Monitor Satelital Dinámico")
+    st.header("🛰️ Monitor Satelital — Google Earth Engine")
 
-    INSTANCE_ID = "95f18ee6-a5c6-4c82-b286-f0641c20410d"
+    # ── Configuración de índices disponibles ───────────────
+    INDICES = {
+        "NDVI":       {"desc": "Vigor Vegetal",        "emoji": "🍃"},
+        "EVI":        {"desc": "Vegetación Mejorado",  "emoji": "🌱"},
+        "NDWI":       {"desc": "Humedad Canopeo",      "emoji": "💧"},
+        "NDRE":       {"desc": "Red Edge (Nitrógeno)", "emoji": "🌿"},
+        "NDMI":       {"desc": "Humedad Cultivo",      "emoji": "💦"},
+        "TRUE-COLOR": {"desc": "Foto Real",            "emoji": "📸"},
+    }
 
+    # ── Cargar límites administrativos ─────────────────────
     @st.cache_data
     def cargar_limites():
         gdf_arg = None
@@ -1555,110 +1569,405 @@ elif menu == "🛰️ Índices Satelitales":
         if os.path.exists("gadm41_URY.gpkg"):
             gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_ury["PAIS"] = "Uruguay"
-            gdf_ury = gdf_ury.rename(columns={"NAME_1": "NAME_1", "NAME_2": "NAME_2"})
         if gdf_arg is not None and gdf_ury is not None:
             return gpd.GeoDataFrame(pd.concat([gdf_arg, gdf_ury], ignore_index=True))
         return gdf_arg
-    
+
     gdf_argentina = cargar_limites()
 
-    if gdf_argentina is not None:
-        col_prov = "NAME_1"
-        col_depto = "NAME_2"
-        c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
-        with c0:
-            pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Uruguay"])
-        with c1:
-            if pais_sel == "Argentina":
-                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Argentina"]
-                label_prov = "Provincia:"
-                label_depto = "Departamento:"
-                opciones_prov = sorted(gdf_pais[col_prov].unique())
-                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
-            elif pais_sel == "Uruguay":
-                gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == "Uruguay"]
-                label_prov = "Departamento:"
-                label_depto = "Sección:"
-                opciones_prov = sorted(gdf_pais[col_prov].unique())
-                prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
-            else:
-                prov_sel = st.selectbox("Provincia:", ["Seleccionar..."], disabled=True)
-                gdf_pais = gdf_argentina
-        with c2:
-            if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar...":
-                deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
-                depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
-            else:
-                depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
-        with c3:
-            indice_sel = st.selectbox("Capa / Índice:", ["NDVI", "NDWI", "TRUE-COLOR", "NDMI", "EVI"])
+    # ── Función principal GEE ──────────────────────────────
+    @st.cache_data(ttl=3600)
+    def obtener_capa_gee(lat, lon, indice, fecha_inicio, fecha_fin):
+        try:
+            punto = ee.Geometry.Point([lon, lat])
+            region = punto.buffer(5000)  # 5km alrededor del centro
 
-        if prov_sel != "Seleccionar..." and depto_sel != "Seleccionar...":
-            with st.spinner(f"Calculando {indice_sel}..."):
-                gdf_loc = gdf_pais[(gdf_pais[col_prov] == prov_sel) & (gdf_pais[col_depto] == depto_sel)]
-                centro = gdf_loc.geometry.centroid.iloc[0]
-                m = folium.Map(location=[centro.y, centro.x], zoom_start=13, tiles='OpenStreetMap', attr=' ', height='100%', width='100%')
-                capa_wms = {
-                    "NDVI": "NDVI",
-                    "NDWI": "NDWI",
-                    "TRUE-COLOR": "TRUE-COLOR",
-                    "NDMI": "NDMI",
-                    "EVI": "EVI"
-                }    
+            s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+                  .filterBounds(region)
+                  .filterDate(fecha_inicio, fecha_fin)
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                  .sort('CLOUDY_PIXEL_PERCENTAGE')
+                  .first())
 
-                folium.WmsTileLayer(url=f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}", layers=capa_wms[indice_sel], name=f"Sentinel-2 {indice_sel}", fmt="image/png", transparent=True, overlay=True, opacity=1.0, zindex=1000, version="1.1.1", maxcc=100, time="2023-01-01/2026-03-04", attr=' ').add_to(m)
-                # Todos los departamentos de la provincia en gris
-                gdf_prov = gdf_argentina[gdf_argentina[col_prov] == prov_sel]
+            if indice == "NDVI":
+                capa = s2.normalizedDifference(['B8', 'B4']).rename('NDVI')
+                vis = {"min": -0.1, "max": 0.8,
+                       "palette": ['#d73027','#f46d43','#fee08b','#a6d96a','#1a9850']}
+
+            elif indice == "EVI":
+                capa = s2.expression(
+                    '2.5 * ((NIR - RED) / (NIR + 6*RED - 7.5*BLUE + 1))',
+                    {'NIR':  s2.select('B8').divide(10000),
+                     'RED':  s2.select('B4').divide(10000),
+                     'BLUE': s2.select('B2').divide(10000)}
+                ).rename('EVI')
+                vis = {"min": -0.1, "max": 0.8,
+                       "palette": ['#d73027','#fee08b','#1a9850']}
+
+            elif indice == "NDWI":
+                capa = s2.normalizedDifference(['B3', 'B8']).rename('NDWI')
+                vis = {"min": -0.5, "max": 0.5,
+                       "palette": ['#d73027','#fee08b','#abd9e9','#2166ac']}
+
+            elif indice == "NDRE":
+                capa = s2.normalizedDifference(['B8A', 'B5']).rename('NDRE')
+                vis = {"min": -0.1, "max": 0.5,
+                       "palette": ['#d73027','#fee08b','#66bd63','#006837']}
+
+            elif indice == "NDMI":
+                capa = s2.normalizedDifference(['B8', 'B11']).rename('NDMI')
+                vis = {"min": -0.5, "max": 0.3,
+                       "palette": ['#d73027','#fee08b','#abd9e9','#2166ac']}
+
+            elif indice == "TRUE-COLOR":
+                capa = s2.select(['B4', 'B3', 'B2'])
+                vis = {"min": 0, "max": 3000,
+                       "bands": ['B4', 'B3', 'B2']}
+
+            url = capa.visualize(**vis).getMapId()['tile_fetcher'].url_format
+
+            # Fecha de la imagen
+            fecha_img = ee.Date(s2.get('system:time_start')).format('dd/MM/yyyy').getInfo()
+            nubes = s2.get('CLOUDY_PIXEL_PERCENTAGE').getInfo()
+
+            return url, fecha_img, round(nubes, 1)
+
+        except Exception as e:
+            return None, None, str(e)
+
+    # ── Función para obtener valor puntual ─────────────────
+    def obtener_valor_punto(lat, lon, indice, fecha_inicio, fecha_fin):
+        try:
+            punto = ee.Geometry.Point([lon, lat]).buffer(50)
+
+            s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+                  .filterBounds(punto)
+                  .filterDate(fecha_inicio, fecha_fin)
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                  .sort('CLOUDY_PIXEL_PERCENTAGE')
+                  .first())
+
+            if indice == "NDVI":
+                capa = s2.normalizedDifference(['B8', 'B4'])
+            elif indice == "EVI":
+                capa = s2.expression(
+                    '2.5 * ((NIR - RED) / (NIR + 6*RED - 7.5*BLUE + 1))',
+                    {'NIR': s2.select('B8').divide(10000),
+                     'RED': s2.select('B4').divide(10000),
+                     'BLUE': s2.select('B2').divide(10000)})
+            elif indice == "NDWI":
+                capa = s2.normalizedDifference(['B3', 'B8'])
+            elif indice == "NDRE":
+                capa = s2.normalizedDifference(['B8A', 'B5'])
+            elif indice == "NDMI":
+                capa = s2.normalizedDifference(['B8', 'B11'])
+            else:
+                return None
+
+            val = capa.reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=punto,
+                scale=10
+            ).getInfo()
+
+            return list(val.values())[0]
+        except:
+            return None
+
+    # ── UI — Selectores ────────────────────────────────────
+    col_prov = "NAME_1"
+    col_depto = "NAME_2"
+
+    c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
+
+    with c0:
+        pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Uruguay"])
+
+    with c1:
+        if pais_sel in ["Argentina", "Uruguay"] and gdf_argentina is not None:
+            gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == pais_sel]
+            opciones_prov = sorted(gdf_pais[col_prov].unique())
+            label_prov = "Provincia:" if pais_sel == "Argentina" else "Departamento:"
+            prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
+        else:
+            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."], disabled=True)
+            gdf_pais = gdf_argentina if gdf_argentina is not None else None
+
+    with c2:
+        if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar..." and gdf_pais is not None:
+            deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
+            label_depto = "Departamento:" if pais_sel == "Argentina" else "Sección:"
+            depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
+        else:
+            depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
+
+    with c3:
+        indice_sel = st.selectbox(
+            "Índice:",
+            list(INDICES.keys()),
+            format_func=lambda x: f"{INDICES[x]['emoji']} {x} — {INDICES[x]['desc']}"
+        )
+
+    # Rango de fechas
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        fecha_desde = st.date_input("Desde:", value=datetime(2025, 9, 1))
+    with col_f2:
+        fecha_hasta = st.date_input("Hasta:", value=datetime.now())
+
+    # ── Renderizado del mapa ───────────────────────────────
+    if (pais_sel != "Seleccionar..." and
+        prov_sel != "Seleccionar..." and
+        depto_sel not in ["Seleccionar...", "Esperando..."] and
+        gdf_pais is not None):
+
+        gdf_loc = gdf_pais[
+            (gdf_pais[col_prov] == prov_sel) &
+            (gdf_pais[col_depto] == depto_sel)
+        ]
+        centro = gdf_loc.geometry.centroid.iloc[0]
+        lat_c, lon_c = centro.y, centro.x
+
+        with st.spinner(f"⏳ Cargando {indice_sel} desde GEE..."):
+            url_capa, fecha_img, info_nubes = obtener_capa_gee(
+                lat_c, lon_c, indice_sel,
+                fecha_desde.strftime('%Y-%m-%d'),
+                fecha_hasta.strftime('%Y-%m-%d')
+            )
+
+        if url_capa:
+            # Métricas de la imagen
+            mc1, mc2, mc3 = st.columns(3)
+            mc1.metric("📅 Imagen del", fecha_img or "N/D")
+            mc2.metric("☁️ Nubosidad", f"{info_nubes}%" if isinstance(info_nubes, float) else "N/D")
+
+            # Valor puntual en el centro
+            if indice_sel != "TRUE-COLOR":
+                val_puntual = obtener_valor_punto(
+                    lat_c, lon_c, indice_sel,
+                    fecha_desde.strftime('%Y-%m-%d'),
+                    fecha_hasta.strftime('%Y-%m-%d')
+                )
+                if val_puntual is not None:
+                    mc3.metric(f"{indice_sel} zona", f"{val_puntual:.3f}")
+
+            # ── Mapa Folium ────────────────────────────────
+            m = folium.Map(
+                location=[lat_c, lon_c],
+                zoom_start=13,
+                tiles=None
+            )
+
+            # Fondo satelital
+            folium.TileLayer(
+                tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                attr="Esri",
+                name="🛰️ Satélite",
+                overlay=False,
+                max_zoom=22
+            ).add_to(m)
+
+            # Capa GEE
+            folium.TileLayer(
+                tiles=url_capa,
+                attr='Google Earth Engine',
+                name=f'{INDICES[indice_sel]["emoji"]} {indice_sel}',
+                overlay=True,
+                opacity=0.8
+            ).add_to(m)
+
+            # Todos los deptos de la provincia en gris
+            if gdf_pais is not None:
+                gdf_prov = gdf_pais[gdf_pais[col_prov] == prov_sel]
                 folium.GeoJson(
                     gdf_prov,
                     style_function=lambda x: {
                         'fillColor': '#333333',
                         'color': '#666666',
                         'weight': 1,
-                        'fillOpacity': 0.3
+                        'fillOpacity': 0.2
                     }
                 ).add_to(m)
-                
-                # Departamento seleccionado resaltado en verde
-                folium.GeoJson(
-                    gdf_loc,
-                    style_function=lambda x: {
-                        'fillColor': 'transparent',
-                        'color': '#00ffc3',
-                        'weight': 3,
-                        'fillOpacity': 0
-                    }
-                ).add_to(m)
-                
-                m.fit_bounds(gdf_loc.total_bounds.tolist())
-                mapa_html = m.get_root().render()
-                mapa_html = mapa_html.replace(
-                    '</head>',
-                    '<style>.leaflet-control-attribution { display: none !important; } .leaflet-control-container .leaflet-top, .leaflet-control-container .leaflet-bottom { display: none !important; }</style></head>'
-                )
-                components.html(mapa_html, height=1000, width=None)
-                st.write("---")
 
-                if indice_sel == "NDVI":
-                    st.subheader("🍃 Análisis de Vigor Vegetal (NDVI)")
-                    st.markdown("""El **NDVI** mide la salud de la vegetación:\n* 🟩 **Verde Oscuro:** Cultivo muy sano o bosque denso.\n* 🟩 **Verde Claro:** Vegetación en crecimiento.\n* 🟨 **Amarillo/Marrón:** Suelo desnudo o cultivo estresado.\n* 🟥 **Rojo/Blanco:** Zonas sin vegetación o agua.""")
-                elif indice_sel == "NDWI":
-                    st.subheader("💧 Monitor de Humedad y Agua (NDWI)")
-                    st.markdown("""El **NDWI** resalta la presencia de agua:\n* 🟦 **Azul Oscuro:** Cuerpos de agua claros.\n* 🔷 **Celeste:** Suelo muy húmedo o inundado.\n* ⬜ **Blanco:** Suelo seco o zonas urbanas.""")
-                elif indice_sel == "TRUE-COLOR":
-                    st.subheader("📸 Fotografía Satelital Real (True Color)")
-                    st.markdown("""Composición de color natural (RGB):\n* 🌿 **Verdes:** Cultivos activos y montes.\n* 🪵 **Marrones/Grises:** Lotes preparados o rastrojo.\n* ⚫ **Oscuros:** Agua profunda o sombras.\n* ☁️ **Blanco Brillante:** Nubes.""")
-                elif indice_sel == "NDMI":
-                    st.subheader("💦 Índice de Humedad del Cultivo (NDMI)")
-                    st.markdown("""El **NDMI** detecta el contenido de agua en la vegetación:\n* 🔵 **Azul Oscuro:** Alta humedad en canopeo — cultivo bien abastecido.\n* 🟦 **Celeste:** Humedad moderada — monitorear.\n* 🟨 **Amarillo:** Humedad baja — estrés hídrico incipiente.\n* 🟥 **Rojo:** Estrés hídrico severo — intervención urgente.""")
-                elif indice_sel == "EVI":
-                    st.subheader("🌱 Índice de Vegetación Mejorado (EVI)")
-                    st.markdown("""El **EVI** mejora el NDVI en zonas de alta biomasa:\n* 🟩 **Verde Oscuro:** Cultivo muy denso y sano.\n* 🟩 **Verde Claro:** Vegetación activa en crecimiento.\n* 🟨 **Amarillo:** Cultivo con estrés o baja densidad.\n* 🟥 **Rojo/Naranja:** Suelo desnudo o cultivo muy estresado.""")
+            # Depto seleccionado resaltado
+            folium.GeoJson(
+                gdf_loc,
+                style_function=lambda x: {
+                    'fillColor': 'transparent',
+                    'color': '#00ffcc',
+                    'weight': 3,
+                    'fillOpacity': 0,
+                    'dashArray': '6 3'
+                }
+            ).add_to(m)
 
-                fecha_reporte = datetime.now().strftime('%d/%m/%Y')
-                texto_reporte = f"📊 INFORME DE MONITOREO SATELITAL\n---------------------------------\n📍 Ubicación: {depto_sel}, {prov_sel}\n📅 Fecha: {fecha_reporte}\n🛰️ Capa: {indice_sel}\n"
-                st.download_button(label=f"📥 Descargar Reporte {depto_sel}", data=texto_reporte, file_name=f"Reporte_{depto_sel}_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain")
+            # Marcador del centro
+            folium.CircleMarker(
+                location=[lat_c, lon_c],
+                radius=6,
+                color='#00ffcc',
+                fill=True,
+                fill_color='#00ffcc',
+                fill_opacity=0.9,
+                tooltip=f"{depto_sel}, {prov_sel}"
+            ).add_to(m)
 
+            folium.LayerControl(collapsed=False).add_to(m)
+            m.fit_bounds(gdf_loc.total_bounds.tolist())
+
+            # Render
+            mapa_html = m.get_root().render()
+            mapa_html = mapa_html.replace(
+                '</head>',
+                '<style>.leaflet-control-attribution{display:none!important;}</style></head>'
+            )
+            components.html(mapa_html, height=600)
+
+            # ── Leyenda e interpretación ───────────────────
+            st.markdown("---")
+
+            interpretaciones = {
+                "NDVI": {
+                    "rangos": [
+                        ("#d73027", "< 0.1", "Suelo desnudo / sin vegetación"),
+                        ("#fee08b", "0.1 – 0.3", "Vegetación escasa o estresada"),
+                        ("#a6d96a", "0.3 – 0.6", "Cultivo en desarrollo"),
+                        ("#1a9850", "> 0.6", "Cultivo sano y denso"),
+                    ],
+                    "consejo": "Valores por debajo de 0.3 en plena temporada indican estrés hídrico o sanitario."
+                },
+                "EVI": {
+                    "rangos": [
+                        ("#d73027", "< 0.1", "Sin vegetación activa"),
+                        ("#fee08b", "0.1 – 0.3", "Biomasa baja"),
+                        ("#a6d96a", "0.3 – 0.5", "Cultivo en crecimiento"),
+                        ("#1a9850", "> 0.5", "Alta biomasa — cultivo vigoroso"),
+                    ],
+                    "consejo": "EVI es más preciso que NDVI en zonas de alta densidad vegetal."
+                },
+                "NDWI": {
+                    "rangos": [
+                        ("#d73027", "< -0.2", "Suelo seco — estrés hídrico"),
+                        ("#fee08b", "-0.2 – 0.0", "Humedad baja"),
+                        ("#abd9e9", "0.0 – 0.3", "Humedad moderada"),
+                        ("#2166ac", "> 0.3", "Alta humedad / agua"),
+                    ],
+                    "consejo": "Útil para detectar zonas anegadas o con déficit hídrico."
+                },
+                "NDRE": {
+                    "rangos": [
+                        ("#d73027", "< 0.1", "Deficiencia severa de clorofila"),
+                        ("#fee08b", "0.1 – 0.2", "Bajo contenido de nitrógeno"),
+                        ("#66bd63", "0.2 – 0.4", "Contenido normal"),
+                        ("#006837", "> 0.4", "Alto contenido de clorofila"),
+                    ],
+                    "consejo": "NDRE es muy sensible al nitrógeno foliar — ideal para ajustar fertilización."
+                },
+                "NDMI": {
+                    "rangos": [
+                        ("#d73027", "< -0.2", "Estrés hídrico severo"),
+                        ("#fee08b", "-0.2 – 0.0", "Humedad baja en canopeo"),
+                        ("#abd9e9", "0.0 – 0.2", "Humedad normal"),
+                        ("#2166ac", "> 0.2", "Canopeo bien hidratado"),
+                    ],
+                    "consejo": "NDMI detecta el agua dentro de las hojas — útil en pecanes y frutales."
+                },
+                "TRUE-COLOR": {
+                    "rangos": [
+                        ("#1a9850", "Verde", "Cultivo activo"),
+                        ("#8B4513", "Marrón", "Suelo o rastrojo"),
+                        ("#2166ac", "Azul oscuro", "Agua"),
+                        ("#ffffff", "Blanco", "Nubes"),
+                    ],
+                    "consejo": "Foto real del satélite — útil para verificar estado general del lote."
+                },
+            }
+
+            info = interpretaciones.get(indice_sel, {})
+            rangos = info.get("rangos", [])
+            consejo = info.get("consejo", "")
+
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #050f0a, #0a1f12);
+                border: 1px solid #00ffcc33;
+                border-radius: 12px;
+                padding: 20px 24px;
+                font-family: 'Courier New', monospace;
+            ">
+                <div style="color:#00ffcc88; font-size:10px; letter-spacing:3px; margin-bottom:14px">
+                    {INDICES[indice_sel]['emoji']} INTERPRETACIÓN — {indice_sel}
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px">
+                    {"".join([f'''
+                    <div style="display:flex; align-items:center; gap:8px; background:#ffffff08;
+                        border-radius:6px; padding:6px 12px; flex:1; min-width:180px">
+                        <div style="width:14px; height:14px; border-radius:3px;
+                            background:{color}; flex-shrink:0"></div>
+                        <div>
+                            <div style="color:#ffffff; font-size:12px; font-weight:bold">{rango}</div>
+                            <div style="color:#ffffff88; font-size:10px">{desc}</div>
+                        </div>
+                    </div>''' for color, rango, desc in rangos])}
+                </div>
+                <div style="color:#00ffcc; font-size:11px; border-top:1px solid #ffffff11;
+                    padding-top:10px; margin-top:4px">
+                    💡 {consejo}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ── Descarga del reporte ───────────────────────
+            st.markdown("<br>", unsafe_allow_html=True)
+            fecha_rep = datetime.now().strftime('%d/%m/%Y %H:%M')
+            texto_reporte = f"""INFORME DE MONITOREO SATELITAL — AGROGUARDIAN
+=============================================
+Ubicación : {depto_sel}, {prov_sel}
+Índice    : {indice_sel} — {INDICES[indice_sel]['desc']}
+Imagen del: {fecha_img or 'N/D'}
+Nubosidad : {info_nubes}%
+Generado  : {fecha_rep}
+Fuente    : Google Earth Engine / Copernicus Sentinel-2
+"""
+            if indice_sel != "TRUE-COLOR" and val_puntual is not None:
+                texto_reporte += f"Valor {indice_sel}: {val_puntual:.3f}\n"
+
+            st.download_button(
+                f"📥 Descargar reporte {depto_sel}",
+                data=texto_reporte,
+                file_name=f"satelital_{depto_sel}_{datetime.now().strftime('%Y%m%d')}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+
+        else:
+            st.error(f"❌ No se pudo cargar la capa: {info_nubes}")
+            st.info("💡 Probá cambiando el rango de fechas o reduciendo el filtro de nubosidad.")
+
+    else:
+        # Estado inicial — instrucciones
+        st.markdown(f"""
+        <div style="
+            background: rgba(0,255,204,0.04);
+            border: 1px solid #00ffcc22;
+            border-radius: 12px;
+            padding: 24px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin-top: 20px;
+        ">
+            <div style="color:#00ffcc; font-size:28px; margin-bottom:12px">🛰️</div>
+            <div style="color:#00ffcc; font-size:14px; letter-spacing:2px; margin-bottom:8px">
+                SELECCIONÁ PAÍS → PROVINCIA → ZONA → ÍNDICE
+            </div>
+            <div style="color:#ffffff44; font-size:11px">
+                Imágenes Sentinel-2 vía Google Earth Engine · Resolución 10m
+            </div>
+            <div style="display:flex; justify-content:center; gap:20px; margin-top:20px; flex-wrap:wrap">
+                {"".join([f'<div style="color:#00ffcc88; font-size:12px">{v["emoji"]} {k}</div>' for k, v in INDICES.items()])}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 # ==========================================================
 # MENÚ: DIAGNÓSTICO IA
 # ==========================================================
