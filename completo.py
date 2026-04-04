@@ -23,6 +23,23 @@ from reportlab.lib.units import cm
 from datetime import datetime, timedelta
 import secrets
 import string
+# Al inicio de completo.py, junto con los demás imports
+import ee
+import json
+@st.cache_resource
+def initialize_ee():
+    try:
+        gee_secrets = dict(st.secrets["gee"])
+        credentials = ee.ServiceAccountCredentials(
+            email=gee_secrets["client_email"],
+            key_data=json.dumps(gee_secrets)
+        )
+        ee.Initialize(credentials)
+    except (KeyError, FileNotFoundError):
+        ee.Authenticate()
+        ee.Initialize()
+
+initialize_ee()
 
 def generar_password_temporal():
     
@@ -1540,7 +1557,7 @@ elif menu == "📝 Bitácora":
 # Reemplazá todo el bloque elif menu == "🛰️ Índices Satelitales":
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
-    import ee
+   
     import folium
     import geopandas as gpd
     import streamlit.components.v1 as components
