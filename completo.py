@@ -1914,43 +1914,27 @@ elif menu == "🛰️ Índices Satelitales":
             consejo = info.get("consejo", "")
             emoji_idx = INDICES[indice_sel]['emoji'] if indice_sel in INDICES else "📊"
 
-            # Construimos los cuadraditos de colores antes de pasarlos al markdown
+            # Construimos los cuadraditos de colores de forma ultra-simple
             html_rangos = ""
             for color, rango, desc in rangos:
-                html_rangos += f"""
-                <div style="display:flex; align-items:center; gap:8px; background:#ffffff08;
-                    border-radius:6px; padding:6px 12px; flex:1; min-width:180px">
-                    <div style="width:14px; height:14px; border-radius:3px;
-                        background:{color}; flex-shrink:0"></div>
-                    <div>
-                        <div style="color:#ffffff; font-size:12px; font-weight:bold">{rango}</div>
-                        <div style="color:#ffffff88; font-size:10px">{desc}</div>
-                    </div>
-                </div>
-                """
+                item_html = f"""
+                <div style="display:inline-block; margin:5px; padding:8px; background:rgba(255,255,255,0.05); border-radius:5px; min-width:150px;">
+                    <span style="display:inline-block; width:12px; height:12px; background:{color}; border-radius:2px; margin-right:5px;"></span>
+                    <b style="color:white; font-size:12px;">{rango}</b>
+                    <br><span style="color:#aaa; font-size:10px;">{desc}</span>
+                </div>"""
+                html_rangos += item_html
 
-            # Renderizado final limpio
-            st.markdown(f"""
-            <div style="
-                background: linear-gradient(135deg, #050f0a, #0a1f12);
-                border: 1px solid #00ffcc33;
-                border-radius: 12px;
-                padding: 20px 24px;
-                font-family: sans-serif;
-            ">
-                <div style="color:#00ffcc88; font-size:10px; letter-spacing:3px; margin-bottom:14px; font-family: 'Courier New', monospace;">
-                    {emoji_idx} INTERPRETACIÓN — {indice_sel}
-                </div>
-                <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px">
-                    {html_rangos}
-                </div>
-                <div style="color:#00ffcc; font-size:11px; border-top:1px solid #ffffff11;
-                    padding-top:10px; margin-top:4px">
-                    💡 {consejo}
-                </div>
+            # El contenedor principal sin saltos de línea extraños
+            leyenda_html = f"""
+            <div style="background:#050f0a; border:1px solid #00ffcc33; border-radius:10px; padding:15px;">
+                <div style="color:#00ffcc; font-size:10px; margin-bottom:10px;">{emoji_idx} INTERPRETACIÓN — {indice_sel}</div>
+                <div>{html_rangos}</div>
+                <div style="color:#00ffcc; font-size:11px; margin-top:10px; border-top:1px solid #222; padding-top:5px;">💡 {consejo}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """
 
+            st.write(leyenda_html, unsafe_allow_html=True)
             # ── Descarga del reporte ───────────────────────
             st.markdown("<br>", unsafe_allow_html=True)
             fecha_rep = datetime.now().strftime('%d/%m/%Y %H:%M')
