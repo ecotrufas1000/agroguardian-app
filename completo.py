@@ -2112,14 +2112,72 @@ Respondé siempre en español. Si la imagen no muestra claramente un problema ag
 
 elif menu == "💳 Suscripción PRO":
     st.title("🚀 AgroGuardian PRO")
-    st.markdown("### Llevá tu campo al siguiente nivel")
-    st.write("Accedé a herramientas exclusivas: Índices de alta resolución, alertas automáticas de granizo y reportes PDF ilimitados por 1 año.")
+    st.markdown("### Accedé a la tecnología de precisión")
     
-    st.info("Al completar el pago, tu cuenta se actualizará automáticamente.")
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.write("""
+        **Tu suscripción PRO incluye:**
+        * 🛰️ **Índices avanzados:** Acceso total a NDVI, NDWI y FWI (Humedad y Fuego).
+        * 📊 **Reportes PDF:** Descargas ilimitadas de diagnósticos para tus lotes.
+        * 🔔 **Alertas Premium:** Notificaciones prioritarias de heladas y granizo.
+        """)
+        
+    with col2:
+        st.metric("Inversión Mensual", "$5.000", help="Precio final en ARS")
 
-    # Acá es donde después meteremos el código de Mercado Pago
-    st.warning("⚠️ Módulo de pago en configuración. Pronto disponible.")
-    
-    # Solo para probar que el diseño queda bien:
-    if st.button("Simular Botón de Pago"):
-        st.write("Aquí se abrirá la ventana de Mercado Pago.")
+    st.divider()
+
+    # --- LÓGICA DE MERCADO PAGO ---
+    try:
+        # 1. Inicializar el SDK con tu Token de los Secrets
+        sdk = mercadopago.SDK(st.secrets["MP_ACCESS_TOKEN"])
+
+        # 2. Configurar la preferencia
+        preference_data = {
+            "items": [
+                {
+                    "title": "Suscripción AgroGuardian PRO",
+                    "quantity": 1,
+                    "unit_price": 5000,
+                    "currency_id": "ARS"
+                }
+            ],
+            "back_urls": {
+                "success": "https://agroguardian-app.streamlit.app/?status=approved",
+                "failure": "https://agroguardian-app.streamlit.app/?status=failure",
+                "pending": "https://agroguardian-app.streamlit.app/?status=pending"
+            },
+            "auto_return": "approved",
+        }
+
+        preference_response = sdk.preference().create(preference_data)
+        url_pago = preference_response["response"]["init_point"]
+
+        # 3. Botón de Pago con estilo Mercado Pago
+        st.markdown(f"""
+            <div style="text-align: center;">
+                <a href="{url_pago}" target="_blank" style="text-decoration: none;">
+                    <button style="
+                        background-color: #009EE3; 
+                        color: white; 
+                        padding: 18px 40px; 
+                        border: none; 
+                        border-radius: 8px; 
+                        font-weight: bold; 
+                        font-size: 18px;
+                        cursor: pointer; 
+                        width: 100%;
+                        box-shadow: 0px 4px 10px rgba(0,0,0,0.2);">
+                        PAGAR CON MERCADO PAGO
+                    </button>
+                </a>
+                <p style="color: #888; font-size: 12px; margin-top: 10px;">
+                    🔒 Pago procesado de forma segura por Mercado Pago
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"No se pudo cargar el módulo de pago: {e}")
