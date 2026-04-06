@@ -2109,3 +2109,17 @@ Respondé siempre en español. Si la imagen no muestra claramente un problema ag
     if st.button("🔄 REINICIAR"):
         st.session_state.resultado_analisis = None
         st.session_state.foto_bytes = None
+
+elif menu == "💳 Suscripción PRO":
+    st.title("🚀 AgroGuardian PRO")
+    st.markdown("### Llevá tu campo al siguiente nivel")
+    st.write("Accedé a herramientas exclusivas: Índices de alta resolución, alertas automáticas de granizo y reportes PDF ilimitados.")
+    
+    st.info("Al completar el pago, tu cuenta se actualizará automáticamente.")
+
+    # Acá es donde después meteremos el código de Mercado Pago
+    st.warning("⚠️ Módulo de pago en configuración. Pronto disponible.")
+    
+    # Solo para probar que el diseño queda bien:
+    if st.button("Simular Botón de Pago"):
+        st.write("Aquí se abrirá la ventana de Mercado Pago.")
