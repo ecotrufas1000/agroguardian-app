@@ -2123,10 +2123,11 @@ elif menu == "💳 Suscripción PRO":
         * 📊 **Reportes PDF:** Descargas ilimitadas de diagnósticos para tus lotes.
         * 🔔 **Alertas Premium:** Notificaciones prioritarias de heladas y granizo.
         * La versión PRO de AgroGuardian te permite el acceso ilimitado a todas las funciones. 
+        * Costo Mensual: U$S 20.00, se factura anualmente. Promo por este Mes U$$ 200/año. 
         """)
         
-    with col2:
-        st.metric("Costo Mensual", "U$S 20.00, se factura anualmente. Promo por este Mes U$$ 200/año", help="Precio final en ARS")
+    #with col2:
+    #    st.metric("Costo Mensual", "U$S 20.00, se factura anualmente. Promo por este Mes U$$ 200/año", help="Precio final en ARS")
 
     st.divider()
 
