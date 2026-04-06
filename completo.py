@@ -547,7 +547,7 @@ def generar_pdf(texto_analisis, nombre_imagen="muestra"):
 client = None
 try:
     if "GOOGLE_API_KEY" in st.secrets:
-        client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
+        client = genai.Client(api_key=st.secrets["gee"]["GOOGLE_API_KEY"])
 except Exception as e:
     st.error(f"Error al configurar el cliente: {e}")
 
