@@ -1307,7 +1307,7 @@ elif menu == "⛈️ Radar Granizo":
         vistas = {"Radar": "radar", "Rayos": "thunder", "Nubes": "satellite"}
         st.markdown(f"### 🛰️ Sensor Activo: {capa}")
         url_windy = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay={vistas[capa]}&product=radar&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
-        st.components.v1.iframe(url_windy, height=600)
+        st.components.v1.iframe(url_windy, height=450)
         with st.expander("ℹ️ ¿Cómo leer el radar?"):
             st.write("""
             - **Colores Verdes/Azules:** Lluvia ligera o moderada.
