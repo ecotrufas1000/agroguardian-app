@@ -2113,7 +2113,7 @@ Respondé siempre en español. Si la imagen no muestra claramente un problema ag
 elif menu == "💳 Suscripción PRO":
     st.title("🚀 AgroGuardian PRO")
     st.markdown("### Llevá tu campo al siguiente nivel")
-    st.write("Accedé a herramientas exclusivas: Índices de alta resolución, alertas automáticas de granizo y reportes PDF ilimitados.")
+    st.write("Accedé a herramientas exclusivas: Índices de alta resolución, alertas automáticas de granizo y reportes PDF ilimitados por 1 año.")
     
     st.info("Al completar el pago, tu cuenta se actualizará automáticamente.")
 
