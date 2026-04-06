@@ -1,24 +1,29 @@
-# ==========================================================
-# 1. TODOS LOS IMPORTS (Agrupados y al inicio)
-# ==========================================================
-import streamlit as st
-import mercadopago
-import ee
 import google.generativeai as genai
-import pandas as pd
+import streamlit as st
+
+# Así es como se configura correctamente ahora
+try:
+    # Usamos la clave que ya tenés en tus secrets
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    
+    # En lugar de Client(), inicializamos el modelo directamente
+    model = genai.GenerativeModel('gemini-1.5-flash') 
+    
+    # Opcional: Probar si funciona
+    # response = model.generate_content("Hola")
+except Exception as e:
+    st.error(f"Error al configurar Gemini: {e}")
 import requests
 import json
 import os
+import math
+import pandas as pd
 import io
 import plotly.express as px
 import urllib.parse
 import base64
-import secrets
-import string
-import time
-from datetime import datetime, timedelta
 from io import BytesIO
-from supabase import create_client  # <--- IMPORTANTE: Esto debe estar aquí
+from supabase import create_client
 from streamlit_folium import folium_static
 import folium
 from streamlit_folium import st_folium
@@ -28,20 +33,22 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
+from datetime import datetime, timedelta
+import secrets
+import string
+# Al inicio de completo.py, junto con los demás imports
+import ee
 
-# ==========================================================
-# 2. CONFIGURACIÓN DE PÁGINA (DEBE SER LO PRIMERO DE ST)
-# ==========================================================
-st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
-
-# ==========================================================
-# 3. DEFINICIÓN DE FUNCIONES (Definir antes de usar)
-# ==========================================================
 def inicializar_ee():
     try:
+        # 1. Convertimos el secreto en un diccionario de Python
         gee_dict = dict(st.secrets["gee"])
+        
+        # 2. Limpieza crítica de la private_key (reemplaza \\n por \n real)
         if "private_key" in gee_dict:
             gee_dict["private_key"] = gee_dict["private_key"].replace("\\n", "\n")
+        
+        # 3. Autenticación
         credentials = ee.ServiceAccountCredentials(
             gee_dict["client_email"], 
             key_data=gee_dict["private_key"]
@@ -52,42 +59,54 @@ def inicializar_ee():
         st.error(f"Error al conectar con Earth Engine: {e}")
         return False
 
+# Llamada a la función
+if inicializar_ee():
+    st.success("¡Sistemas listos!")
+
 def generar_password_temporal():
+    
     caracteres = string.ascii_letters + string.digits
+    
     return ''.join(secrets.choice(caracteres) for _ in range(10))
 
 # ==========================================================
-# 4. CONEXIÓN A SERVICIOS (Supabase y Earth Engine)
+# 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
-# Supabase
+st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
+st.markdown("""
+<style>
+
+/* Botón cerrar sesión */
+div.stButton > button {
+    background-color: #0066ff;
+    color: #ff9900;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+}
+
+div.stButton > button:hover {
+    background-color: #0052cc;
+    color: #ff9900;
+}
+
+</style>
+""", unsafe_allow_html=True)
+# ==========================================================
+# 2. SUPABASE
+# ==========================================================
 try:
-    # Usamos las claves de tus secrets
+    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+except:
+    st.error("🚨 Error de conexión con Supabase.")
+    st.stop()
+try:
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 except Exception as e:
     st.error(f"🚨 Error de conexión con Supabase: {e}")
     st.stop()
-
-# Earth Engine
-if inicializar_ee():
-    st.sidebar.success("🛰️ Earth Engine Conectado")
-
-# Gemini
-try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
-except Exception as e:
-    st.sidebar.warning(f"⚠️ Gemini no configurado: {e}")
-
 # ==========================================================
-# 5. LÓGICA DE MERCADO PAGO (Query Params)
-# ==========================================================
-parametros = st.query_params
-if parametros.get("status") == "approved":
-    st.balloons()
-    st.success("¡Pago aprobado! Ya tenés acceso a las funciones PRO.")
-
-# ==========================================================
-# 6. SESSION STATE
+# 3. SESSION STATE — inicializar siempre primero
 # ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
@@ -98,7 +117,19 @@ if "cerrando_sesion" not in st.session_state:
 if "forzar_cambio_password" not in st.session_state:
     st.session_state.forzar_cambio_password = False
 
-# ... de aquí en adelante sigue tu lógica de Login y Tabs ...
+# ==========================================================
+# 4. LIMPIAR localStorage si se está cerrando sesión
+#    (debe ir ANTES de leer localStorage)
+# ==========================================================
+if st.session_state.cerrando_sesion:
+    st.session_state.cerrando_sesion = False
+    streamlit_js_eval(
+        js_expressions='localStorage.clear();',
+        key="ls_clear_cerrar"
+    )
+    import time
+    time.sleep(1)
+    st.rerun()
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
 #===========================================================
@@ -718,74 +749,7 @@ clima = obtener_clima_completo(LAT, LON)
 
 if clima:
     st.session_state.clima_data = clima
-#==========================================================
-# SUSCRIPCION
-#==========================================================
-# ... (vienes de los otros menús)
 
-elif menu == "💳 Suscripción":
-    # 1. Configurar SDK (Asegurate que el nombre en Secrets coincida)
-    try:
-        sdk = mercadopago.SDK(st.secrets["MP_ACCESS_TOKEN"])
-
-        st.title("🚀 AgroGuardian Pro")
-        st.markdown("### Llevá tu producción al siguiente nivel")
-
-        # Diseño de beneficios
-        st.info("""
-        **El plan PRO incluye:**
-        * 🛰️ **Mapas NDVI/NDWI** sin límites.
-        * ⛈️ **Alertas de Granizo** prioritarias vía WhatsApp.
-        * 🧪 **Consultoría de Suelos** integrada con IA.
-        """)
-
-        # 2. Crear la Preferencia
-        preference_data = {
-            "items": [
-                {
-                    "title": "Acceso Full AgroGuardian (30 días)",
-                    "quantity": 1,
-                    "unit_price": 4500.0,
-                    "currency_id": "ARS"
-                }
-            ],
-            "back_urls": {
-                "success": "https://tu-app.streamlit.app", 
-                "failure": "https://tu-app.streamlit.app",
-                "pending": "https://tu-app.streamlit.app"
-            },
-            "auto_return": "approved",
-        }
-
-        # Generar el link
-        preference_response = sdk.preference().create(preference_data)
-        url_pago = preference_response["response"]["init_point"]
-
-        # 3. Botón con estilo "Mobile First"
-        st.markdown(f"""
-            <div style="display: flex; justify-content: center; margin-top: 20px;">
-                <a href="{url_pago}" target="_blank" style="text-decoration:none; width:100%;">
-                    <div style="
-                        background-color: #009EE3;
-                        color: white;
-                        padding: 15px;
-                        border-radius: 8px;
-                        text-align: center;
-                        font-weight: bold;
-                        font-size: 18px;
-                        box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-                    ">
-                        PAGAR CON MERCADO PAGO 💳
-                    </div>
-                </a>
-            </div>
-            <p style="text-align:center; font-size:11px; color:#888; margin-top:10px;">
-                Pago seguro procesado por Mercado Pago. Acepta crédito, débito y dinero en cuenta.
-            </p>
-        """, unsafe_allow_html=True)
-
-    except Exception as e:
-        st.error(f"Error al conectar con la pasarela de pagos: {e}")
 # ==========================================================
 # MENÚ: MONITOREO TOTAL
 # ==========================================================
