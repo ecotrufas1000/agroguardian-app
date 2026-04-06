@@ -1,23 +1,47 @@
+# ==========================================================
+# 1. TODOS LOS IMPORTS (Agrupados y al inicio)
+# ==========================================================
 import streamlit as st
 import mercadopago
 import ee
 import google.generativeai as genai
-# ... todos tus otros imports aquí ...
+import pandas as pd
+import requests
+import json
+import os
+import io
+import plotly.express as px
+import urllib.parse
+import base64
+import secrets
+import string
+import time
+from datetime import datetime, timedelta
+from io import BytesIO
+from supabase import create_client  # <--- IMPORTANTE: Esto debe estar aquí
+from streamlit_folium import folium_static
+import folium
+from streamlit_folium import st_folium
+from streamlit_js_eval import streamlit_js_eval
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import cm
 
-# 1. CONFIGURACIÓN DE PÁGINA (DEBE SER LA PRIMERA LÍNEA DE ST)
+# ==========================================================
+# 2. CONFIGURACIÓN DE PÁGINA (DEBE SER LO PRIMERO DE ST)
+# ==========================================================
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
 
-# 2. DEFINICIÓN DE FUNCIONES (Primero definimos, después usamos)
+# ==========================================================
+# 3. DEFINICIÓN DE FUNCIONES (Definir antes de usar)
+# ==========================================================
 def inicializar_ee():
     try:
-        # Convertimos el secreto en un diccionario de Python
         gee_dict = dict(st.secrets["gee"])
-        
-        # Limpieza de la private_key
         if "private_key" in gee_dict:
             gee_dict["private_key"] = gee_dict["private_key"].replace("\\n", "\n")
-        
-        # Autenticación
         credentials = ee.ServiceAccountCredentials(
             gee_dict["client_email"], 
             key_data=gee_dict["private_key"]
@@ -29,74 +53,41 @@ def inicializar_ee():
         return False
 
 def generar_password_temporal():
-    import secrets
-    import string
     caracteres = string.ascii_letters + string.digits
     return ''.join(secrets.choice(caracteres) for _ in range(10))
 
-# 3. EJECUCIÓN DE LÓGICA (Ahora sí, llamamos a las funciones)
-parametros = st.query_params
-if parametros.get("status") == "approved":
-    st.balloons()
-    st.success("¡Pago aprobado!")
-
-# Llamada a Earth Engine (Ahora la función ya existe arriba)
-if inicializar_ee():
-    st.sidebar.success("🛰️ Earth Engine Conectado")
-
-# ... resto de tu código (Gemini, Supabase, etc.) ...
-# 5. EL RESTO DE TUS FUNCIONES (inicializar_ee, etc.)
-# ... sigue el código de inicializar_ee ...
-
-
-# Llamada a la función
-if inicializar_ee():
-    st.success("¡Sistemas listos!")
-
-def generar_password_temporal():
-    
-    caracteres = string.ascii_letters + string.digits
-    
-    return ''.join(secrets.choice(caracteres) for _ in range(10))
-
 # ==========================================================
-# 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
+# 4. CONEXIÓN A SERVICIOS (Supabase y Earth Engine)
 # ==========================================================
-st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
-st.markdown("""
-<style>
-
-/* Botón cerrar sesión */
-div.stButton > button {
-    background-color: #0066ff;
-    color: #ff9900;
-    border-radius: 8px;
-    border: none;
-    font-weight: bold;
-}
-
-div.stButton > button:hover {
-    background-color: #0052cc;
-    color: #ff9900;
-}
-
-</style>
-""", unsafe_allow_html=True)
-# ==========================================================
-# 2. SUPABASE
-# ==========================================================
+# Supabase
 try:
-    supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-except:
-    st.error("🚨 Error de conexión con Supabase.")
-    st.stop()
-try:
+    # Usamos las claves de tus secrets
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 except Exception as e:
     st.error(f"🚨 Error de conexión con Supabase: {e}")
     st.stop()
+
+# Earth Engine
+if inicializar_ee():
+    st.sidebar.success("🛰️ Earth Engine Conectado")
+
+# Gemini
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.sidebar.warning(f"⚠️ Gemini no configurado: {e}")
+
 # ==========================================================
-# 3. SESSION STATE — inicializar siempre primero
+# 5. LÓGICA DE MERCADO PAGO (Query Params)
+# ==========================================================
+parametros = st.query_params
+if parametros.get("status") == "approved":
+    st.balloons()
+    st.success("¡Pago aprobado! Ya tenés acceso a las funciones PRO.")
+
+# ==========================================================
+# 6. SESSION STATE
 # ==========================================================
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
@@ -107,19 +98,7 @@ if "cerrando_sesion" not in st.session_state:
 if "forzar_cambio_password" not in st.session_state:
     st.session_state.forzar_cambio_password = False
 
-# ==========================================================
-# 4. LIMPIAR localStorage si se está cerrando sesión
-#    (debe ir ANTES de leer localStorage)
-# ==========================================================
-if st.session_state.cerrando_sesion:
-    st.session_state.cerrando_sesion = False
-    streamlit_js_eval(
-        js_expressions='localStorage.clear();',
-        key="ls_clear_cerrar"
-    )
-    import time
-    time.sleep(1)
-    st.rerun()
+# ... de aquí en adelante sigue tu lógica de Login y Tabs ...
 # ==========================================================
 # 5. RESTAURAR SESIÓN DESDE localStorage
 #===========================================================
