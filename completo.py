@@ -1985,6 +1985,7 @@ Fuente    : Google Earth Engine / Copernicus Sentinel-2
             </div>
         </div>
         """, unsafe_allow_html=True)
+
 # ==========================================================
 # MENÚ: DIAGNÓSTICO IA
 # ==========================================================
