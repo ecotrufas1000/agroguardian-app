@@ -3,6 +3,7 @@ streamlit-folium>=0.22.0
 folium>=0.18.0
 pandas>=2.2.2
 supabase>=2.10.0
+mercadopago
 requests>=2.32.0
 plotly>=5.22.0
 google-generativeai>=0.7.2
