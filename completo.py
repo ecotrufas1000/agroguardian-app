@@ -759,7 +759,7 @@ if clima:
 #==========================================================
 # SUSCRIPCION
 #==========================================================
-elif menu == "💳 Suscripción"
+elif menu == "💳 Suscripción":
 import mercadopago
 import streamlit as st
 from datetime import datetime
