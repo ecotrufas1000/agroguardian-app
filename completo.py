@@ -1,5 +1,18 @@
-import streamlit as st
 import google.generativeai as genai
+import streamlit as st
+
+# Así es como se configura correctamente ahora
+try:
+    # Usamos la clave que ya tenés en tus secrets
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    
+    # En lugar de Client(), inicializamos el modelo directamente
+    model = genai.GenerativeModel('gemini-1.5-flash') 
+    
+    # Opcional: Probar si funciona
+    # response = model.generate_content("Hola")
+except Exception as e:
+    st.error(f"Error al configurar Gemini: {e}")
 import requests
 import json
 import os
