@@ -2126,7 +2126,7 @@ elif menu == "💳 Suscripción PRO":
         """)
         
     with col2:
-        st.metric("Costo Mensual", "U$S 20.00, se factura anualmente. Promo por este Mes U$$ 200/año". help="Precio final en ARS")
+        st.metric("Costo Mensual", "U$S 20.00, se factura anualmente. Promo por este Mes U$$ 200/año", help="Precio final en ARS")
 
     st.divider()
 
