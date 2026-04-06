@@ -46,7 +46,7 @@ except Exception as e:
 
 # 5. EL RESTO DE TUS FUNCIONES (inicializar_ee, etc.)
 # ... sigue el código de inicializar_ee ...
-return False
+
 
 # Llamada a la función
 if inicializar_ee():
