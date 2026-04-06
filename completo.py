@@ -1912,29 +1912,37 @@ elif menu == "🛰️ Índices Satelitales":
             info = interpretaciones.get(indice_sel, {})
             rangos = info.get("rangos", [])
             consejo = info.get("consejo", "")
+            emoji_idx = INDICES[indice_sel]['emoji'] if indice_sel in INDICES else "📊"
 
+            # Construimos los cuadraditos de colores antes de pasarlos al markdown
+            html_rangos = ""
+            for color, rango, desc in rangos:
+                html_rangos += f"""
+                <div style="display:flex; align-items:center; gap:8px; background:#ffffff08;
+                    border-radius:6px; padding:6px 12px; flex:1; min-width:180px">
+                    <div style="width:14px; height:14px; border-radius:3px;
+                        background:{color}; flex-shrink:0"></div>
+                    <div>
+                        <div style="color:#ffffff; font-size:12px; font-weight:bold">{rango}</div>
+                        <div style="color:#ffffff88; font-size:10px">{desc}</div>
+                    </div>
+                </div>
+                """
+
+            # Renderizado final limpio
             st.markdown(f"""
             <div style="
                 background: linear-gradient(135deg, #050f0a, #0a1f12);
                 border: 1px solid #00ffcc33;
                 border-radius: 12px;
                 padding: 20px 24px;
-                font-family: 'Courier New', monospace;
+                font-family: sans-serif;
             ">
-                <div style="color:#00ffcc88; font-size:10px; letter-spacing:3px; margin-bottom:14px">
-                    {INDICES[indice_sel]['emoji']} INTERPRETACIÓN — {indice_sel}
+                <div style="color:#00ffcc88; font-size:10px; letter-spacing:3px; margin-bottom:14px; font-family: 'Courier New', monospace;">
+                    {emoji_idx} INTERPRETACIÓN — {indice_sel}
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px">
-                    {"".join([f'''
-                    <div style="display:flex; align-items:center; gap:8px; background:#ffffff08;
-                        border-radius:6px; padding:6px 12px; flex:1; min-width:180px">
-                        <div style="width:14px; height:14px; border-radius:3px;
-                            background:{color}; flex-shrink:0"></div>
-                        <div>
-                            <div style="color:#ffffff; font-size:12px; font-weight:bold">{rango}</div>
-                            <div style="color:#ffffff88; font-size:10px">{desc}</div>
-                        </div>
-                    </div>''' for color, rango, desc in rangos])}
+                    {html_rangos}
                 </div>
                 <div style="color:#00ffcc; font-size:11px; border-top:1px solid #ffffff11;
                     padding-top:10px; margin-top:4px">
