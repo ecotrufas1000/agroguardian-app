@@ -562,14 +562,22 @@ def generar_pdf(texto_analisis, nombre_imagen="muestra"):
 
 # ==========================================================
 # CLIENTE GOOGLE GENAI
-# ==========================================================
-client = None
-try:
-    if "GOOGLE_API_KEY" in st.secrets:
-        client = genai.Client(api_key=st.secrets["gee"]["GOOGLE_API_KEY"])
-except Exception as e:
-    st.error(f"Error al configurar el cliente: {e}")
 
+# ==========================================================
+# CONFIGURACIÓN GOOGLE GENAI (GEMINI)
+# ==========================================================
+try:
+    # 1. Usamos la clave que definimos al principio de los secrets
+    if "GOOGLE_API_KEY" in st.secrets:
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        # 2. Inicializamos el modelo (esto reemplaza al 'client')
+        model_ia = genai.GenerativeModel('gemini-1.5-flash')
+    else:
+        st.error("No se encontró GOOGLE_API_KEY en los secrets.")
+        model_ia = None
+except Exception as e:
+    st.error(f"Error al configurar la IA: {e}")
+    model_ia = None
 # ==========================================================
 # CONFIGURACIÓN DE PÁGINA
 # ==========================================================
