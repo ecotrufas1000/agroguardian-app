@@ -29,15 +29,18 @@ import json
 @st.cache_resource
 def initialize_ee():
     try:
+        # Cargamos el diccionario completo desde st.secrets
         gee_secrets = dict(st.secrets["gee"])
+        
         credentials = ee.ServiceAccountCredentials(
             email=gee_secrets["client_email"],
             key_data=json.dumps(gee_secrets)
         )
         ee.Initialize(credentials)
-    except (KeyError, FileNotFoundError):
-        ee.Authenticate()
-        ee.Initialize()
+    except Exception as e:
+        # En lugar de Authenticate, mostramos un error claro en la interfaz
+        st.error(f"Error crítico: No se pudieron cargar las credenciales de Earth Engine. {e}")
+        st.stop() # Detiene la ejecución para que no falle el resto de la app
 
 initialize_ee()
 
