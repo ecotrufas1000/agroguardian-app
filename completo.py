@@ -1303,43 +1303,26 @@ elif menu == "⛈️ Radar Granizo":
         with c3:
             st.metric("Punto de Rocío", f"{rocio} °C", help="A mayor punto de rocío, más combustible para la tormenta")
         st.divider()
-        # --- SELECCIÓN DE CAPA (Mantenemos horizontal para ahorrar espacio) ---
-        capa = st.radio("Capa del Sensor:", ["Radar", "Rayos", "Nubes"], index=0, horizontal=True)
+        capa = st.radio("Seleccionar Capa del Sensor:", ["Radar", "Rayos", "Nubes"], index=0)
         vistas = {"Radar": "radar", "Rayos": "thunder", "Nubes": "satellite"}
-        
         st.markdown(f"### 🛰️ Sensor Activo: {capa}")
-
-        # --- TRUCO DE CSS PARA RECORTE (AJUSTADO) ---
+        # --- TRUCO DE CSS PARA ELIMINAR ESPACIO BLANCO ---
         st.markdown("""
             <style>
-                /* Mantenemos el border radius y fondo transparente */
-                iframe {
-                    border-radius: 12px;
-                    background-color: transparent;
-                }
-                
-                /* Reducimos agresivamente el margen negativo para que el texto BAJE */
+                /* Esto quita el padding extra que Streamlit pone a los componentes de HTML */
                 .element-container iframe {
-                    margin-bottom: -15px !important; /* Estaba en -40, lo bajamos */
+                    margin-bottom: -40px !important;
                 }
                 div[data-testid="stVerticalBlock"] > div:has(iframe) {
-                    margin-bottom: -20px !important; /* Estaba en -50, lo bajamos */
-                }
-
-                /* Opcional: Cambiar el color del texto de los expanders para contrastar mejor */
-                .stExpander header div p {
-                    color: white !important; /* O #ddd para un gris claro */
-                }
-                .stExpander p {
-                    color: white !important;
+                    margin-bottom: -50px !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
         url_windy = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay={vistas[capa]}&product=radar&menu=&message=false&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=false&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
         
-        # Reducimos la altura a 350 o 370 para "recortar" los controles de abajo
-        st.components.v1.iframe(url_windy, height=360, scrolling=False)
+        # Reducimos el height a 400 y quitamos el scrolling
+        st.components.v1.iframe(url_windy, height=400, scrolling=False)
         with st.expander("ℹ️ ¿Cómo leer el radar?"):
             st.write("""
             - **Colores Verdes/Azules:** Lluvia ligera o moderada.
