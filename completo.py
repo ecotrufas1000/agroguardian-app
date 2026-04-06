@@ -1,6 +1,6 @@
 import google.generativeai as genai
 import streamlit as st
-
+import mercadopago
 # Así es como se configura correctamente ahora
 try:
     # Usamos la clave que ya tenés en tus secrets
