@@ -1,49 +1,50 @@
-# 1. TODOS LOS IMPORTS PRIMERO
-import streamlit as st  # <--- ESTE TIENE QUE ESTAR ARRIBA DE TODO
+import streamlit as st
 import mercadopago
-from datetime import datetime, timedelta
-import google.generativeai as genai
-import requests
-import json
-import os
-import math
-import pandas as pd
-import io
-import plotly.express as px
-import urllib.parse
-import base64
-from io import BytesIO
-from supabase import create_client
-from streamlit_folium import folium_static
-import folium
-from streamlit_folium import st_folium
-from streamlit_js_eval import streamlit_js_eval
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import cm
-import secrets
-import string
 import ee
+import google.generativeai as genai
+# ... todos tus otros imports aquí ...
 
-# 2. CONFIGURACIÓN DE PÁGINA (SIEMPRE PRIMERO ANTES DE CUALQUIER WIDGET)
+# 1. CONFIGURACIÓN DE PÁGINA (DEBE SER LA PRIMERA LÍNEA DE ST)
 st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
 
-# 3. CAPTURA DE PARÁMETROS (AHORA SÍ FUNCIONA PORQUE YA EXISTE 'st')
-parametros = st.query_params
+# 2. DEFINICIÓN DE FUNCIONES (Primero definimos, después usamos)
+def inicializar_ee():
+    try:
+        # Convertimos el secreto en un diccionario de Python
+        gee_dict = dict(st.secrets["gee"])
+        
+        # Limpieza de la private_key
+        if "private_key" in gee_dict:
+            gee_dict["private_key"] = gee_dict["private_key"].replace("\\n", "\n")
+        
+        # Autenticación
+        credentials = ee.ServiceAccountCredentials(
+            gee_dict["client_email"], 
+            key_data=gee_dict["private_key"]
+        )
+        ee.Initialize(credentials)
+        return True
+    except Exception as e:
+        st.error(f"Error al conectar con Earth Engine: {e}")
+        return False
 
+def generar_password_temporal():
+    import secrets
+    import string
+    caracteres = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(caracteres) for _ in range(10))
+
+# 3. EJECUCIÓN DE LÓGICA (Ahora sí, llamamos a las funciones)
+parametros = st.query_params
 if parametros.get("status") == "approved":
     st.balloons()
-    st.success("¡Pago aprobado! Ya tenés acceso a las funciones PRO.")
+    st.success("¡Pago aprobado!")
 
-# 4. CONFIGURACIÓN DE GEMINI
-try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash') 
-except Exception as e:
-    st.error(f"Error al configurar Gemini: {e}")
+# Llamada a Earth Engine (Ahora la función ya existe arriba)
+if inicializar_ee():
+    st.sidebar.success("🛰️ Earth Engine Conectado")
 
+# ... resto de tu código (Gemini, Supabase, etc.) ...
 # 5. EL RESTO DE TUS FUNCIONES (inicializar_ee, etc.)
 # ... sigue el código de inicializar_ee ...
 
