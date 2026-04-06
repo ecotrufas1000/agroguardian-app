@@ -2122,10 +2122,11 @@ elif menu == "💳 Suscripción PRO":
         * 🛰️ **Índices avanzados:** Acceso total a NDVI, NDWI y FWI (Humedad y Fuego).
         * 📊 **Reportes PDF:** Descargas ilimitadas de diagnósticos para tus lotes.
         * 🔔 **Alertas Premium:** Notificaciones prioritarias de heladas y granizo.
+        * La versión PRO de AgroGuardian te permite el acceso ilimitado a todas las funciones. 
         """)
         
     with col2:
-        st.metric("Inversión Mensual", "$5.000", help="Precio final en ARS")
+        st.metric("Costo Mensual", "U$S 20.00, se factura anualmente. Promo por este Mes U$$ 200/año". help="Precio final en ARS")
 
     st.divider()
 
