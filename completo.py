@@ -1,3 +1,10 @@
+# Al principio de tu archivo completo.py
+parametros = st.query_params
+
+if parametros.get("status") == "approved":
+    st.balloons()
+    st.success("¡Pago aprobado! Ya tenés acceso a las funciones PRO.")
+    # Acá podrías guardar en tu base de datos Supabase que este usuario ya pagó
 import google.generativeai as genai
 import streamlit as st
 
@@ -749,6 +756,76 @@ clima = obtener_clima_completo(LAT, LON)
 
 if clima:
     st.session_state.clima_data = clima
+#==========================================================
+# SUSCRIPCION
+#==========================================================
+elif menu == "💳 Suscripción"
+import mercadopago
+import streamlit as st
+from datetime import datetime
+
+# 1. Configurar SDK
+sdk = mercadopago.SDK(st.secrets["MP_ACCESS_TOKEN"])
+
+st.title("🚀 AgroGuardian Pro")
+st.markdown("### Llevá tu producción al siguiente nivel")
+
+# Diseño de beneficios
+st.info("""
+**El plan PRO incluye:**
+* 🛰️ **Mapas NDVI/NDWI** sin límites.
+* ⛈️ **Alertas de Granizo** prioritarias vía WhatsApp.
+* 🧪 **Consultoría de Suelos** integrada con IA.
+""")
+
+# 2. Crear la Preferencia (El "carrito" de compra)
+preference_data = {
+    "items": [
+        {
+            "title": "Acceso Full AgroGuardian (30 días)",
+            "quantity": 1,
+            "unit_price": 4500.0, # Poné el precio que quieras en pesos
+            "currency_id": "ARS"
+        }
+    ],
+    "back_urls": {
+        "success": "https://tu-app.streamlit.app", # Cambiá esto por la URL de tu app
+        "failure": "https://tu-app.streamlit.app",
+        "pending": "https://tu-app.streamlit.app"
+    },
+    "auto_return": "approved",
+}
+
+try:
+    # Generar el link
+    preference_response = sdk.preference().create(preference_data)
+    url_pago = preference_response["response"]["init_point"]
+
+    # 3. Botón con estilo "Mobile First"
+    st.markdown(f"""
+        <div style="display: flex; justify-content: center; margin-top: 20px;">
+            <a href="{url_pago}" target="_blank" style="text-decoration:none; width:100%;">
+                <div style="
+                    background-color: #009EE3;
+                    color: white;
+                    padding: 15px;
+                    border-radius: 8px;
+                    text-align: center;
+                    font-weight: bold;
+                    font-size: 18px;
+                    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+                ">
+                    PAGAR CON MERCADO PAGO 💳
+                </div>
+            </a>
+        </div>
+        <p style="text-align:center; font-size:11px; color:#888; margin-top:10px;">
+            Pago seguro procesado por Mercado Pago. Acepta crédito, débito y dinero en cuenta.
+        </p>
+    """, unsafe_allow_html=True)
+
+except Exception as e:
+    st.error(f"Error al conectar con la pasarela de pagos: {e}")
 
 # ==========================================================
 # MENÚ: MONITOREO TOTAL
