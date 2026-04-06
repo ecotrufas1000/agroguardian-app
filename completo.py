@@ -25,24 +25,30 @@ import secrets
 import string
 # Al inicio de completo.py, junto con los demás imports
 import ee
-import json
-@st.cache_resource
-def initialize_ee():
+
+def inicializar_ee():
     try:
-        # Cargamos el diccionario completo desde st.secrets
-        gee_secrets = dict(st.secrets["gee"])
+        # 1. Convertimos el secreto en un diccionario de Python
+        gee_dict = dict(st.secrets["gee"])
         
+        # 2. Limpieza crítica de la private_key (reemplaza \\n por \n real)
+        if "private_key" in gee_dict:
+            gee_dict["private_key"] = gee_dict["private_key"].replace("\\n", "\n")
+        
+        # 3. Autenticación
         credentials = ee.ServiceAccountCredentials(
-            email=gee_secrets["client_email"],
-            key_data=json.dumps(gee_secrets)
+            gee_dict["client_email"], 
+            key_data=gee_dict["private_key"]
         )
         ee.Initialize(credentials)
+        return True
     except Exception as e:
-        # En lugar de Authenticate, mostramos un error claro en la interfaz
-        st.error(f"Error crítico: No se pudieron cargar las credenciales de Earth Engine. {e}")
-        st.stop() # Detiene la ejecución para que no falle el resto de la app
+        st.error(f"Error al conectar con Earth Engine: {e}")
+        return False
 
-initialize_ee()
+# Llamada a la función
+if inicializar_ee():
+    st.success("¡Sistemas listos!")
 
 def generar_password_temporal():
     
