@@ -1,27 +1,8 @@
-# Al principio de tu archivo completo.py
+# 1. TODOS LOS IMPORTS PRIMERO
+import streamlit as st  # <--- ESTE TIENE QUE ESTAR ARRIBA DE TODO
 import mercadopago
-from datetime import datetime
-parametros = st.query_params
-
-if parametros.get("status") == "approved":
-    st.balloons()
-    st.success("¡Pago aprobado! Ya tenés acceso a las funciones PRO.")
-    # Acá podrías guardar en tu base de datos Supabase que este usuario ya pagó
+from datetime import datetime, timedelta
 import google.generativeai as genai
-import streamlit as st
-
-# Así es como se configura correctamente ahora
-try:
-    # Usamos la clave que ya tenés en tus secrets
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    
-    # En lugar de Client(), inicializamos el modelo directamente
-    model = genai.GenerativeModel('gemini-1.5-flash') 
-    
-    # Opcional: Probar si funciona
-    # response = model.generate_content("Hola")
-except Exception as e:
-    st.error(f"Error al configurar Gemini: {e}")
 import requests
 import json
 import os
@@ -42,31 +23,30 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from datetime import datetime, timedelta
 import secrets
 import string
-# Al inicio de completo.py, junto con los demás imports
 import ee
 
-def inicializar_ee():
-    try:
-        # 1. Convertimos el secreto en un diccionario de Python
-        gee_dict = dict(st.secrets["gee"])
-        
-        # 2. Limpieza crítica de la private_key (reemplaza \\n por \n real)
-        if "private_key" in gee_dict:
-            gee_dict["private_key"] = gee_dict["private_key"].replace("\\n", "\n")
-        
-        # 3. Autenticación
-        credentials = ee.ServiceAccountCredentials(
-            gee_dict["client_email"], 
-            key_data=gee_dict["private_key"]
-        )
-        ee.Initialize(credentials)
-        return True
-    except Exception as e:
-        st.error(f"Error al conectar con Earth Engine: {e}")
-        return False
+# 2. CONFIGURACIÓN DE PÁGINA (SIEMPRE PRIMERO ANTES DE CUALQUIER WIDGET)
+st.set_page_config(page_title="AgroGuardian", page_icon="🌿", layout="wide")
+
+# 3. CAPTURA DE PARÁMETROS (AHORA SÍ FUNCIONA PORQUE YA EXISTE 'st')
+parametros = st.query_params
+
+if parametros.get("status") == "approved":
+    st.balloons()
+    st.success("¡Pago aprobado! Ya tenés acceso a las funciones PRO.")
+
+# 4. CONFIGURACIÓN DE GEMINI
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash') 
+except Exception as e:
+    st.error(f"Error al configurar Gemini: {e}")
+
+# 5. EL RESTO DE TUS FUNCIONES (inicializar_ee, etc.)
+# ... sigue el código de inicializar_ee ...
+return False
 
 # Llamada a la función
 if inicializar_ee():
