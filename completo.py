@@ -1306,8 +1306,23 @@ elif menu == "⛈️ Radar Granizo":
         capa = st.radio("Seleccionar Capa del Sensor:", ["Radar", "Rayos", "Nubes"], index=0)
         vistas = {"Radar": "radar", "Rayos": "thunder", "Nubes": "satellite"}
         st.markdown(f"### 🛰️ Sensor Activo: {capa}")
-        url_windy = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay={vistas[capa]}&product=radar&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
-        st.components.v1.iframe(url_windy, height=450)
+        # --- TRUCO DE CSS PARA ELIMINAR ESPACIO BLANCO ---
+        st.markdown("""
+            <style>
+                /* Esto quita el padding extra que Streamlit pone a los componentes de HTML */
+                .element-container iframe {
+                    margin-bottom: -40px !important;
+                }
+                div[data-testid="stVerticalBlock"] > div:has(iframe) {
+                    margin-bottom: -50px !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        url_windy = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay={vistas[capa]}&product=radar&menu=&message=false&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=false&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
+        
+        # Reducimos el height a 400 y quitamos el scrolling
+        st.components.v1.iframe(url_windy, height=400, scrolling=False)
         with st.expander("ℹ️ ¿Cómo leer el radar?"):
             st.write("""
             - **Colores Verdes/Azules:** Lluvia ligera o moderada.
