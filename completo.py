@@ -1365,8 +1365,16 @@ elif menu == "⛈️ Radar Granizo":
             - **Capa de Rayos:** Las cruces brillantes indican actividad eléctrica en tiempo real.
             """)
 
-        with st.expander("📊 Detalle del cálculo de inestabilidad"):
-            st.markdown(f"""
+        #with st.expander("📊 Detalle del cálculo de inestabilidad"):
+        #    st.markdown(f"""
+         with st.expander(""):
+             st.markdown("""
+             <div style='margin-top:-15px; color:black; font-size:14px'>
+                 📊 Detalle del cálculo de inestabilidad
+             </div>
+             """, unsafe_allow_html=True)
+             
+            # ... tu contenido adentro
             | Factor | Valor | Estado |
             |--------|-------|--------|
             | Temperatura | {temp}°C | {"🔥 Calor extremo" if temp > 30 else "Normal"} |
