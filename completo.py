@@ -1339,8 +1339,8 @@ elif menu == "⛈️ Radar Granizo":
         st.divider()
 
         # --- SELECTOR DE CAPAS Y RADAR ---
-        capa = st.radio("Seleccionar Capa del Sensor:", ["Radar", "Rayos", "Nubes"], index=0, horizontal=True)
-        vistas = {"Radar": "radar", "Rayos": "thunder", "Nubes": "satellite"}
+        capa = st.radio("Seleccionar Capa del Sensor:", ["Radar", "T. Electricas", "Nubes"], index=0, horizontal=True)
+        vistas = {"Radar": "radar", "T. Electricas": "thunder", "Nubes": "satellite"}
         
         st.markdown(f"### 🛰️ Sensor Activo: {capa}")
 
