@@ -2149,8 +2149,20 @@ Respondé siempre en español. Si la imagen no muestra claramente un problema ag
         st.session_state.foto_bytes = None
 
 elif menu == "💳 Suscripción PRO":
-    st.title("AgroGuardian PRO")
-    st.markdown("### Accedé a la tecnología de precisión")
+    # --- LOGO Y TÍTULO CENTRADOS ---
+    # Creamos 3 columnas: la del medio (col_logo) contendrá el logo
+    # El ratio [1, 0.5, 1] hace que la del medio sea pequeña y esté centrada
+    empty1, col_logo, empty2 = st.columns([1, 0.5, 1])
+    
+    with col_logo:
+        # Cargamos LOGO1.png del repo con un ancho pequeño (ej: 120)
+        st.image("LOGO1.png", width=120)
+
+    # Título centrado usando HTML
+    st.markdown("<h1 style='text-align: center;'>AgroGuardian PRO</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #555;'>Accedé a la tecnología de precisión</h3>", unsafe_allow_html=True)
+    
+    st.write("---")
     
     col1, col2 = st.columns([2, 1])
     
@@ -2161,9 +2173,10 @@ elif menu == "💳 Suscripción PRO":
         * 📊 **Reportes PDF:** Descargas ilimitadas de diagnósticos para tus lotes.
         * 🔔 **Alertas Premium:** Notificaciones prioritarias de heladas y granizo.
         * La versión PRO de AgroGuardian te permite el acceso ilimitado a todas las funciones. 
-        * Costo Mensual: U$S 20.00, se factura anualmente. Promo por este Mes U$$ 200/año. 
+        * Costo Mensual: U$S 20.00, se factura anualmente. **Promo por este Mes U$$ 200/año.**
         """)
-        
+    
+    # ... (El resto de tu lógica de Mercado Pago se mantiene igual)        
     #with col2:
     #    st.metric("Costo Mensual", "U$S 20.00, se factura anualmente. Promo por este Mes U$S 200/año", help="Precio final en ARS")
 
