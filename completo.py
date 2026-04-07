@@ -2155,8 +2155,8 @@ elif menu == "💳 Suscripción PRO":
     empty1, col_logo, empty2 = st.columns([1, 0.5, 1])
     
     with col_logo:
-        # Cargamos LOGO1.png del repo con un ancho pequeño (ej: 120)
-        st.image("LOGO1.png", width=120)
+        # Cargamos logo1.png del repo con un ancho pequeño (ej: 120)
+        st.image("logo1.png", width=120)
 
     # Título centrado usando HTML
     st.markdown("<h1 style='text-align: center;'>AgroGuardian PRO</h1>", unsafe_allow_html=True)
