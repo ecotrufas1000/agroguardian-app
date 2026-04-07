@@ -1369,7 +1369,7 @@ elif menu == "⛈️ Radar Granizo":
             st.markdown(f"""
          
              
-            # ... tu contenido adentro
+            
             | Factor | Valor | Estado |
             |--------|-------|--------|
             | Temperatura | {temp}°C | {"🔥 Calor extremo" if temp > 30 else "Normal"} |
