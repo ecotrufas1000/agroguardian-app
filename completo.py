@@ -1272,57 +1272,91 @@ elif menu == "💧 Balance Hídrico":
 # ==========================================================
 elif menu == "⛈️ Radar Granizo":
     st.header("⛈️ Monitor de Tormentas y Granizo")
+    
     if LAT and LON and clima:
         c1, c2, c3 = st.columns(3)
-        hum = clima['hum']
-        temp = clima['temp']
-        presion = clima['presion']
-        rocio = clima['rocio']
+        
+        # Extraer variables
+        hum = clima.get('hum', 0)
+        temp = clima.get('temp', 0)
+        presion = clima.get('presion', 1013)
+        rocio = clima.get('rocio', 0)
+        # Asumo que 'desc' es el estado del cielo (ej: "Rain", "Clouds", "Clear")
+        estado_cielo = clima.get('desc', '').lower() 
+
+        # --- LÓGICA DE ÍNDICE DE INESTABILIDAD (CONVECTIVA) ---
+        idx = 0
+        
+        # 1. Energía Térmica
+        if temp > 30: idx += 2
+        elif temp > 25: idx += 1
+        
+        # 2. Humedad (Combustible principal)
+        if hum > 85: idx += 3
+        elif hum > 70: idx += 2
+        elif hum > 55: idx += 1
+        
+        # 3. Presión (Divergencia)
+        if presion < 1005: idx += 3
+        elif presion < 1010: idx += 2
+        elif presion < 1014: idx += 1
+        
+        # 4. Punto de Rocío (Proximidad a la saturación)
+        dif_rocio = temp - rocio
+        if dif_rocio < 2: idx += 3
+        elif dif_rocio < 4: idx += 2
+        elif dif_rocio < 8: idx += 1
+
+        # --- FILTRO DE REALIDAD (VERIFICACIÓN DE TORMENTA) ---
+        # Definimos si hay "acción" en el cielo según la API
+        hay_tormenta = any(word in estado_cielo for word in ["thunder", "storm", "lightning"])
+        hay_lluvia = "rain" in estado_cielo or "drizzle" in estado_cielo
+        hay_nubes_pesadas = "cloud" in estado_cielo and hum > 75
+
+        # --- DETERMINACIÓN DEL RIESGO FINAL ---
+        if hay_tormenta:
+            if idx >= 8: riesgo = "🔴 SEVERO"; delta_txt = "Granizo inminente / Tormenta fuerte"
+            else: riesgo = "🟠 ALTO"; delta_txt = "Tormenta eléctrica activa"
+        elif hay_lluvia:
+            if idx >= 7: riesgo = "🟠 ALTO"; delta_txt = "Lluvia con riesgo convectivo"
+            else: riesgo = "🟡 MODERADO"; delta_txt = "Lluvias aisladas"
+        elif hay_nubes_pesadas:
+            if idx >= 8: riesgo = "🟡 MODERADO"; delta_txt = "Cielo cubierto, aire inestable"
+            else: riesgo = "🟢 BAJO"; delta_txt = "Nubosidad sin desarrollo"
+        else:
+            # Si el cielo está despejado o hay pocas nubes
+            if idx >= 9: riesgo = "🟡 MODERADO"; delta_txt = "Inestabilidad extrema (Peligro de formación)"
+            elif idx >= 6: riesgo = "🟢 BAJO"; delta_txt = "Humedad alta, sin nubes de tormenta"
+            else: riesgo = "✅ NULO"; delta_txt = "Condiciones estables"
+
         with c1:
-            idx = 0
-            if temp > 25: idx += 2
-            elif temp > 20: idx += 1
-            if hum > 80: idx += 3
-            elif hum > 65: idx += 2
-            elif hum > 50: idx += 1
-            if presion < 1000: idx += 3
-            elif presion < 1008: idx += 2
-            elif presion < 1015: idx += 1
-            dif_rocio = temp - rocio
-            if dif_rocio < 3: idx += 3
-            elif dif_rocio < 6: idx += 2
-            elif dif_rocio < 10: idx += 1
-            if idx >= 8: riesgo = "🔴 SEVERO"; delta_txt = "Tormenta severa probable"
-            elif idx >= 6: riesgo = "🟠 ALTO"; delta_txt = "Tormenta probable"
-            elif idx >= 4: riesgo = "🟡 MODERADO"; delta_txt = "Tormenta posible"
-            elif idx >= 2: riesgo = "🟢 BAJO"; delta_txt = "Condiciones estables"
-            else: riesgo = "✅ NULO"; delta_txt = "Sin riesgo convectivo"
             st.metric("Inestabilidad Atmosférica", riesgo, delta=delta_txt)
         with c2:
             st.metric("Presión Atmosférica", f"{presion} hPa")
         with c3:
             st.metric("Punto de Rocío", f"{rocio} °C", help="A mayor punto de rocío, más combustible para la tormenta")
+
         st.divider()
-        capa = st.radio("Seleccionar Capa del Sensor:", ["Radar", "Rayos", "Nubes"], index=0)
+
+        # --- SELECTOR DE CAPAS Y RADAR ---
+        capa = st.radio("Seleccionar Capa del Sensor:", ["Radar", "Rayos", "Nubes"], index=0, horizontal=True)
         vistas = {"Radar": "radar", "Rayos": "thunder", "Nubes": "satellite"}
+        
         st.markdown(f"### 🛰️ Sensor Activo: {capa}")
-        # --- TRUCO DE CSS PARA ELIMINAR ESPACIO BLANCO ---
+
+        # CSS para limpiar el iframe
         st.markdown("""
             <style>
-                /* Esto quita el padding extra que Streamlit pone a los componentes de HTML */
-                .element-container iframe {
-                    margin-bottom: -40px !important;
-                }
-                div[data-testid="stVerticalBlock"] > div:has(iframe) {
-                    margin-bottom: -50px !important;
-                }
+                .element-container iframe { margin-bottom: -40px !important; }
+                div[data-testid="stVerticalBlock"] > div:has(iframe) { margin-bottom: -50px !important; }
             </style>
         """, unsafe_allow_html=True)
 
         url_windy = f"https://embed.windy.com/embed2.html?lat={LAT}&lon={LON}&zoom=8&overlay={vistas[capa]}&product=radar&menu=&message=false&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=false&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
         
-        # Reducimos el height a 400 y quitamos el scrolling
-        st.components.v1.iframe(url_windy, height=400, scrolling=False)
+        st.components.v1.iframe(url_windy, height=450, scrolling=False)
+
+        # Expansores de ayuda
         with st.expander("ℹ️ ¿Cómo leer el radar?"):
             st.write("""
             - **Colores Verdes/Azules:** Lluvia ligera o moderada.
@@ -1330,20 +1364,21 @@ elif menu == "⛈️ Radar Granizo":
             - **Colores Púrpura/Blanco:** Celdas de granizo pesado o tormentas severas.
             - **Capa de Rayos:** Las cruces brillantes indican actividad eléctrica en tiempo real.
             """)
-        with st.expander("📊 Ver detalle del índice de inestabilidad"):
+
+        with st.expander("📊 Detalle del cálculo de inestabilidad"):
             st.markdown(f"""
-            | Factor | Valor | Aporte |
+            | Factor | Valor | Estado |
             |--------|-------|--------|
-            | Temperatura | {temp}°C | {"Alto" if temp > 25 else "Moderado" if temp > 20 else "Bajo"} |
-            | Humedad | {hum}% | {"Alto" if hum > 80 else "Moderado" if hum > 65 else "Bajo"} |
-            | Presión | {presion} hPa | {"Alto" if presion < 1000 else "Moderado" if presion < 1008 else "Bajo"} |
-            | Dif. Temp-Rocío | {round(temp-rocio,1)}°C | {"Alto" if temp-rocio < 3 else "Moderado" if temp-rocio < 6 else "Bajo"} |
+            | Temperatura | {temp}°C | {"🔥 Calor extremo" if temp > 30 else "Normal"} |
+            | Humedad | {hum}% | {"💧 Saturado" if hum > 80 else "Normal"} |
+            | Presión | {presion} hPa | {"📉 Baja (Inestable)" if presion < 1010 else "Estable"} |
+            | Cielo (API) | {estado_cielo.capitalize()} | {"⚡ Tormenta detectada" if hay_tormenta else "Sin actividad eléctrica"} |
             
-            **Índice total: {idx}/11**
+            **Puntos de Inestabilidad acumulados: {idx}/11**
             """)
+
     else:
         st.warning("📍 Se requiere vincular el GPS en el panel lateral para centrar el radar en tu lote.")
-
 # ==========================================================
 elif menu == "❄️ Análisis de Heladas":
     st.markdown("<h2 style='font-size: 24px;'>❄️ Heladas Agrometeorológicas</h2>", unsafe_allow_html=True)
