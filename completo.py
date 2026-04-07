@@ -2149,7 +2149,7 @@ Respondé siempre en español. Si la imagen no muestra claramente un problema ag
         st.session_state.foto_bytes = None
 
 elif menu == "💳 Suscripción PRO":
-    st.title("🚀 AgroGuardian PRO")
+    st.title("AgroGuardian PRO")
     st.markdown("### Accedé a la tecnología de precisión")
     
     col1, col2 = st.columns([2, 1])
