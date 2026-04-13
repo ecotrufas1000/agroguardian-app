@@ -1693,8 +1693,8 @@ elif menu == "🛰️ Índices Satelitales":
     gdf_total = cargar_limites()
 
     # ── UI: Selectores de Ubicación ────────────────────────
-    col_prov_name = "NAME_1"
-    col_depto_name = "NAME_2"
+    col_prov = "NAME_1"
+    col_depto = "NAME_2"
 
     c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
 
