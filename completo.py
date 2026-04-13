@@ -1715,7 +1715,7 @@ elif menu == "🛰️ Índices Satelitales":
         if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar..." and gdf_pais is not None:
             # Filtramos por la provincia seleccionada
             gdf_final = gdf_pais[gdf_pais[col_prov] == prov_sel]
-            deptos = sorted(gdf_final[col_depto_name].unique())
+            deptos = sorted(gdf_final[col_depto].unique())
             label_depto = "Provincia:" if pais_sel == "Peru" else "Departamento/Zona:"
             depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
         else:
