@@ -1676,10 +1676,12 @@ elif menu == "🛰️ Índices Satelitales":
         if os.path.exists("gadm41_URY.gpkg"):
             gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_ury["PAIS"] = "Uruguay"
-        if os.path.exists("gadm41_PER.gpkg"):
-            gdf_per = gpd.read_file("gadm41_PER_.gpkg", layer="ADM_ADM_2", engine="pyogrio")
+        # AQUÍ VA EL NUEVO BLOQUE DE PERÚ:
+        if os.path.exists("peru_25kb.json"):
+            gdf_per = gpd.read_file("peru_25kb.json")
             gdf_per["PAIS"] = "Peru"
-
+            # Creamos NAME_2 para que coincida con la estructura de los otros países
+            gdf_per["NAME_2"] = gdf_per["NAME_1"]
         gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per] if g is not None]
         if gdfs:
             return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
