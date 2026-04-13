@@ -1688,8 +1688,8 @@ elif menu == "🛰️ Índices Satelitales":
         return None
     gdf_argentina = cargar_limites()
     peru_test = gdf_argentina[gdf_argentina["PAIS"] == "Peru"]
-    st.write(f"Filas Peru: {len(peru_test)}")
-    st.write(peru_test[["NAME_1", "NAME_2", "PAIS"]].head())
+    #st.write(f"Filas Peru: {len(peru_test)}")
+    #st.write(peru_test[["NAME_1", "NAME_2", "PAIS"]].head())
     # ── Función principal GEE ──────────────────────────────
     @st.cache_data(ttl=3600)
     def obtener_capa_gee(lat, lon, indice, fecha_inicio, fecha_fin):
