@@ -1,0 +1,15 @@
+name: Despertador de App ⏰
+
+on:
+  schedule:
+    # Se ejecuta cada 30 minutos
+    - cron: '0,30 * * * *'
+  workflow_dispatch: # Esto nos permite probarlo con un botón manualmente
+
+jobs:
+  ping_app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Visitar la URL de la App 🚀
+        run: |
+          curl -I https://agroguardian-app-eowdpzrknk8ybcuyf78gmq.streamlit.app/
