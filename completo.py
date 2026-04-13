@@ -1661,6 +1661,7 @@ elif menu == "🛰️ Índices Satelitales":
     }
 
    # ── Cargar límites administrativos ─────────────────────
+    # ── Cargar límites administrativos ─────────────────────
     @st.cache_data
     def cargar_limites():
         import os
@@ -1670,23 +1671,34 @@ elif menu == "🛰️ Índices Satelitales":
         gdf_arg = None
         gdf_ury = None
         gdf_per = None
+        gdf_pry = None # 🇵🇾 Inicializamos Paraguay
+
         if os.path.exists("gadm41_AGR_2.gpkg"):
             gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
             gdf_arg["PAIS"] = "Argentina"
         if os.path.exists("gadm41_URY.gpkg"):
             gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_ury["PAIS"] = "Uruguay"
-        # AQUÍ VA EL NUEVO BLOQUE DE PERÚ:
         if os.path.exists("peru_25kb.json"):
             gdf_per = gpd.read_file("peru_25kb.json")
             gdf_per["PAIS"] = "Peru"
-            # Creamos NAME_2 para que coincida con la estructura de los otros países
             gdf_per["NAME_2"] = gdf_per["NAME_1"]
-        gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per] if g is not None]
+        
+        # 🇵🇾 NUEVO BLOQUE DE PARAGUAY:
+        if os.path.exists("pry_25kb.json"):
+            gdf_pry = gpd.read_file("pry_25kb.json")
+            gdf_pry["PAIS"] = "Paraguay"
+            # Como el JSON de Paraguay solo tiene NAME_1, duplicamos a NAME_2 para no romper los filtros
+            gdf_pry["NAME_2"] = gdf_pry["NAME_1"]
+
+        # Sumamos gdf_pry a la lista
+        gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per, gdf_pry] if g is not None]
         if gdfs:
             return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
         return None
+
     gdf_argentina = cargar_limites()
+    
     peru_test = gdf_argentina[gdf_argentina["PAIS"] == "Peru"]
     #st.write(f"Filas Peru: {len(peru_test)}")
     #st.write(peru_test[["NAME_1", "NAME_2", "PAIS"]].head())
@@ -1790,23 +1802,25 @@ elif menu == "🛰️ Índices Satelitales":
             return None
 
     # ── UI — Selectores ────────────────────────────────────
+    # ── UI — Selectores ────────────────────────────────────
     col_prov = "NAME_1"
     col_depto = "NAME_2"
 
     c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
 
     with c0:
-        pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Peru", "Uruguay"])
+        # Agregamos Paraguay a la lista
+        pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Paraguay", "Peru", "Uruguay"])
 
     with c1:
-        # 1. Agregamos "Peru" a la validación
         if pais_sel != "Seleccionar..." and gdf_argentina is not None:
             gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == pais_sel]
             opciones_prov = sorted(gdf_pais[col_prov].unique())
             
-            # 2. Ajustamos la etiqueta según el país
+            # Ajuste de etiquetas por país
             if pais_sel == "Argentina": label_prov = "Provincia:"
             elif pais_sel == "Peru": label_prov = "Departamento (Región):"
+            elif pais_sel == "Paraguay": label_prov = "Departamento:"
             else: label_prov = "Departamento:"
             
             prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
@@ -1815,24 +1829,17 @@ elif menu == "🛰️ Índices Satelitales":
             gdf_pais = None
 
     with c2:
-        # 3. Filtramos las zonas/provincias
         if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar..." and gdf_pais is not None:
             deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
             
             if pais_sel == "Argentina": label_depto = "Departamento (Cdad):"
             elif pais_sel == "Peru": label_depto = "Provincia:"
+            elif pais_sel == "Paraguay": label_depto = "Distrito:"
             else: label_depto = "Sección:"
             
             depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
         else:
             depto_sel = st.selectbox("Zona/Distrito:", ["Esperando..."], disabled=True)
-    with c3:
-        indice_sel = st.selectbox(
-            "Índice:",
-            list(INDICES.keys()),
-            format_func=lambda x: f"{INDICES[x]['emoji']} {x} — {INDICES[x]['desc']}"
-        )
-
     # Rango de fechas
     col_f1, col_f2 = st.columns(2)
     with col_f1:
