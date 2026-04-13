@@ -1663,9 +1663,12 @@ elif menu == "🛰️ Índices Satelitales":
    # ── Cargar límites administrativos ─────────────────────
     @st.cache_data
     def cargar_limites():
-        gdf_arg = None
-        gdf_ury = None
-        gdf_per = None
+     import os
+     os.environ["PROJ_LIB"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
+     os.environ["PROJ_DATA"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
+     gdf_arg = None
+     gdf_ury = None
+     gdf_per = None
         if os.path.exists("gadm41_AGR_2.gpkg"):
             gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
             gdf_arg["PAIS"] = "Argentina"
