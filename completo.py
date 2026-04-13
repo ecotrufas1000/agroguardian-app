@@ -1662,7 +1662,7 @@ elif menu == "🛰️ Índices Satelitales":
 
    # ── Cargar límites administrativos ─────────────────────
     @st.cache_data
-    cargar_limites():
+    def cargar_limites():
         import os
         os.environ["PROJ_LIB"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
         os.environ["PROJ_DATA"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
