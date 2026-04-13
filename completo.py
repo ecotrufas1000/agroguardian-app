@@ -1660,20 +1660,26 @@ elif menu == "🛰️ Índices Satelitales":
         "TRUE-COLOR": {"desc": "Foto Real",            "emoji": "📸"},
     }
 
-    # ── Cargar límites administrativos ─────────────────────
+   # ── Cargar límites administrativos ─────────────────────
     @st.cache_data
     def cargar_limites():
         gdf_arg = None
         gdf_ury = None
+        gdf_per = None
         if os.path.exists("gadm41_AGR_2.gpkg"):
             gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
             gdf_arg["PAIS"] = "Argentina"
         if os.path.exists("gadm41_URY.gpkg"):
             gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_ury["PAIS"] = "Uruguay"
-        if gdf_arg is not None and gdf_ury is not None:
-            return gpd.GeoDataFrame(pd.concat([gdf_arg, gdf_ury], ignore_index=True))
-        return gdf_arg
+        if os.path.exists("gadm41_PER.gpkg"):
+            gdf_per = gpd.read_file("gadm41_PER.gpkg", engine="pyogrio")
+            gdf_per["PAIS"] = "Peru"
+
+        gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per] if g is not None]
+        if gdfs:
+            return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
+        return None
 
     gdf_argentina = cargar_limites()
 
@@ -1783,7 +1789,7 @@ elif menu == "🛰️ Índices Satelitales":
     c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
 
     with c0:
-        pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Uruguay"])
+        pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Peru", "Uruguay"])
 
     with c1:
         if pais_sel in ["Argentina", "Uruguay"] and gdf_argentina is not None:
