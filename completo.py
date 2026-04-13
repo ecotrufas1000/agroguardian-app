@@ -1704,7 +1704,7 @@ elif menu == "🛰️ Índices Satelitales":
     with c1:
         if pais_sel != "Seleccionar..." and gdf_total is not None:
             gdf_pais = gdf_total[gdf_total["PAIS"] == pais_sel]
-            opciones_prov = sorted(gdf_pais[col_prov_name].unique())
+            opciones_prov = sorted(gdf_pais[col_prov].unique())
             label_prov = "Departamento (Región):" if pais_sel == "Peru" else "Provincia/Estado:"
             prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
         else:
@@ -1714,7 +1714,7 @@ elif menu == "🛰️ Índices Satelitales":
     with c2:
         if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar..." and gdf_pais is not None:
             # Filtramos por la provincia seleccionada
-            gdf_final = gdf_pais[gdf_pais[col_prov_name] == prov_sel]
+            gdf_final = gdf_pais[gdf_pais[col_prov] == prov_sel]
             deptos = sorted(gdf_final[col_depto_name].unique())
             label_depto = "Provincia:" if pais_sel == "Peru" else "Departamento/Zona:"
             depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
