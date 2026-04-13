@@ -1662,13 +1662,14 @@ elif menu == "🛰️ Índices Satelitales":
 
    # ── Cargar límites administrativos ─────────────────────
     @st.cache_data
-    def cargar_limites():
-     import os
-     os.environ["PROJ_LIB"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
-     os.environ["PROJ_DATA"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
-     gdf_arg = None
-     gdf_ury = None
-     gdf_per = None
+    cargar_limites():
+        import os
+        os.environ["PROJ_LIB"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
+        os.environ["PROJ_DATA"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
+
+        gdf_arg = None
+        gdf_ury = None
+        gdf_per = None
         if os.path.exists("gadm41_AGR_2.gpkg"):
             gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
             gdf_arg["PAIS"] = "Argentina"
@@ -1676,14 +1677,13 @@ elif menu == "🛰️ Índices Satelitales":
             gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_ury["PAIS"] = "Uruguay"
         if os.path.exists("gadm41_PER.gpkg"):
-            gdf_per = gpd.read_file("gadm41_PER.gpkg", engine="pyogrio")
+            gdf_per = gpd.read_file("gadm41_PER.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_per["PAIS"] = "Peru"
 
         gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per] if g is not None]
         if gdfs:
             return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
         return None
-
     gdf_argentina = cargar_limites()
 
     # ── Función principal GEE ──────────────────────────────
