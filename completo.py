@@ -1642,15 +1642,15 @@ elif menu == "📝 Bitácora":
 # Reemplazá todo el bloque elif menu == "🛰️ Índices Satelitales":
 # ==========================================================
 elif menu == "🛰️ Índices Satelitales":
-   
     import folium
     import geopandas as gpd
+    import pandas as pd
     import streamlit.components.v1 as components
     from datetime import datetime
 
     st.header("🛰️ Monitor Satelital — Google Earth Engine")
 
-    # ── Configuración de índices disponibles ───────────────
+    # ── Configuración de índices ───────────────────────────
     INDICES = {
         "NDVI":       {"desc": "Vigor Vegetal",        "emoji": "🍃"},
         "EVI":        {"desc": "Vegetación Mejorado",  "emoji": "🌱"},
@@ -1660,138 +1660,41 @@ elif menu == "🛰️ Índices Satelitales":
         "TRUE-COLOR": {"desc": "Foto Real",            "emoji": "📸"},
     }
 
-   # ── Cargar límites administrativos ─────────────────────
     @st.cache_data
     def cargar_limites():
         import os
+        # Configuración de rutas para PROJ (librería geoespacial)
         os.environ["PROJ_LIB"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
-        os.environ["PROJ_DATA"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
-
-        gdf_arg = None
-        gdf_ury = None
-        gdf_per = None
+        
+        gdfs = []
+        # Argentina
         if os.path.exists("gadm41_AGR_2.gpkg"):
             gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
             gdf_arg["PAIS"] = "Argentina"
+            gdfs.append(gdf_arg)
+        
+        # Uruguay
         if os.path.exists("gadm41_URY.gpkg"):
             gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
             gdf_ury["PAIS"] = "Uruguay"
-        # AQUÍ VA EL NUEVO BLOQUE DE PERÚ:
+            gdfs.append(gdf_ury)
+            
+        # Perú (Archivo optimizado JSON)
         if os.path.exists("peru_25kb.json"):
             gdf_per = gpd.read_file("peru_25kb.json")
             gdf_per["PAIS"] = "Peru"
-            # Creamos NAME_2 para que coincida con la estructura de los otros países
-            gdf_per["NAME_2"] = gdf_per["NAME_1"]
-        gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per] if g is not None]
+            gdf_per["NAME_2"] = gdf_per["NAME_1"] # Consistencia con otros GDFs
+            gdfs.append(gdf_per)
+
         if gdfs:
             return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
         return None
-    gdf_argentina = cargar_limites()
-    peru_test = gdf_argentina[gdf_argentina["PAIS"] == "Peru"]
-    st.write(f"Filas Peru: {len(peru_test)}")
-    st.write(peru_test[["NAME_1", "NAME_2", "PAIS"]].head())
-    # ── Función principal GEE ──────────────────────────────
-    @st.cache_data(ttl=3600)
-    def obtener_capa_gee(lat, lon, indice, fecha_inicio, fecha_fin):
-        try:
-            punto = ee.Geometry.Point([lon, lat])
-            region = punto.buffer(5000)  # 5km alrededor del centro
 
-            s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                  .filterBounds(region)
-                  .filterDate(fecha_inicio, fecha_fin)
-                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                  .sort('CLOUDY_PIXEL_PERCENTAGE')
-                  .first())
+    gdf_total = cargar_limites()
 
-            if indice == "NDVI":
-                capa = s2.normalizedDifference(['B8', 'B4']).rename('NDVI')
-                vis = {"min": -0.1, "max": 0.8,
-                       "palette": ['#d73027','#f46d43','#fee08b','#a6d96a','#1a9850']}
-
-            elif indice == "EVI":
-                capa = s2.expression(
-                    '2.5 * ((NIR - RED) / (NIR + 6*RED - 7.5*BLUE + 1))',
-                    {'NIR':  s2.select('B8').divide(10000),
-                     'RED':  s2.select('B4').divide(10000),
-                     'BLUE': s2.select('B2').divide(10000)}
-                ).rename('EVI')
-                vis = {"min": -0.1, "max": 0.8,
-                       "palette": ['#d73027','#fee08b','#1a9850']}
-
-            elif indice == "NDWI":
-                capa = s2.normalizedDifference(['B3', 'B8']).rename('NDWI')
-                vis = {"min": -0.5, "max": 0.5,
-                       "palette": ['#d73027','#fee08b','#abd9e9','#2166ac']}
-
-            elif indice == "NDRE":
-                capa = s2.normalizedDifference(['B8A', 'B5']).rename('NDRE')
-                vis = {"min": -0.1, "max": 0.5,
-                       "palette": ['#d73027','#fee08b','#66bd63','#006837']}
-
-            elif indice == "NDMI":
-                capa = s2.normalizedDifference(['B8', 'B11']).rename('NDMI')
-                vis = {"min": -0.5, "max": 0.3,
-                       "palette": ['#d73027','#fee08b','#abd9e9','#2166ac']}
-
-            elif indice == "TRUE-COLOR":
-                capa = s2.select(['B4', 'B3', 'B2'])
-                vis = {"min": 0, "max": 3000,
-                       "bands": ['B4', 'B3', 'B2']}
-
-            url = capa.visualize(**vis).getMapId()['tile_fetcher'].url_format
-
-            # Fecha de la imagen
-            fecha_img = ee.Date(s2.get('system:time_start')).format('dd/MM/yyyy').getInfo()
-            nubes = s2.get('CLOUDY_PIXEL_PERCENTAGE').getInfo()
-
-            return url, fecha_img, round(nubes, 1)
-
-        except Exception as e:
-            return None, None, str(e)
-
-    # ── Función para obtener valor puntual ─────────────────
-    def obtener_valor_punto(lat, lon, indice, fecha_inicio, fecha_fin):
-        try:
-            punto = ee.Geometry.Point([lon, lat]).buffer(50)
-
-            s2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-                  .filterBounds(punto)
-                  .filterDate(fecha_inicio, fecha_fin)
-                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                  .sort('CLOUDY_PIXEL_PERCENTAGE')
-                  .first())
-
-            if indice == "NDVI":
-                capa = s2.normalizedDifference(['B8', 'B4'])
-            elif indice == "EVI":
-                capa = s2.expression(
-                    '2.5 * ((NIR - RED) / (NIR + 6*RED - 7.5*BLUE + 1))',
-                    {'NIR': s2.select('B8').divide(10000),
-                     'RED': s2.select('B4').divide(10000),
-                     'BLUE': s2.select('B2').divide(10000)})
-            elif indice == "NDWI":
-                capa = s2.normalizedDifference(['B3', 'B8'])
-            elif indice == "NDRE":
-                capa = s2.normalizedDifference(['B8A', 'B5'])
-            elif indice == "NDMI":
-                capa = s2.normalizedDifference(['B8', 'B11'])
-            else:
-                return None
-
-            val = capa.reduceRegion(
-                reducer=ee.Reducer.mean(),
-                geometry=punto,
-                scale=10
-            ).getInfo()
-
-            return list(val.values())[0]
-        except:
-            return None
-
-    # ── UI — Selectores ────────────────────────────────────
-    col_prov = "NAME_1"
-    col_depto = "NAME_2"
+    # ── UI: Selectores de Ubicación ────────────────────────
+    col_prov_name = "NAME_1"
+    col_depto_name = "NAME_2"
 
     c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
 
@@ -1799,39 +1702,34 @@ elif menu == "🛰️ Índices Satelitales":
         pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Peru", "Uruguay"])
 
     with c1:
-        # 1. Agregamos "Peru" a la validación
-        if pais_sel != "Seleccionar..." and gdf_argentina is not None:
-            gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == pais_sel]
-            opciones_prov = sorted(gdf_pais[col_prov].unique())
-            
-            # 2. Ajustamos la etiqueta según el país
-            if pais_sel == "Argentina": label_prov = "Provincia:"
-            elif pais_sel == "Peru": label_prov = "Departamento (Región):"
-            else: label_prov = "Departamento:"
-            
+        if pais_sel != "Seleccionar..." and gdf_total is not None:
+            gdf_pais = gdf_total[gdf_total["PAIS"] == pais_sel]
+            opciones_prov = sorted(gdf_pais[col_prov_name].unique())
+            label_prov = "Departamento (Región):" if pais_sel == "Peru" else "Provincia/Estado:"
             prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
         else:
             prov_sel = st.selectbox("Provincia/Región:", ["Seleccionar..."], disabled=True)
             gdf_pais = None
 
     with c2:
-        # 3. Filtramos las zonas/provincias
         if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar..." and gdf_pais is not None:
-            deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
-            
-            if pais_sel == "Argentina": label_depto = "Departamento (Cdad):"
-            elif pais_sel == "Peru": label_depto = "Provincia:"
-            else: label_depto = "Sección:"
-            
+            # Filtramos por la provincia seleccionada
+            gdf_final = gdf_pais[gdf_pais[col_prov_name] == prov_sel]
+            deptos = sorted(gdf_final[col_depto_name].unique())
+            label_depto = "Provincia:" if pais_sel == "Peru" else "Departamento/Zona:"
             depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
         else:
-            depto_sel = st.selectbox("Zona/Distrito:", ["Esperando..."], disabled=True)
+            depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
+
     with c3:
         indice_sel = st.selectbox(
             "Índice:",
             list(INDICES.keys()),
             format_func=lambda x: f"{INDICES[x]['emoji']} {x} — {INDICES[x]['desc']}"
         )
+
+    # ── Selección de Fechas y Visualización ────────────────
+    # (Aquí seguiría tu lógica de fechas y el mapa de Folium)
 
     # Rango de fechas
     col_f1, col_f2 = st.columns(2)
