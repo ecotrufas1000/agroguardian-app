@@ -1685,6 +1685,7 @@ elif menu == "🛰️ Índices Satelitales":
             return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
         return None
     gdf_argentina = cargar_limites()
+    st.write(gdf_argentina[gdf_argentina["PAIS"] == "Peru"].head())
 
     # ── Función principal GEE ──────────────────────────────
     @st.cache_data(ttl=3600)
