@@ -1799,23 +1799,33 @@ elif menu == "🛰️ Índices Satelitales":
         pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Peru", "Uruguay"])
 
     with c1:
-        if pais_sel in ["Argentina", "Uruguay"] and gdf_argentina is not None:
+        # 1. Agregamos "Peru" a la validación
+        if pais_sel != "Seleccionar..." and gdf_argentina is not None:
             gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == pais_sel]
             opciones_prov = sorted(gdf_pais[col_prov].unique())
-            label_prov = "Provincia:" if pais_sel == "Argentina" else "Departamento:"
+            
+            # 2. Ajustamos la etiqueta según el país
+            if pais_sel == "Argentina": label_prov = "Provincia:"
+            elif pais_sel == "Peru": label_prov = "Departamento (Región):"
+            else: label_prov = "Departamento:"
+            
             prov_sel = st.selectbox(label_prov, ["Seleccionar..."] + opciones_prov)
         else:
-            prov_sel = st.selectbox("Provincia:", ["Seleccionar..."], disabled=True)
-            gdf_pais = gdf_argentina if gdf_argentina is not None else None
+            prov_sel = st.selectbox("Provincia/Región:", ["Seleccionar..."], disabled=True)
+            gdf_pais = None
 
     with c2:
+        # 3. Filtramos las zonas/provincias
         if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar..." and gdf_pais is not None:
             deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
-            label_depto = "Departamento:" if pais_sel == "Argentina" else "Sección:"
+            
+            if pais_sel == "Argentina": label_depto = "Departamento (Cdad):"
+            elif pais_sel == "Peru": label_depto = "Provincia:"
+            else: label_depto = "Sección:"
+            
             depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
         else:
-            depto_sel = st.selectbox("Zona:", ["Esperando..."], disabled=True)
-
+            depto_sel = st.selectbox("Zona/Distrito:", ["Esperando..."], disabled=True)
     with c3:
         indice_sel = st.selectbox(
             "Índice:",
