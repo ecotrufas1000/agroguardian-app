@@ -1803,13 +1803,14 @@ elif menu == "🛰️ Índices Satelitales":
 
     # ── UI — Selectores ────────────────────────────────────
     # ── UI — Selectores ────────────────────────────────────
+    # ── UI — Selectores ────────────────────────────────────
     col_prov = "NAME_1"
     col_depto = "NAME_2"
 
+    # Definimos las 4 columnas superiores
     c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
 
     with c0:
-        # Agregamos Paraguay a la lista
         pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Paraguay", "Peru", "Uruguay"])
 
     with c1:
@@ -1817,7 +1818,6 @@ elif menu == "🛰️ Índices Satelitales":
             gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == pais_sel]
             opciones_prov = sorted(gdf_pais[col_prov].unique())
             
-            # Ajuste de etiquetas por país
             if pais_sel == "Argentina": label_prov = "Provincia:"
             elif pais_sel == "Peru": label_prov = "Departamento (Región):"
             elif pais_sel == "Paraguay": label_prov = "Departamento:"
@@ -1840,19 +1840,30 @@ elif menu == "🛰️ Índices Satelitales":
             depto_sel = st.selectbox(label_depto, ["Seleccionar..."] + deptos)
         else:
             depto_sel = st.selectbox("Zona/Distrito:", ["Esperando..."], disabled=True)
-    # Rango de fechas
+
+    with c3:
+        # AQUÍ ESTÁ EL BLOQUE QUE FALTABA:
+        indice_sel = st.selectbox(
+            "Índice:",
+            list(INDICES.keys()),
+            format_func=lambda x: f"{INDICES[x]['emoji']} {x} — {INDICES[x]['desc']}"
+        )
+
+    # ── Rango de fechas (Debajo de los selectores) ──────────
+    st.markdown("---") # Una línea divisoria para que se vea limpio
     col_f1, col_f2 = st.columns(2)
     with col_f1:
         fecha_desde = st.date_input("Desde:", value=datetime(2025, 9, 1))
     with col_f2:
         fecha_hasta = st.date_input("Hasta:", value=datetime.now())
 
-    # ── Renderizado del mapa ───────────────────────────────
-    if (pais_sel != "Seleccionar..." and
-        prov_sel != "Seleccionar..." and
-        depto_sel not in ["Seleccionar...", "Esperando..."] and
+    # ── Renderizado del mapa (Ahora todas las variables existen) ──
+    if (pais_sel != "Seleccionar..." and 
+        prov_sel != "Seleccionar..." and 
+        depto_sel not in ["Seleccionar...", "Esperando..."] and 
         gdf_pais is not None):
-
+        
+        # Aquí sigue el resto de tu código del mapa...
         gdf_loc = gdf_pais[
             (gdf_pais[col_prov] == prov_sel) &
             (gdf_pais[col_depto] == depto_sel)
