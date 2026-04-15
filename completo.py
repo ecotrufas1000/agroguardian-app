@@ -667,7 +667,7 @@ with st.sidebar:
     except:
         st.markdown("<h2 style='text-align:center;'>AGROGUARDIAN</h2>", unsafe_allow_html=True)
 
-    st.markdown("<p style='text-align:center; font-size:10px; opacity:0.7;'>FRUTALES - PRECISION LAB v3.6</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-size:10px; opacity:0.7;'>CASSANDRA AGRIS - PRECISION LAB v3.6</p>", unsafe_allow_html=True)
     st.divider()
 
     menu = st.radio(
@@ -700,8 +700,7 @@ with st.sidebar:
             </div>
         </a>
     """, height=70)
-    st.markdown("<br>", unsafe_allow_html=True) # Esto agrega un espacio en blanco
-    st.markdown("<p style='text-align:center; font-size:12px; color:gray;'>Un producto de <b>Cassandra Agris</b></p>", unsafe_allow_html=True)
+    
 
     st.divider()
 st.divider()
