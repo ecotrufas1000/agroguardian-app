@@ -699,8 +699,9 @@ with st.sidebar:
                 SOPORTE TÉCNICO
             </div>
         </a>
-    """, height=60)
-    st.caption("Un producto de **Cassandra Agris**")
+    """, height=70)
+    st.markdown("<br>", unsafe_allow_html=True) # Esto agrega un espacio en blanco
+    st.markdown("<p style='text-align:center; font-size:12px; color:gray;'>Un producto de <b>Cassandra Agris</b></p>", unsafe_allow_html=True)
 
     st.divider()
 st.divider()
