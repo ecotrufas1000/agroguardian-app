@@ -700,6 +700,7 @@ with st.sidebar:
             </div>
         </a>
     """, height=60)
+    st.caption("Un producto de **Cassandra Agris**")
 
     st.divider()
 st.divider()
