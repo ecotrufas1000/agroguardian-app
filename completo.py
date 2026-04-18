@@ -975,8 +975,16 @@ if menu == "📊 Monitoreo Total":
                 
                 temp_max = dia['main']['temp_max']
                 hum_fc = dia['main']['humidity']
-                # Convertimos m/s a km/h (multiplicando por 3.6)
-                viento_kmh = dia['wind']['speed'] * 3.6
+                
+                # Datos de viento
+                v_ms = dia['wind']['speed']
+                v_kmh = v_ms * 3.6
+                v_deg = dia['wind']['deg']
+                
+                # Convertir grados a dirección cardinal
+                direcciones = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+                dir_txt = direcciones[int(((v_deg + 22.5) % 360) / 45)]
+                
                 desc = dia['weather'][0]['description'].capitalize()
                 icon = dia['weather'][0]['icon']
                 
@@ -989,7 +997,9 @@ if menu == "📊 Monitoreo Total":
                         <p style='font-size: 0.8rem; opacity: 0.8; margin: 4px 0;'>{desc}</p>
                         <hr style='margin: 8px 0; opacity: 0.2;'>
                         <p style='font-size: 0.75rem; color: #00d2ff; margin:0;'>💧 Hum: {hum_fc}%</p>
-                        <p style='font-size: 0.75rem; color: #ff9f43; margin:2px 0 0 0;'>💨 Viento: {viento_kmh:.1f} km/h</p>
+                        <p style='font-size: 0.75rem; color: #ff9f43; margin:2px 0 0 0;'>
+                            💨 {v_kmh:.1f} km/h <span style='color:#ccc;'>({dir_txt})</span>
+                        </p>
                     </div>
                     """, unsafe_allow_html=True)
         else:
@@ -997,7 +1007,6 @@ if menu == "📊 Monitoreo Total":
 
     except Exception as e:
         st.error(f"Error al obtener pronóstico: {e}")
-
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
 
