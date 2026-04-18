@@ -975,25 +975,28 @@ if menu == "📊 Monitoreo Total":
                 
                 temp_max = dia['main']['temp_max']
                 hum_fc = dia['main']['humidity']
+                # Convertimos m/s a km/h (multiplicando por 3.6)
+                viento_kmh = dia['wind']['speed'] * 3.6
                 desc = dia['weather'][0]['description'].capitalize()
                 icon = dia['weather'][0]['icon']
                 
                 with cols_fc[i]:
-                    # Estilo similar a tus "pastillas" de GPS
                     st.markdown(f"""
                     <div style='background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: center;'>
                         <p style='margin-bottom: 2px; font-weight: bold; color: #4facfe;'>{nombre_dia}</p>
-                        <img src="http://openweathermap.org/img/wn/{icon}@2x.png" width="50">
-                        <h3 style='margin: 0;'>{temp_max:.1f}°C</h3>
-                        <p style='font-size: 0.8rem; opacity: 0.8;'>{desc}</p>
-                        <p style='font-size: 0.75rem; color: #00d2ff;'>💧 Hum: {hum_fc}%</p>
+                        <img src="http://openweathermap.org/img/wn/{icon}@2x.png" style="width:45px;">
+                        <h3 style='margin: 0; font-size: 1.2rem;'>{temp_max:.1f}°C</h3>
+                        <p style='font-size: 0.8rem; opacity: 0.8; margin: 4px 0;'>{desc}</p>
+                        <hr style='margin: 8px 0; opacity: 0.2;'>
+                        <p style='font-size: 0.75rem; color: #00d2ff; margin:0;'>💧 Hum: {hum_fc}%</p>
+                        <p style='font-size: 0.75rem; color: #ff9f43; margin:2px 0 0 0;'>💨 Viento: {viento_kmh:.1f} km/h</p>
                     </div>
                     """, unsafe_allow_html=True)
         else:
-            st.warning("No se pudo obtener el pronóstico detallado.")
-    
+            st.warning("No se pudo obtener la lista de pronósticos.")
+
     except Exception as e:
-        st.error(f"No se pudo cargar el pronóstico: {e}")        
+        st.error(f"Error al obtener pronóstico: {e}")
 
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
