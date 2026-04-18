@@ -942,57 +942,59 @@ if menu == "📊 Monitoreo Total":
     except Exception as e:
         st.error(f"Error en balance hídrico: {e}")    
 # ==========================================================
+    # ==========================================================
+    # ==========================================================
 # 🌤️ PRONÓSTICO EXTENDIDO (NUEVO)
 # ==========================================================
-st.divider()
-st.markdown("### 🌤️ Pronóstico a 3 Días")
-
-try:
-    # Sustituye 'TU_API_KEY_AQUÍ' por tu clave de OpenWeather
-    API_KEY = "TU_API_KEY_AQUÍ" 
-    lat, lon = st.session_state.lat, st.session_state.lon
+    st.divider()
+    st.markdown("### 🌤️ Pronóstico a 3 Días")
     
-    # Usamos el endpoint de forecast (5 días / cada 3 horas)
-    url_forecast = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
-    res_fc = requests.get(url_forecast).json()
-
-    if res_fc.get("list"):
-        # Filtramos para obtener un reporte por día (aprox a mediodía)
-        # La API devuelve cada 3hs, saltamos de a 8 para tener 24hs de diferencia
-        pronosticos = res_fc["list"][8:32:8] 
-
-        cols_fc = st.columns(3)
+    try:
+        # Sustituye 'TU_API_KEY_AQUÍ' por tu clave de OpenWeather
+        API_KEY = "TU_API_KEY_AQUÍ" 
+        lat, lon = st.session_state.lat, st.session_state.lon
         
-        for i, dia in enumerate(pronosticos):
-            fecha_dt = datetime.fromtimestamp(dia['dt'])
-            nombre_dia = fecha_dt.strftime('%A').capitalize() # Ejemplo: Lunes
-            # Traducción rápida si es necesario
-            dias_es = {"Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miércoles", 
-                       "Thursday": "Jueves", "Friday": "Viernes", "Saturday": "Sábado", "Sunday": "Domingo"}
-            nombre_dia = dias_es.get(fecha_dt.strftime('%A'), nombre_dia)
+        # Usamos el endpoint de forecast (5 días / cada 3 horas)
+        url_forecast = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=es"
+        res_fc = requests.get(url_forecast).json()
+    
+        if res_fc.get("list"):
+            # Filtramos para obtener un reporte por día (aprox a mediodía)
+            # La API devuelve cada 3hs, saltamos de a 8 para tener 24hs de diferencia
+            pronosticos = res_fc["list"][8:32:8] 
+    
+            cols_fc = st.columns(3)
             
-            temp_max = dia['main']['temp_max']
-            hum_fc = dia['main']['humidity']
-            desc = dia['weather'][0]['description'].capitalize()
-            icon = dia['weather'][0]['icon']
-            
-            with cols_fc[i]:
-                # Estilo similar a tus "pastillas" de GPS
-                st.markdown(f"""
-                <div style='background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: center;'>
-                    <p style='margin-bottom: 2px; font-weight: bold; color: #4facfe;'>{nombre_dia}</p>
-                    <img src="http://openweathermap.org/img/wn/{icon}@2x.png" width="50">
-                    <h3 style='margin: 0;'>{temp_max:.1f}°C</h3>
-                    <p style='font-size: 0.8rem; opacity: 0.8;'>{desc}</p>
-                    <p style='font-size: 0.75rem; color: #00d2ff;'>💧 Hum: {hum_fc}%</p>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.warning("No se pudo obtener el pronóstico detallado.")
+            for i, dia in enumerate(pronosticos):
+                fecha_dt = datetime.fromtimestamp(dia['dt'])
+                nombre_dia = fecha_dt.strftime('%A').capitalize() # Ejemplo: Lunes
+                # Traducción rápida si es necesario
+                dias_es = {"Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miércoles", 
+                           "Thursday": "Jueves", "Friday": "Viernes", "Saturday": "Sábado", "Sunday": "Domingo"}
+                nombre_dia = dias_es.get(fecha_dt.strftime('%A'), nombre_dia)
+                
+                temp_max = dia['main']['temp_max']
+                hum_fc = dia['main']['humidity']
+                desc = dia['weather'][0]['description'].capitalize()
+                icon = dia['weather'][0]['icon']
+                
+                with cols_fc[i]:
+                    # Estilo similar a tus "pastillas" de GPS
+                    st.markdown(f"""
+                    <div style='background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: center;'>
+                        <p style='margin-bottom: 2px; font-weight: bold; color: #4facfe;'>{nombre_dia}</p>
+                        <img src="http://openweathermap.org/img/wn/{icon}@2x.png" width="50">
+                        <h3 style='margin: 0;'>{temp_max:.1f}°C</h3>
+                        <p style='font-size: 0.8rem; opacity: 0.8;'>{desc}</p>
+                        <p style='font-size: 0.75rem; color: #00d2ff;'>💧 Hum: {hum_fc}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.warning("No se pudo obtener el pronóstico detallado.")
+    
+    except Exception as e:
+        st.error(f"No se pudo cargar el pronóstico: {e}")        
 
-except Exception as e:
-    st.error(f"No se pudo cargar el pronóstico: {e}")        
-# ==========================================================
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
 
