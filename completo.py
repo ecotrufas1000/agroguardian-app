@@ -951,7 +951,7 @@ if menu == "📊 Monitoreo Total":
     
     try:
         # Sustituye 'TU_API_KEY_AQUÍ' por tu clave de OpenWeather
-        API_KEY = ""2762051ad62d06f1d0fe146033c1c7c8"" 
+        API_KEY = "2762051ad62d06f1d0fe146033c1c7c8" 
         lat, lon = st.session_state.lat, st.session_state.lon
         
         # Usamos el endpoint de forecast (5 días / cada 3 horas)
