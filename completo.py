@@ -1213,7 +1213,8 @@ elif menu == "🌧️ Pluviómetro":
                     st.error(f"Error: {e}")
         else:
             st.info("No hay registros para eliminar.")
-        # 📡 DESCARGA SATELITAL
+            
+# 📡 DESCARGA SATELITAL
 # ==========================================================
 st.divider()
 st.subheader("📡 Datos Satelitales")
@@ -1247,8 +1248,9 @@ with col2:
             "mm": r["daily"]["precipitation_sum"]
         })
         df_sat = df_sat[df_sat["mm"] > 0]
-        st.write(df_sat)    except Exception as e:
-        st.error(f"Error: {e}")
+        st.write(df_sat) 
+    except Exception as e:
+      st.error(f"Error: {e}")
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
