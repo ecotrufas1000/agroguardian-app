@@ -1009,7 +1009,15 @@ if menu == "📊 Monitoreo Total":
         st.error(f"Error al obtener pronóstico: {e}")
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
-
+    # Ocultar botón flotante de Streamlit
+    st.markdown("""
+        <style>
+            [data-testid="stActionButtonIcon"] { display: none !important; }
+            .stDeployButton { display: none !important; }
+            #MainMenu { visibility: hidden !important; }
+            footer { visibility: hidden !important; }
+        </style>
+    """, unsafe_allow_html=True)
     import pandas as pd
     import requests
     from datetime import datetime, timedelta, timezone
