@@ -1213,38 +1213,42 @@ elif menu == "🌧️ Pluviómetro":
                     st.error(f"Error: {e}")
         else:
             st.info("No hay registros para eliminar.")
-        # ==========================================================
         # 📡 DESCARGA SATELITAL
-        # ==========================================================
-        st.divider()
-        st.subheader("📡 Datos Satelitales")
+# ==========================================================
+st.divider()
+st.subheader("📡 Datos Satelitales")
+col1, col2 = st.columns(2)
 
-        col1, col2 = st.columns(2)
+# HOY (sin cambios)
+with col1:
+    if st.button("📡 Hoy"):
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&hourly=precipitation&past_days=1"
+        r = requests.get(url).json()
+        df_sat = pd.DataFrame({
+            "fecha": pd.to_datetime(r["hourly"]["time"]),
+            "mm": r["hourly"]["precipitation"]
+        })
+        df_sat = df_sat[df_sat["mm"] > 0]
+        st.write(df_sat)
 
-        # HOY
-        with col1:
-            if st.button("📡 Hoy"):
-                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&hourly=precipitation&past_days=1"
-                r = requests.get(url).json()
-
-                df_sat = pd.DataFrame({
-                    "fecha": pd.to_datetime(r["hourly"]["time"]),
-                    "mm": r["hourly"]["precipitation"]
-                })
-                df_sat = df_sat[df_sat["mm"] > 0]
-                st.write(df_sat)
-        # 7 días
-        with col2:
-            if st.button("📡 7 días"):
-                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&daily=precipitation_sum&past_days=7"
-                r = requests.get(url).json()
-
-                df_sat = pd.DataFrame({
-                    "fecha": r["daily"]["time"],
-                    "mm": r["daily"]["precipitation_sum"]
-                })
-                df_sat = df_sat[df_sat["mm"] > 0]
-                st.write(df_sat)
+# 7 DÍAS (corregido)
+with col2:
+    if st.button("📡 7 días"):
+        url = (
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={lat_auto}&longitude={lon_auto}"
+            f"&daily=precipitation_sum"
+            f"&past_days=7"
+            f"&forecast_days=1"
+        )
+        r = requests.get(url).json()
+        df_sat = pd.DataFrame({
+            "fecha": pd.to_datetime(r["daily"]["time"]),
+            "mm": r["daily"]["precipitation_sum"]
+        })
+        hoy = pd.Timestamp.today().normalize()
+        df_sat = df_sat[(df_sat["mm"] > 0) & (df_sat["fecha"] <= hoy)]
+        st.write(df_sat)
     except Exception as e:
         st.error(f"Error: {e}")
     
