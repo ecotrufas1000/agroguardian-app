@@ -1046,8 +1046,6 @@ elif menu == "🌧️ Pluviómetro":
 
                 ahora = datetime.now()
                 df_auto = df_auto[df_auto["time"] <= ahora]
-
-                # Tomar el máximo del día, no la suma
                 mm_total = df_auto["mm"].max()
 
                 existe = supabase.table("registros_lluvia")\
@@ -1072,6 +1070,9 @@ elif menu == "🌧️ Pluviómetro":
     # 📥 CARGAR DATOS
     # ==========================================================
     try:
+        lat_auto = LAT if LAT else -38.29   # ← definir acá también para el bloque satelital
+        lon_auto = LON if LON else -57.55
+
         res = supabase.table("registros_lluvia")\
             .select("*")\
             .eq("productor_id", st.session_state.user_id)\
@@ -1080,7 +1081,7 @@ elif menu == "🌧️ Pluviómetro":
         df = pd.DataFrame(res.data) if res.data else pd.DataFrame()
 
         # ==========================================================
-        # 📊 MÉTRICAS (SI HAY DATOS)
+        # 📊 MÉTRICAS
         # ==========================================================
         if not df.empty:
 
@@ -1092,7 +1093,6 @@ elif menu == "🌧️ Pluviómetro":
             df_mes = df[(df['fecha'].dt.month == hoy.month) & (df['fecha'].dt.year == hoy.year)]
             df_año = df[df['fecha'].dt.year == hoy.year]
 
-            # Agrupar por día para calcular el máximo correctamente
             df_mes_dia = df_mes.groupby(df_mes['fecha'].dt.date)['mm'].sum()
             max_dia = df_mes_dia.max() if not df_mes_dia.empty else 0
             c1, c2, c3, c4 = st.columns(4)
@@ -1100,9 +1100,7 @@ elif menu == "🌧️ Pluviómetro":
             c2.metric("📆 Acum. Anual", f"{df_año['mm'].sum():.1f} mm")
             c3.metric("⚡ Máx. Día", f"{max_dia:.1f} mm")
             c4.metric("📊 Registros", f"{len(df)} eventos")
-            # ==========================================================
-            # 📊 GRÁFICO MENSUAL
-            # ==========================================================
+
             df_mes['dia'] = df_mes['fecha'].dt.day
             df_dia = df_mes.groupby('dia')['mm'].sum().reindex(range(1, 32), fill_value=0).reset_index()
             df_dia.columns = ['Día', 'mm']
@@ -1113,13 +1111,8 @@ elif menu == "🌧️ Pluviómetro":
                 labels={'Día': 'Día del mes', 'mm': 'Precipitación (mm)'},
                 title="Lluvias del mes")
             fig.update_layout(
-                xaxis=dict(
-                    tickmode='array',
-                    tickvals=[1, 10, 20, 30],
-                    ticktext=['1', '10', '20', '30'],
-                    tickangle=0,
-                    range=[0.5, 31.5]
-                ),
+                xaxis=dict(tickmode='array', tickvals=[1, 10, 20, 30],
+                    ticktext=['1', '10', '20', '30'], tickangle=0, range=[0.5, 31.5]),
                 yaxis=dict(range=[0, 200], title="mm"),
                 bargap=0.2,
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -1129,13 +1122,12 @@ elif menu == "🌧️ Pluviómetro":
             )
             fig.update_traces(marker_color='#00ffc3')
             st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
-            # GRÁFICO ANUAL
+
             meses_nombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
             mensual = df_año.groupby(df_año['fecha'].dt.month)['mm'].sum().reindex(range(1, 13), fill_value=0)
             df_anual = pd.DataFrame({'Mes': meses_nombres, 'mm': mensual.values})
             fig2 = px.bar(df_anual, x='Mes', y='mm', template="plotly_dark",
-                text_auto='.1f',
-                title="Lluvias anuales por mes")
+                text_auto='.1f', title="Lluvias anuales por mes")
             fig2.update_layout(
                 bargap=0.2,
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -1145,9 +1137,7 @@ elif menu == "🌧️ Pluviómetro":
             )
             fig2.update_traces(marker_color='#1f77b4', textposition="outside")
             st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
-            # ==========================================================
-            # 📥 EXPORTAR EXCEL
-            # ==========================================================
+
             st.divider()
             df_excel = df.copy().sort_values('fecha', ascending=False)
             df_excel['fecha'] = df_excel['fecha'].dt.tz_localize(None)
@@ -1213,44 +1203,44 @@ elif menu == "🌧️ Pluviómetro":
                     st.error(f"Error: {e}")
         else:
             st.info("No hay registros para eliminar.")
-            
-# 📡 DESCARGA SATELITAL
-# ==========================================================
-st.divider()
-st.subheader("📡 Datos Satelitales")
-col1, col2 = st.columns(2)
 
-# HOY (sin cambios)
-with col1:
-    if st.button("📡 Hoy"):
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&hourly=precipitation&past_days=1"
-        r = requests.get(url).json()
-        df_sat = pd.DataFrame({
-            "fecha": pd.to_datetime(r["hourly"]["time"]),
-            "mm": r["hourly"]["precipitation"]
-        })
-        df_sat = df_sat[df_sat["mm"] > 0]
-        st.write(df_sat)
+        # ==========================================================
+        # 📡 DESCARGA SATELITAL  ← ahora DENTRO del try
+        # ==========================================================
+        st.divider()
+        st.subheader("📡 Datos Satelitales")
+        col1, col2 = st.columns(2)
 
-# 7 DÍAS (corregido)
-with col2:
-    if st.button("📡 7 días"):
-        url = (
-            f"https://api.open-meteo.com/v1/forecast"
-            f"?latitude={lat_auto}&longitude={lon_auto}"
-            f"&daily=precipitation_sum"
-            f"&past_days=7"
-            f"&forecast_days=0"  # ← 0 en vez de 1
-        )
-        r = requests.get(url).json()
-        df_sat = pd.DataFrame({
-            "fecha": r["daily"]["time"],  # dejar como string por ahora
-            "mm": r["daily"]["precipitation_sum"]
-        })
-        df_sat = df_sat[df_sat["mm"] > 0]
-        st.write(df_sat) 
+        with col1:
+            if st.button("📡 Hoy"):
+                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&hourly=precipitation&past_days=1"
+                r = requests.get(url).json()
+                df_sat = pd.DataFrame({
+                    "fecha": pd.to_datetime(r["hourly"]["time"]),
+                    "mm": r["hourly"]["precipitation"]
+                })
+                df_sat = df_sat[df_sat["mm"] > 0]
+                st.write(df_sat)
+
+        with col2:
+            if st.button("📡 7 días"):
+                url = (
+                    f"https://api.open-meteo.com/v1/forecast"
+                    f"?latitude={lat_auto}&longitude={lon_auto}"
+                    f"&daily=precipitation_sum"
+                    f"&past_days=7"
+                    f"&forecast_days=0"
+                )
+                r = requests.get(url).json()
+                df_sat = pd.DataFrame({
+                    "fecha": r["daily"]["time"],
+                    "mm": r["daily"]["precipitation_sum"]
+                })
+                df_sat = df_sat[df_sat["mm"] > 0]
+                st.write(df_sat)
+
     except Exception as e:
-      st.error(f"Error: {e}")
+        st.error(f"Error: {e}")
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
