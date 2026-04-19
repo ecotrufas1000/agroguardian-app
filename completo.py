@@ -1010,23 +1010,27 @@ if menu == "📊 Monitoreo Total":
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
     # Ocultar elementos de Streamlit y evitar que el logo tape los datos
-st.markdown("""
+    st.markdown("""
     <style>
-        /* Oculta el menú superior y el botón de Deploy */
-        [data-testid="stActionButtonIcon"] { display: none !important; }
-        .stDeployButton { display: none !important; }
-        #MainMenu { visibility: hidden !important; }
-        footer { visibility: hidden !important; }
-
-        /* Oculta el widget de estado/corona en la esquina inferior (común en móviles) */
-        [data-testid="stStatusWidget"] {
-            visibility: hidden;
-            height: 0%;
+        /* Bloquea el contenedor que sostiene el logo de la nube y la barra de herramientas */
+        #streamlitAppViewStrategy > div:nth-child(1) > header,
+        [data-testid="stHeader"],
+        .stAppToolbar,
+        [data-testid="stStatusWidget"],
+        button[title="Manage app"] {
+            display: none !important;
+            visibility: hidden !important;
         }
-        
-        /* Fuerza un margen al final para que la tabla nunca quede debajo de elementos flotantes */
+
+        /* Remueve el padding superior que deja el header oculto */
         .main .block-container {
-            padding-bottom: 6rem !important;
+            padding-top: 2rem !important;
+            padding-bottom: 12rem !important; /* Espacio extra abajo por seguridad */
+        }
+
+        /* Elimina cualquier banner de "Made with Streamlit" */
+        footer {
+            visibility: hidden !important;
         }
     </style>
 """, unsafe_allow_html=True)
