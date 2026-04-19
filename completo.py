@@ -2358,3 +2358,7 @@ elif menu == "💳 Suscripción PRO":
 
     except Exception as e:
         st.error(f"No se pudo cargar el módulo de pago: {e}")
+
+# Esto crea un espacio vacío al final para que puedas scrollear 
+# y la tabla suba por encima del logo rojo.
+st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
