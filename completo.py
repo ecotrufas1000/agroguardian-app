@@ -1239,17 +1239,15 @@ with col2:
             f"?latitude={lat_auto}&longitude={lon_auto}"
             f"&daily=precipitation_sum"
             f"&past_days=7"
-            f"&forecast_days=1"
+            f"&forecast_days=0"  # ← 0 en vez de 1
         )
         r = requests.get(url).json()
         df_sat = pd.DataFrame({
-            "fecha": pd.to_datetime(r["daily"]["time"]),
+            "fecha": r["daily"]["time"],  # dejar como string por ahora
             "mm": r["daily"]["precipitation_sum"]
         })
-        hoy = pd.Timestamp.today().normalize()
-        df_sat = df_sat[(df_sat["mm"] > 0) & (df_sat["fecha"] <= hoy)]
-        st.write(df_sat)
-    except Exception as e:
+        df_sat = df_sat[df_sat["mm"] > 0]
+        st.write(df_sat)    except Exception as e:
         st.error(f"Error: {e}")
     
 # MENÚ: BALANCE HÍDRICO
