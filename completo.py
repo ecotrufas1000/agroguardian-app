@@ -1009,15 +1009,27 @@ if menu == "📊 Monitoreo Total":
         st.error(f"Error al obtener pronóstico: {e}")
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
-    # Ocultar botón flotante de Streamlit
-    st.markdown("""
-        <style>
-            [data-testid="stActionButtonIcon"] { display: none !important; }
-            .stDeployButton { display: none !important; }
-            #MainMenu { visibility: hidden !important; }
-            footer { visibility: hidden !important; }
-        </style>
-    """, unsafe_allow_html=True)
+    # Ocultar elementos de Streamlit y evitar que el logo tape los datos
+st.markdown("""
+    <style>
+        /* Oculta el menú superior y el botón de Deploy */
+        [data-testid="stActionButtonIcon"] { display: none !important; }
+        .stDeployButton { display: none !important; }
+        #MainMenu { visibility: hidden !important; }
+        footer { visibility: hidden !important; }
+
+        /* Oculta el widget de estado/corona en la esquina inferior (común en móviles) */
+        [data-testid="stStatusWidget"] {
+            visibility: hidden;
+            height: 0%;
+        }
+        
+        /* Fuerza un margen al final para que la tabla nunca quede debajo de elementos flotantes */
+        .main .block-container {
+            padding-bottom: 6rem !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
     import pandas as pd
     import requests
     from datetime import datetime, timedelta, timezone
