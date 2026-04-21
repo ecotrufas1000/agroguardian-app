@@ -1274,12 +1274,18 @@ elif menu == "🌧️ Pluviómetro":
 
         with col2:
             if st.button("📡 7 días"):
+                from datetime import date, timedelta
+                hoy_fecha = date.today()
+                inicio = (hoy_fecha - timedelta(days=7)).isoformat()
+                fin = hoy_fecha.isoformat()
+                
                 url = (
                     f"https://api.open-meteo.com/v1/forecast"
                     f"?latitude={lat_auto}&longitude={lon_auto}"
                     f"&daily=precipitation_sum"
-                    f"&past_days=7"
-                    f"&forecast_days=0"
+                    f"&start_date={inicio}"
+                    f"&end_date={fin}"
+                    f"&timezone=America/Argentina/Buenos_Aires"
                 )
                 r = requests.get(url).json()
                 df_sat = pd.DataFrame({
@@ -1287,7 +1293,6 @@ elif menu == "🌧️ Pluviómetro":
                     "mm": r["daily"]["precipitation_sum"]
                 })
                 df_sat = df_sat[df_sat["mm"] > 0]
-
                 # Guardar en Supabase si no existe
                 guardados = 0
                 for _, row in df_sat.iterrows():
