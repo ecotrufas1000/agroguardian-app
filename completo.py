@@ -1229,7 +1229,8 @@ elif menu == "🌧️ Pluviómetro":
             st.info("No hay registros para eliminar.")
 
         # ==========================================================
-        # 📡 DESCARGA SATELITAL  ← ahora DENTRO del try
+        # ==========================================================
+        # 📡 DESCARGA SATELITAL
         # ==========================================================
         st.divider()
         st.subheader("📡 Datos Satelitales")
@@ -1244,7 +1245,32 @@ elif menu == "🌧️ Pluviómetro":
                     "mm": r["hourly"]["precipitation"]
                 })
                 df_sat = df_sat[df_sat["mm"] > 0]
+                
+                # Guardar en Supabase si no existe
+                guardados = 0
+                for _, row in df_sat.iterrows():
+                    fecha_dia = row["fecha"].strftime("%Y-%m-%d")
+                    existe = supabase.table("registros_lluvia")\
+                        .select("id")\
+                        .eq("fecha", fecha_dia)\
+                        .eq("lote", "📡 Satelital")\
+                        .eq("productor_id", st.session_state.user_id)\
+                        .execute()
+                    if not existe.data:
+                        supabase.table("registros_lluvia").insert({
+                            "fecha": fecha_dia,
+                            "mm": float(row["mm"]),
+                            "lote": "📡 Satelital",
+                            "productor_id": st.session_state.user_id
+                        }).execute()
+                        guardados += 1
+
                 st.write(df_sat)
+                if guardados > 0:
+                    st.success(f"✅ {guardados} registros guardados")
+                    st.rerun()
+                else:
+                    st.info("ℹ️ Ya estaban guardados")
 
         with col2:
             if st.button("📡 7 días"):
@@ -1261,10 +1287,31 @@ elif menu == "🌧️ Pluviómetro":
                     "mm": r["daily"]["precipitation_sum"]
                 })
                 df_sat = df_sat[df_sat["mm"] > 0]
-                st.write(df_sat)
 
-    except Exception as e:
-        st.error(f"Error: {e}")
+                # Guardar en Supabase si no existe
+                guardados = 0
+                for _, row in df_sat.iterrows():
+                    existe = supabase.table("registros_lluvia")\
+                        .select("id")\
+                        .eq("fecha", row["fecha"])\
+                        .eq("lote", "📡 Satelital")\
+                        .eq("productor_id", st.session_state.user_id)\
+                        .execute()
+                    if not existe.data:
+                        supabase.table("registros_lluvia").insert({
+                            "fecha": row["fecha"],
+                            "mm": float(row["mm"]),
+                            "lote": "📡 Satelital",
+                            "productor_id": st.session_state.user_id
+                        }).execute()
+                        guardados += 1
+
+                st.write(df_sat)
+                if guardados > 0:
+                    st.success(f"✅ {guardados} registros guardados")
+                    st.rerun()
+                else:
+                    st.info("ℹ️ Ya estaban guardados")
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
