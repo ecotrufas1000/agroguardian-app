@@ -1313,7 +1313,7 @@ elif menu == "🌧️ Pluviómetro":
                 else:
                     st.info("ℹ️ Ya estaban guardados")
      except Exception as e:          # ← AGREGAR ESTA LÍNEA
-        st.error(f"Error: {e}")     # ← Y ESTA               
+         st.error(f"Error: {e}")     # ← Y ESTA               
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
