@@ -1238,40 +1238,57 @@ elif menu == "🌧️ Pluviómetro":
 
         with col1:
             if st.button("📡 Hoy"):
-                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&hourly=precipitation&past_days=1"
+                # Mantenemos el endpoint hourly para ver el detalle si hubo lluvia
+                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat_auto}&longitude={lon_auto}&hourly=precipitation&past_days=1&timezone=America/Argentina/Buenos_Aires"
                 r = requests.get(url).json()
+                
                 df_sat = pd.DataFrame({
                     "fecha": pd.to_datetime(r["hourly"]["time"]),
                     "mm": r["hourly"]["precipitation"]
                 })
-                df_sat = df_sat[df_sat["mm"] > 0]
                 
-                # Guardar en Supabase si no existe
+                # 1. Calculamos el total acumulado del día (Hoy)
+                # Filtramos por la fecha de hoy para evitar mezclar con las horas de ayer que trae 'past_days=1'
+                hoy_str = pd.Timestamp.now().strftime("%Y-%m-%d")
+                total_hoy = df_sat[df_sat["fecha"].dt.strftime("%Y-%m-%d") == hoy_str]["mm"].sum()
+                
+                # 2. Mostramos el total bien grande
+                st.metric(label="Total Lluvia Satelital (Hoy)", value=f"{total_hoy:.1f} mm")
+
+                # Filtramos el DF para mostrar solo las horas con lluvia en la tabla
+                df_sat_lluvia = df_sat[df_sat["mm"] > 0].copy()
+                
+                # Guardar en Supabase (usamos la fecha sin hora para el registro diario)
                 guardados = 0
-                for _, row in df_sat.iterrows():
-                    fecha_dia = row["fecha"].strftime("%Y-%m-%d")
+                if total_hoy > 0:
                     existe = supabase.table("registros_lluvia")\
                         .select("id")\
-                        .eq("fecha", fecha_dia)\
+                        .eq("fecha", hoy_str)\
                         .eq("lote", "📡 Satelital")\
                         .eq("productor_id", st.session_state.user_id)\
                         .execute()
+                    
                     if not existe.data:
                         supabase.table("registros_lluvia").insert({
-                            "fecha": fecha_dia,
-                            "mm": float(row["mm"]),
+                            "fecha": hoy_str,
+                            "mm": float(total_hoy),
                             "lote": "📡 Satelital",
                             "productor_id": st.session_state.user_id
                         }).execute()
                         guardados += 1
 
-                st.write(df_sat)
+                # Mostramos la tabla horaria por si quieres ver CUÁNDO llovió
+                if not df_sat_lluvia.empty:
+                    st.write("Detalle horario de hoy:")
+                    st.dataframe(df_sat_lluvia)
+                
                 if guardados > 0:
-                    st.success(f"✅ {guardados} registros guardados")
+                    st.success(f"✅ Registro de {total_hoy:.1f} mm guardado")
                     st.rerun()
+                elif total_hoy > 0:
+                    st.info("ℹ️ El total de hoy ya estaba guardado")
                 else:
-                    st.info("ℹ️ Ya estaban guardados")
-
+                    st.warning("⚠️ No se detectó lluvia hoy por satélite")
         with col2:
             if st.button("📡 7 días"):
                 # Usamos past_days=7 para que la API maneje internamente el historial
