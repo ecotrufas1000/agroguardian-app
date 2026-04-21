@@ -1274,34 +1274,39 @@ elif menu == "🌧️ Pluviómetro":
 
         with col2:
             if st.button("📡 7 días"):
-                from datetime import date, timedelta
-                hoy_fecha = date.today()
-                inicio = (hoy_fecha - timedelta(days=7)).isoformat()
-                fin = hoy_fecha.isoformat()
-                
+                # Usamos past_days=7 para que la API maneje internamente el historial
+                # Esto es más seguro que calcular fechas isoformat manualmente
                 url = (
                     f"https://api.open-meteo.com/v1/forecast"
                     f"?latitude={lat_auto}&longitude={lon_auto}"
                     f"&daily=precipitation_sum"
-                    f"&start_date={inicio}"
-                    f"&end_date={fin}"
+                    f"&past_days=7"  # Trae los últimos 7 días terminando ayer
+                    f"&forecast_days=0" # Le decimos que NO traiga días de pronóstico
                     f"&timezone=America/Argentina/Buenos_Aires"
                 )
+                
                 r = requests.get(url).json()
+                
+                # Armamos el DataFrame
                 df_sat = pd.DataFrame({
                     "fecha": r["daily"]["time"],
                     "mm": r["daily"]["precipitation_sum"]
                 })
+                
+                # Filtramos solo los días que tuvieron lluvia
                 df_sat = df_sat[df_sat["mm"] > 0]
+                
                 # Guardar en Supabase si no existe
                 guardados = 0
                 for _, row in df_sat.iterrows():
+                    # r["daily"]["time"] ya viene en formato "YYYY-MM-DD"
                     existe = supabase.table("registros_lluvia")\
                         .select("id")\
                         .eq("fecha", row["fecha"])\
                         .eq("lote", "📡 Satelital")\
                         .eq("productor_id", st.session_state.user_id)\
                         .execute()
+                        
                     if not existe.data:
                         supabase.table("registros_lluvia").insert({
                             "fecha": row["fecha"],
@@ -1316,9 +1321,7 @@ elif menu == "🌧️ Pluviómetro":
                     st.success(f"✅ {guardados} registros guardados")
                     st.rerun()
                 else:
-                    st.info("ℹ️ Ya estaban guardados")
-    except Exception as e:          # ← AGREGAR ESTA LÍNEA
-        st.error(f"Error: {e}")     # ← Y ESTA               
+                    st.info("ℹ️ No se encontraron nuevas lluvias en los últimos 7 días")               
     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
