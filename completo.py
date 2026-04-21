@@ -1339,8 +1339,8 @@ elif menu == "🌧️ Pluviómetro":
                     st.rerun()
                 else:
                     st.info("ℹ️ No se encontraron nuevas lluvias en los últimos 7 días")               
-except Exception as e:
-    st.error(f"Error en la descarga satelital: {e}")
+    except Exception as e:
+        st.error(f"Error en la descarga satelital: {e}")
                     
 # MENÚ: BALANCE HÍDRICO
 # ==========================================================
