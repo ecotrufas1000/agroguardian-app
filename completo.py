@@ -868,6 +868,22 @@ if menu == "📊 Monitoreo Total":
     if clima:
         col1, col2, col3, col4, col5 = st.columns(5)
         with col1: st.metric("Temperatura", f"{clima['temp']:.1f} °C")
+        st_valor = f"{clima.get('sensacion', clima['temp']):.1f}°C"
+        st.markdown(f"""
+            <div style='
+                padding: 6px; 
+                border-radius: 10px; 
+                background: #1E1E1E; 
+                color: #00ffc3; 
+                text-align: center; 
+                font-weight: bold; 
+                font-size: 0.85rem; 
+                border: 1px solid #333;
+                margin-top: -10px;
+            '>
+                🌡️ ST: {st_valor}
+            </div>
+        """, unsafe_allow_html=True)
         with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
         with col3: st.metric("Punto de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
