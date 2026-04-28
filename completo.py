@@ -4,7 +4,7 @@ import mercadopago
 # Así es como se configura correctamente ahora
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    client = genai.GenerativeModel('gemini-1.5-flash-latest')
+    client = genai.GenerativeModel('gemini-pro-vision')
 except Exception as e:
     st.error(f"Error al configurar Gemini: {e}")
     client = None
