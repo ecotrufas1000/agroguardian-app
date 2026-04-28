@@ -875,6 +875,13 @@ if menu == "📊 Monitoreo Total":
                 delta=f"Sensación Térmica: {st_valor}",
                 delta_color="off"
             )
+        st.markdown("""
+            <style>
+            [data-testid="stMetricDelta"] {
+                justify-content: flex-start;
+            }
+            </style>
+        """, unsafe_allow_html=True)
         with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
         with col3: st.metric("Punto de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
