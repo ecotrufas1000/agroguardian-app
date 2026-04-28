@@ -3,16 +3,11 @@ import streamlit as st
 import mercadopago
 # Así es como se configura correctamente ahora
 try:
-    # Usamos la clave que ya tenés en tus secrets
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    
-    # En lugar de Client(), inicializamos el modelo directamente
-    model = genai.GenerativeModel('gemini-1.5-flash') 
-    
-    # Opcional: Probar si funciona
-    # response = model.generate_content("Hola")
+    client = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
 except Exception as e:
     st.error(f"Error al configurar Gemini: {e}")
+    client = None
 import requests
 import json
 import os
