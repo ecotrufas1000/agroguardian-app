@@ -872,7 +872,7 @@ if menu == "📊 Monitoreo Total":
             st.metric(
                 "Temperatura",
                 f"{clima['temp']:.1f} °C",
-                delta=f"ST: {st_valor}",
+                delta=f"Sensación Térmica: {st_valor}",
                 delta_color="off"
             )
         with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
