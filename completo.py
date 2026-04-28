@@ -877,7 +877,7 @@ if menu == "📊 Monitoreo Total":
                     margin-top: -15px;
                     padding-left: 14px;
                 '>
-                    🌡️ Sensación Térmica: {st_valor}
+                    Sensación Térmica: {st_valor}
                 </div>
             """, unsafe_allow_html=True)
         with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
