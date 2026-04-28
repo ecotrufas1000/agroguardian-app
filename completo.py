@@ -875,7 +875,7 @@ if menu == "📊 Monitoreo Total":
                     color: #00ffc3;
                     font-size: 0.85rem;
                     margin-top: -15px;
-                    padding-left: 2px;
+                    padding-left: 14px;
                 '>
                     🌡️ Sensación Térmica: {st_valor}
                 </div>
