@@ -9,7 +9,7 @@ import math
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     # Usamos la versión 1.5 que es la estándar actual
-    client = genai.GenerativeModel('gemini-1.5-flash') 
+    client = genai.GenerativeModel('gemini-1.5-flash-001')
 except Exception as e:
     st.error(f"Error al configurar Gemini: {e}")
     client = None
