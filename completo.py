@@ -1,22 +1,17 @@
-import google.generativeai as genai
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-
-for m in genai.list_models():
-    if 'generateContent' in m.supported_generation_methods:
-        st.write(m.name)
 import streamlit as st
+import google.generativeai as genai
 import mercadopago
-# Así es como se configura correctamente ahora
-try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    client = genai.GenerativeModel('gemini-pro-vision')
-except Exception as e:
-    st.error(f"Error al configurar Gemini: {e}")
-    client = None
 import requests
 import json
 import os
 import math
+
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    client = genai.GenerativeModel('gemini-1.5-flash-latest')
+except Exception as e:
+    st.error(f"Error al configurar Gemini: {e}")
+    client = None
 import pandas as pd
 import io
 import plotly.express as px
