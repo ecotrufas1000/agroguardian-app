@@ -2330,10 +2330,7 @@ Acciones para evitar recurrencia.
 Indicá si requiere acción inmediata o puede esperar.
 
 Respondé siempre en español. Si la imagen no muestra claramente un problema agronómico, indicalo y pedí una foto más cercana."""
-                    response = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=[imagen_pil, prompt]
-                    )
+                    response = client.generate_content([imagen_pil, prompt])
                     st.session_state.resultado_analisis = response.text
                     status.update(label="✅ Análisis completo", state="complete")
                 except Exception as e:
