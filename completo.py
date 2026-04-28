@@ -868,28 +868,18 @@ if menu == "📊 Monitoreo Total":
     if clima:
         col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
+            st.metric("Temperatura", f"{clima['temp']:.1f} °C")
             st_valor = f"{clima.get('sensacion', clima['temp']):.1f}°C"
-            st.metric(
-                "Temperatura",
-                f"{clima['temp']:.1f} °C",
-                delta=f"Sensación Térmica: {st_valor}",
-                delta_color="off"
-            )
-        # Bloque de estilo corregido
-        st.markdown("""
-            <style>
-            /* Alinea el contenedor general a la izquierda */
-            [data-testid="stMetricDelta"] {
-                justify-content: flex-start !important;
-            }
-            /* Fuerza el alineamiento del texto interno */
-            [data-testid="stMetricDelta"] > div {
-                justify-content: flex-start !important;
-                text-align: left !important;
-                width: 100% !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style='
+                    color: #00ffc3;
+                    font-size: 0.85rem;
+                    margin-top: -15px;
+                    padding-left: 2px;
+                '>
+                    🌡️ Sensación Térmica: {st_valor}
+                </div>
+            """, unsafe_allow_html=True)
         with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
         with col3: st.metric("Punto de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
