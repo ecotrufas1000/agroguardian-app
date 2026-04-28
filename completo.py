@@ -9,7 +9,7 @@ import math
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     # Usamos la versión 1.5 que es la estándar actual
-    client = genai.GenerativeModel('gemini-2.5-pro-preview-tts')
+    client = genai.GenerativeModel('gemini-3-pro-image-preview')
 except Exception as e:
     st.error(f"Error al configurar Gemini: {e}")
     client = None
@@ -577,7 +577,7 @@ try:
         
         # 2. Asignamos el modelo a la variable 'client' 
         # (Así el resto de tu código que usa 'client' sigue funcionando)
-        client = genai.GenerativeModel('gemini-2.5-pro-preview-tts')
+        client = genai.GenerativeModel('gemini-3-pro-image-preview')
         
     else:
         st.error("No se encontró GOOGLE_API_KEY en los secrets.")
