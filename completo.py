@@ -577,7 +577,7 @@ try:
         
         # 2. Asignamos el modelo a la variable 'client' 
         # (Así el resto de tu código que usa 'client' sigue funcionando)
-        client = genai.GenerativeModel('models/gemini-2.0-flash-lite')
+        client = genai.GenerativeModel('gemini-2.5-pro-preview-tts')
         
     else:
         st.error("No se encontró GOOGLE_API_KEY en los secrets.")
