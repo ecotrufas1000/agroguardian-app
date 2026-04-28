@@ -624,11 +624,12 @@ def obtener_clima_completo(lat, lon):
         r = requests.get(url).json()
         if r.get("main"):
             t, h = r["main"]["temp"], r["main"]["humidity"]
+            st_termica = r["main"].get("feels_like", t)
             a, b = 17.27, 237.7
             alpha = ((a * t) / (b + t)) + math.log(h/100.0)
             rocio = (b * alpha) / (a - alpha)
             return {
-                "temp": t, "hum": h, "v_vel": round(r["wind"]["speed"], 1),
+                "temp": t, "hum": h,"sensacion": st_termica, "v_vel": round(r["wind"]["speed"], 1),
                 "v_dir": r["wind"].get("deg", 0), "rocio": round(rocio, 1),
                 "presion": r["main"]["pressure"], "localidad": r.get("name", "Zona Rural"),
                 "nubes": r.get("clouds", {}).get("all", 0),
