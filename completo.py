@@ -868,13 +868,13 @@ if menu == "📊 Monitoreo Total":
     if clima:
         col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
-        st_valor = f"{clima.get('sensacion', clima['temp']):.1f}°C"
-        st.metric(
-            "Temperatura",
-            f"{clima['temp']:.1f} °C",
-            delta=f"ST: {st_valor}",
-            delta_color="off"
-        )
+            st_valor = f"{clima.get('sensacion', clima['temp']):.1f}°C"
+            st.metric(
+                "Temperatura",
+                f"{clima['temp']:.1f} °C",
+                delta=f"ST: {st_valor}",
+                delta_color="off"
+            )
         with col2: st.metric("Humedad Relativa", f"{clima['hum']} %")
         with col3: st.metric("Punto de Rocío", f"{clima['rocio']} °C")
         with col4: st.metric("Viento", f"{clima['v_vel']} km/h")
