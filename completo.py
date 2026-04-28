@@ -63,7 +63,14 @@ def generar_password_temporal():
     caracteres = string.ascii_letters + string.digits
     
     return ''.join(secrets.choice(caracteres) for _ in range(10))
-
+    
+if st.button("Ver modelos disponibles"):
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                st.write(m.name)
+    except Exception as e:
+        st.error(e)
 # ==========================================================
 # 1. CONFIGURACIÓN DE PÁGINA (debe ser lo primero)
 # ==========================================================
