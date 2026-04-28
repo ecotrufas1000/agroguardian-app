@@ -1009,26 +1009,23 @@ if menu == "📊 Monitoreo Total":
         st.error(f"Error al obtener pronóstico: {e}")
 elif menu == "🌧️ Pluviómetro":
     st.header("🌧️ Pluviómetro Digital")
-    # Ocultar elementos de Streamlit y evitar que el logo tape los datos
+    # Ocultar elementos específicos pero MANTENER la barra de navegación
     st.markdown("""
     <style>
-        /* Bloquea el contenedor que sostiene el logo de la nube y la barra de herramientas */
-        #streamlitAppViewStrategy > div:nth-child(1) > header,
-        [data-testid="stHeader"],
-        .stAppToolbar,
+        /* Bloqueamos el widget de estado y el botón de gestión, pero dejamos el Header */
         [data-testid="stStatusWidget"],
         button[title="Manage app"] {
             display: none !important;
             visibility: hidden !important;
         }
 
-        /* Remueve el padding superior que deja el header oculto */
+        /* Ajustamos el padding superior para que no tape las flechas pero se vea limpio */
         .main .block-container {
-            padding-top: 2rem !important;
-            padding-bottom: 12rem !important; /* Espacio extra abajo por seguridad */
+            padding-top: 3rem !important; 
+            padding-bottom: 12rem !important; 
         }
 
-        /* Elimina cualquier banner de "Made with Streamlit" */
+        /* Elimina el banner de "Made with Streamlit" */
         footer {
             visibility: hidden !important;
         }
