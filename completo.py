@@ -875,10 +875,18 @@ if menu == "📊 Monitoreo Total":
                 delta=f"Sensación Térmica: {st_valor}",
                 delta_color="off"
             )
+        # Bloque de estilo corregido
         st.markdown("""
             <style>
+            /* Alinea el contenedor general a la izquierda */
             [data-testid="stMetricDelta"] {
-                justify-content: flex-start;
+                justify-content: flex-start !important;
+            }
+            /* Fuerza el alineamiento del texto interno */
+            [data-testid="stMetricDelta"] > div {
+                justify-content: flex-start !important;
+                text-align: left !important;
+                width: 100% !important;
             }
             </style>
         """, unsafe_allow_html=True)
