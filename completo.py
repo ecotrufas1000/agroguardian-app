@@ -1827,6 +1827,9 @@ elif menu == "🛰️ Índices Satelitales":
 
    # ── Cargar límites administrativos ─────────────────────
     # ── Cargar límites administrativos ─────────────────────
+    import os
+    # Esto mostrará en tu app la lista de archivos que hay en el servidor
+    st.write("Archivos detectados en el repositorio:", os.listdir())
     @st.cache_data
     def cargar_limites():
         import os
