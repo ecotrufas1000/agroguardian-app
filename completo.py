@@ -1836,7 +1836,8 @@ elif menu == "🛰️ Índices Satelitales":
         gdf_arg = None
         gdf_ury = None
         gdf_per = None
-        gdf_pry = None # 🇵🇾 Inicializamos Paraguay
+        gdf_pry = None
+        gdf_bol = None # 1. Agregamos la variable para Bolivia 🇧🇴
 
         if os.path.exists("gadm41_AGR_2.gpkg"):
             gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
@@ -1848,20 +1849,26 @@ elif menu == "🛰️ Índices Satelitales":
             gdf_per = gpd.read_file("peru_25kb.json")
             gdf_per["PAIS"] = "Peru"
             gdf_per["NAME_2"] = gdf_per["NAME_1"]
-        
-        # 🇵🇾 NUEVO BLOQUE DE PARAGUAY:
         if os.path.exists("pry_25kb.json"):
             gdf_pry = gpd.read_file("pry_25kb.json")
             gdf_pry["PAIS"] = "Paraguay"
-            # Como el JSON de Paraguay solo tiene NAME_1, duplicamos a NAME_2 para no romper los filtros
             gdf_pry["NAME_2"] = gdf_pry["NAME_1"]
 
-        # Sumamos gdf_pry a la lista
-        gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per, gdf_pry] if g is not None]
+        # 2. Pegamos el bloque de BOLIVIA justo aquí:
+        if os.path.exists("bolivia_25kb.json"):
+            gdf_bol = gpd.read_file("bolivia_25kb.json")
+            gdf_bol["PAIS"] = "Bolivia"
+            # Si el JSON es level 2, ya tiene NAME_1 y NAME_2. 
+            # Por seguridad, si no tuviera NAME_2, lo creamos:
+            if "NAME_2" not in gdf_bol.columns:
+                gdf_bol["NAME_2"] = gdf_bol["NAME_1"]
+
+        # 3. Sumamos 'gdf_bol' a la lista final:
+        gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per, gdf_pry, gdf_bol] if g is not None]
+        
         if gdfs:
             return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
         return None
-
     gdf_argentina = cargar_limites()
     
     peru_test = gdf_argentina[gdf_argentina["PAIS"] == "Peru"]
@@ -1976,15 +1983,18 @@ elif menu == "🛰️ Índices Satelitales":
     c0, c1, c2, c3 = st.columns([1, 1, 1, 1])
 
     with c0:
-        pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Paraguay", "Peru", "Uruguay"])
+        # AGREGAMOS BOLIVIA AQUÍ:
+        pais_sel = st.selectbox("País:", ["Seleccionar...", "Argentina", "Bolivia", "Paraguay", "Peru", "Uruguay"])
 
     with c1:
         if pais_sel != "Seleccionar..." and gdf_argentina is not None:
             gdf_pais = gdf_argentina[gdf_argentina["PAIS"] == pais_sel]
             opciones_prov = sorted(gdf_pais[col_prov].unique())
             
+            # AJUSTE DE ETIQUETAS:
             if pais_sel == "Argentina": label_prov = "Provincia:"
             elif pais_sel == "Peru": label_prov = "Departamento (Región):"
+            elif pais_sel == "Bolivia": label_prov = "Departamento:" # <-- Nuevo
             elif pais_sel == "Paraguay": label_prov = "Departamento:"
             else: label_prov = "Departamento:"
             
@@ -1997,8 +2007,10 @@ elif menu == "🛰️ Índices Satelitales":
         if pais_sel != "Seleccionar..." and prov_sel != "Seleccionar..." and gdf_pais is not None:
             deptos = sorted(gdf_pais[gdf_pais[col_prov] == prov_sel][col_depto].unique())
             
+            # AJUSTE DE ETIQUETAS NIVEL 2:
             if pais_sel == "Argentina": label_depto = "Departamento (Cdad):"
             elif pais_sel == "Peru": label_depto = "Provincia:"
+            elif pais_sel == "Bolivia": label_depto = "Provincia:" # <-- Nuevo
             elif pais_sel == "Paraguay": label_depto = "Distrito:"
             else: label_depto = "Sección:"
             
@@ -2007,13 +2019,11 @@ elif menu == "🛰️ Índices Satelitales":
             depto_sel = st.selectbox("Zona/Distrito:", ["Esperando..."], disabled=True)
 
     with c3:
-        # AQUÍ ESTÁ EL BLOQUE QUE FALTABA:
         indice_sel = st.selectbox(
             "Índice:",
             list(INDICES.keys()),
             format_func=lambda x: f"{INDICES[x]['emoji']} {x} — {INDICES[x]['desc']}"
         )
-
     # ── Rango de fechas (Debajo de los selectores) ──────────
     st.markdown("---") # Una línea divisoria para que se vea limpio
     col_f1, col_f2 = st.columns(2)
