@@ -2290,7 +2290,7 @@ elif menu == "🔍 Diagnóstico IA":
         st.session_state.foto_bytes = img_camera.read()
 
     # Galería solo para desktop
-    st.markdown("**💻 Desde computadora podés subir una foto:**")
+    st.markdown("**💻 Desde la computadora podés subir una foto:**")
     img_upload = st.file_uploader("Seleccionar imagen", type=['jpg', 'jpeg', 'png'], key="uploader_galeria")
     if img_upload is not None:
         st.session_state.foto_bytes = img_upload.read()
@@ -2304,7 +2304,7 @@ elif menu == "🔍 Diagnóstico IA":
         if st.button("🔬 ANALIZAR", type="primary", use_container_width=True):
             with st.status("Analizando...", expanded=True) as status:
                 try:
-                    prompt = """Sos un ingeniero agrónomo experto en cultivos extensivos e intensivos de Argentina y Uruguay.
+                    prompt = """Sos un ingeniero agrónomo experto en cultivos extensivos e intensivos.
 
 Analizá la imagen y respondé en este formato exacto:
 
