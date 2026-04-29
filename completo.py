@@ -1855,13 +1855,21 @@ elif menu == "🛰️ Índices Satelitales":
             gdf_pry["NAME_2"] = gdf_pry["NAME_1"]
 
         # 2. Pegamos el bloque de BOLIVIA justo aquí:
+        # 🇧🇴 BLOQUE DE BOLIVIA REFORZADO:
         if os.path.exists("bolivia_25kb.json"):
             gdf_bol = gpd.read_file("bolivia_25kb.json")
             gdf_bol["PAIS"] = "Bolivia"
-            # Si el JSON es level 2, ya tiene NAME_1 y NAME_2. 
-            # Por seguridad, si no tuviera NAME_2, lo creamos:
+            
+            # Forzamos que existan NAME_1 y NAME_2 sin importar cómo vengan del JSON
+            if "NAME_1" not in gdf_bol.columns and "name_1" in gdf_bol.columns:
+                gdf_bol["NAME_1"] = gdf_bol["name_1"]
+            
             if "NAME_2" not in gdf_bol.columns:
-                gdf_bol["NAME_2"] = gdf_bol["NAME_1"]
+                # Si no hay NAME_2, intentamos con name_2 o duplicamos NAME_1
+                if "name_2" in gdf_bol.columns:
+                    gdf_bol["NAME_2"] = gdf_bol["name_2"]
+                else:
+                    gdf_bol["NAME_2"] = gdf_bol["NAME_1"]
 
         # 3. Sumamos 'gdf_bol' a la lista final:
         gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per, gdf_pry, gdf_bol] if g is not None]
