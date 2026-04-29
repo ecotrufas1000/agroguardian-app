@@ -1827,9 +1827,9 @@ elif menu == "🛰️ Índices Satelitales":
 
    # ── Cargar límites administrativos ─────────────────────
     # ── Cargar límites administrativos ─────────────────────
-    import os
+    #import os
     # Esto mostrará en tu app la lista de archivos que hay en el servidor
-    st.write("Archivos detectados en el repositorio:", os.listdir())
+    #st.write("Archivos detectados en el repositorio:", os.listdir())
     @st.cache_data
     def cargar_limites():
         import os
@@ -1901,13 +1901,13 @@ elif menu == "🛰️ Índices Satelitales":
         return None
     # --- Ejecución de la carga ---
     gdf_argentina = cargar_limites()
-    if gdf_argentina is not None:
-        debug_bol = gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"]
-        st.write("Columnas detectadas en Bolivia:", debug_bol.columns.tolist())
-        st.write("Primeras filas de Bolivia:", debug_bol[["PAIS", "NAME_1"]].head())
+    #if gdf_argentina is not None:
+    #    debug_bol = gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"]
+    #    st.write("Columnas detectadas en Bolivia:", debug_bol.columns.tolist())
+    #    st.write("Primeras filas de Bolivia:", debug_bol[["PAIS", "NAME_1"]].head())
         # Comprobación silenciosa (no usamos st.write para evitar el error de Arrow)
-    if gdf_argentina is not None:
-        bolivia_count = len(gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"])
+    #if gdf_argentina is not None:
+    #    bolivia_count = len(gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"])
         # st.info(f"Carga exitosa: {bolivia_count} registros de Bolivia encontrados.") # Opcional para debug
     # ── Función principal GEE ──────────────────────────────
     @st.cache_data(ttl=3600)
