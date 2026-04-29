@@ -1892,7 +1892,10 @@ elif menu == "🛰️ Índices Satelitales":
 
     # --- Ejecución de la carga ---
     gdf_argentina = cargar_limites()
-
+    if gdf_argentina is not None:
+    debug_bol = gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"]
+    st.write("Columnas detectadas en Bolivia:", debug_bol.columns.tolist())
+    st.write("Primeras filas de Bolivia:", debug_bol[["PAIS", "NAME_1"]].head())
     # Comprobación silenciosa (no usamos st.write para evitar el error de Arrow)
     if gdf_argentina is not None:
         bolivia_count = len(gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"])
