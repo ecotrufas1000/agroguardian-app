@@ -1830,66 +1830,72 @@ elif menu == "🛰️ Índices Satelitales":
     @st.cache_data
     def cargar_limites():
         import os
+        import pandas as pd
+        import geopandas as gpd
+
+        # Forzamos las variables de entorno para las librerías geo
         os.environ["PROJ_LIB"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
         os.environ["PROJ_DATA"] = r"C:\Users\User\miniconda3\envs\geo_env\Library\share\proj"
 
-        gdf_arg = None
-        gdf_ury = None
-        gdf_per = None
-        gdf_pry = None
-        gdf_bol = None # 1. Agregamos la variable para Bolivia 🇧🇴
+        gdfs = []
 
+        # --- ARGENTINA ---
         if os.path.exists("gadm41_AGR_2.gpkg"):
-            gdf_arg = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
-            gdf_arg["PAIS"] = "Argentina"
+            g = gpd.read_file("gadm41_AGR_2.gpkg", engine="pyogrio")
+            g["PAIS"] = "Argentina"
+            gdfs.append(g)
+
+        # --- URUGUAY ---
         if os.path.exists("gadm41_URY.gpkg"):
-            gdf_ury = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
-            gdf_ury["PAIS"] = "Uruguay"
+            g = gpd.read_file("gadm41_URY.gpkg", layer="ADM_ADM_2", engine="pyogrio")
+            g["PAIS"] = "Uruguay"
+            gdfs.append(g)
+
+        # --- PERU ---
         if os.path.exists("peru_25kb.json"):
-            gdf_per = gpd.read_file("peru_25kb.json")
-            gdf_per["PAIS"] = "Peru"
-            gdf_per["NAME_2"] = gdf_per["NAME_1"]
-        if os.path.exists("pry_25kb.json"):
-            gdf_pry = gpd.read_file("pry_25kb.json")
-            gdf_pry["PAIS"] = "Paraguay"
-            gdf_pry["NAME_2"] = gdf_pry["NAME_1"]
-
-        # 2. Pegamos el bloque de BOLIVIA justo aquí:
-        # 🇧🇴 BLOQUE DE BOLIVIA REFORZADO:
-        if os.path.exists("bolivia_25kb.json"):
-            gdf_bol = gpd.read_file("bolivia_25kb.json")
-            gdf_bol["PAIS"] = "Bolivia"
-            
-            # Forzamos que existan NAME_1 y NAME_2 sin importar cómo vengan del JSON
-            if "NAME_1" not in gdf_bol.columns and "name_1" in gdf_bol.columns:
-                gdf_bol["NAME_1"] = gdf_bol["name_1"]
-            
-            if "NAME_2" not in gdf_bol.columns:
-                # Si no hay NAME_2, intentamos con name_2 o duplicamos NAME_1
-                if "name_2" in gdf_bol.columns:
-                    gdf_bol["NAME_2"] = gdf_bol["name_2"]
-                else:
-                    gdf_bol["NAME_2"] = gdf_bol["NAME_1"]
-
-        # 3. Sumamos 'gdf_bol' a la lista final:
-        gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per, gdf_pry, gdf_bol] if g is not None]
+            g = gpd.read_file("peru_25kb.json")
+            g["PAIS"] = "Peru"
+            if "NAME_2" not in g.columns: g["NAME_2"] = g["NAME_1"]
+            gdfs.append(g)
         
-        # --- Final de la función cargar_limites ---
+        # --- PARAGUAY ---
+        if os.path.exists("pry_25kb.json"):
+            g = gpd.read_file("pry_25kb.json")
+            g["PAIS"] = "Paraguay"
+            if "NAME_2" not in g.columns: g["NAME_2"] = g["NAME_1"]
+            gdfs.append(g)
+
+        # --- BOLIVIA (REVISAR NOMBRE DE ARCHIVO) ---
+        # Asegúrate que el archivo en GitHub se llame exactamente bolivia_25kb.json
+        if os.path.exists("bolivia_25kb.json"):
+            g = gpd.read_file("bolivia_25kb.json")
+            g["PAIS"] = "Bolivia" # Asignación explícita
+            
+            # Limpieza de columnas para Bolivia
+            if "NAME_1" not in g.columns and "name_1" in g.columns:
+                g = g.rename(columns={"name_1": "NAME_1", "name_2": "NAME_2"})
+            
+            if "NAME_2" not in g.columns:
+                g["NAME_2"] = g["NAME_1"]
+            
+            # Forzamos que no haya espacios raros
+            g["NAME_1"] = g["NAME_1"].astype(str).str.strip()
+            g["NAME_2"] = g["NAME_2"].astype(str).str.strip()
+            
+            gdfs.append(g)
+        else:
+            # Esto saldrá en la consola de Streamlit si el archivo no se encuentra
+            print("ERROR: No se encontró bolivia_25kb.json")
+
         if gdfs:
-            # Combinamos todos los países
-            df_unificado = pd.concat(gdfs, ignore_index=True)
-            
-            # Limpieza para evitar errores de Pyarrow:
-            # Aseguramos que las columnas de texto sean tratadas como strings puros
-            columnas_texto = ["NAME_1", "NAME_2", "PAIS"]
-            for col in columnas_texto:
-                if col in df_unificado.columns:
-                    df_unificado[col] = df_unificado[col].astype(str).replace("None", None)
-            
-            return gpd.GeoDataFrame(df_unificado)
+            df_final = pd.concat(gdfs, ignore_index=True)
+            # Homogeneizar tipos de datos para evitar el error de Arrow
+            for col in ["NAME_1", "NAME_2", "PAIS"]:
+                if col in df_final.columns:
+                    df_final[col] = df_final[col].astype(str).replace("nan", "Desconocido")
+            return gpd.GeoDataFrame(df_final)
         
         return None
-
     # --- Ejecución de la carga ---
     gdf_argentina = cargar_limites()
     if gdf_argentina is not None:
