@@ -1874,14 +1874,29 @@ elif menu == "🛰️ Índices Satelitales":
         # 3. Sumamos 'gdf_bol' a la lista final:
         gdfs = [g for g in [gdf_arg, gdf_ury, gdf_per, gdf_pry, gdf_bol] if g is not None]
         
+        # --- Final de la función cargar_limites ---
         if gdfs:
-            return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
+            # Combinamos todos los países
+            df_unificado = pd.concat(gdfs, ignore_index=True)
+            
+            # Limpieza para evitar errores de Pyarrow:
+            # Aseguramos que las columnas de texto sean tratadas como strings puros
+            columnas_texto = ["NAME_1", "NAME_2", "PAIS"]
+            for col in columnas_texto:
+                if col in df_unificado.columns:
+                    df_unificado[col] = df_unificado[col].astype(str).replace("None", None)
+            
+            return gpd.GeoDataFrame(df_unificado)
+        
         return None
+
+    # --- Ejecución de la carga ---
     gdf_argentina = cargar_limites()
-    #st.write(gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"].head())
-    peru_test = gdf_argentina[gdf_argentina["PAIS"] == "Peru"]
-    #st.write(f"Filas Peru: {len(peru_test)}")
-    #st.write(peru_test[["NAME_1", "NAME_2", "PAIS"]].head())
+
+    # Comprobación silenciosa (no usamos st.write para evitar el error de Arrow)
+    if gdf_argentina is not None:
+        bolivia_count = len(gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"])
+        # st.info(f"Carga exitosa: {bolivia_count} registros de Bolivia encontrados.") # Opcional para debug
     # ── Función principal GEE ──────────────────────────────
     @st.cache_data(ttl=3600)
     def obtener_capa_gee(lat, lon, indice, fecha_inicio, fecha_fin):
