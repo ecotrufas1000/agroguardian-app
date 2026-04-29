@@ -1870,8 +1870,8 @@ elif menu == "🛰️ Índices Satelitales":
 
         # --- BOLIVIA (REVISAR NOMBRE DE ARCHIVO) ---
         # Asegúrate que el archivo en GitHub se llame exactamente bolivia_25kb.json
-        if os.path.exists("bolivia_25kb.json"):
-            g = gpd.read_file("bolivia_25kb.json")
+        if os.path.exists("gadm41_BOL_2.json"):
+            g = gpd.read_file("gadm41_BOL_2.json")
             g["PAIS"] = "Bolivia" # Asignación explícita
             
             # Limpieza de columnas para Bolivia
