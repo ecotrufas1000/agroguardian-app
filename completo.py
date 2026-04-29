@@ -1878,7 +1878,7 @@ elif menu == "🛰️ Índices Satelitales":
             return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
         return None
     gdf_argentina = cargar_limites()
-    st.write(gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"].head())
+    #st.write(gdf_argentina[gdf_argentina["PAIS"] == "Bolivia"].head())
     peru_test = gdf_argentina[gdf_argentina["PAIS"] == "Peru"]
     #st.write(f"Filas Peru: {len(peru_test)}")
     #st.write(peru_test[["NAME_1", "NAME_2", "PAIS"]].head())
