@@ -2441,7 +2441,7 @@ elif menu == "💳 Suscripción PRO":
                 {
                     "title": "Suscripción AgroGuardian PRO",
                     "quantity": 1,
-                    "unit_price": 300.000,
+                    "unit_price": 300000,
                     "currency_id": "ARS"
                 }
             ],
