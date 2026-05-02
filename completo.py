@@ -1437,8 +1437,12 @@ elif menu == "💧 Balance Hídrico":
             )
         
         # c4 queda vacío — reservado para Perú
-        # with c4:
-        #     st.link_button("🇵🇪 Perú", "...", use_container_width=True)
+        with c4:
+            st.link_button(
+            "🇵🇪 Perú (IDESEP)",
+            "https://idesep.senamhi.gob.pe/balance-hidrico/",
+            use_container_width=True
+            )
         
         st.markdown("<br>", unsafe_allow_html=True)
         
