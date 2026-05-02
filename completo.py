@@ -1407,28 +1407,50 @@ elif menu == "💧 Balance Hídrico":
         
         </style>
         """, unsafe_allow_html=True)
-        col_izq, c1, c2, c3, col_der = st.columns([0.5, 1, 1, 1, 0.5])
-        
-        with c1:
-            st.link_button(
-                "🇦🇷 🌱 % Agua Útil (0-2m)",
-                "https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/",
-                use_container_width=True
-            )
-        
-        with c2:
-            st.link_button(
-                "🇦🇷 💧 Agua Disponible (mm)",
-                "https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/",
-                use_container_width=True
-            )
-        
-        with c3:
-            st.link_button(
-                "🇺🇾 🌱 Uruguay (INUMET)",
-                "https://www.inumet.gub.uy/reportes/pages/productos-agro/",
-                use_container_width=True
-            )        
+        # Fila 1 — Argentina
+col_izq, c1, c2, col_der = st.columns([0.5, 1, 1, 0.5])
+
+with c1:
+    st.link_button(
+        "🇦🇷 🌱 % Agua Útil (0-2m)",
+        "https://sepa.inta.gob.ar/productos/agua_en_suelo/pj_10d/",
+        use_container_width=True
+    )
+
+with c2:
+    st.link_button(
+        "🇦🇷 💧 Agua Disponible (mm)",
+        "https://sepa.inta.gob.ar/productos/agua_en_suelo/ad_10d/",
+        use_container_width=True
+    )
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Fila 2 — Paraguay
+col_izq2, c3, c4, col_der2 = st.columns([0.5, 1, 1, 0.5])
+
+with c3:
+    st.link_button(
+        "🇵🇾 💧 Balance Hídrico Agrícola",
+        "https://bhag.meteorologia.gov.py/balance.html",
+        use_container_width=True
+    )
+
+# c4 queda vacío — reservado para Perú
+# with c4:
+#     st.link_button("🇵🇪 Perú", "...", use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Fila 3 — Uruguay
+col_izq3, c5, col_der3 = st.columns([0.5, 1, 0.5])
+
+with c5:
+    st.link_button(
+        "🇺🇾 🌱 Uruguay (INUMET)",
+        "https://www.inumet.gub.uy/reportes/pages/productos-agro/",
+        use_container_width=True
+    )
         st.markdown("<br><br>", unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error en Balance Hídrico: {e}")
