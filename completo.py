@@ -2447,7 +2447,7 @@ elif menu == "💳 Suscripción PRO":
         * 📊 **Reportes PDF:** Descargas ilimitadas de diagnósticos para tus lotes.
         * 🔔 **Alertas Premium:** Notificaciones prioritarias de heladas y granizo.
         * La versión PRO de AgroGuardian te permite el acceso ilimitado a todas las funciones. 
-        * Costo Mensual: U$S 20.00, se factura anualmente. **Promo por este Mes U$$ 200/año.**
+        * Costo Mensual: U$S 20.00, se factura anualmente. 
         """)
     
     # ... (El resto de tu lógica de Mercado Pago se mantiene igual)        
