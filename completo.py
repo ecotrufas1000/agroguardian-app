@@ -181,14 +181,14 @@ def registrar(email, password, nombre, campo, localidad):
             "password": password
         })
         if res.user:
-            trial_fin = datetime.now() + timedelta(days=15)
+            
             supabase.table("perfiles").insert({
                 "id": res.user.id,
                 "nombre": nombre,
                 "campo": campo,
                 "localidad": localidad,
                 "password_temporal": False
-                "trial_fin":trial_fin.isoformat()
+                
             }).execute()
             return True
         return False
